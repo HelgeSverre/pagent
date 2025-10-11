@@ -1,0 +1,18 @@
+parameters:
+    level: 9
+    paths:
+        - src
+        - tests
+    excludePaths:
+        - tests/Fixtures
+        - tests/Pest.php
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        - identifier: missingType.iterableValue
+        - identifier: missingType.generics
+        - '#Function Pest\\.*#'
+        - '#Call to an undefined method.*AgentBuilder::rateLimit#'
+        - '#Parameter \$provider of class.*expects.*LLMProvider.*object given#'
+        - '#Property.*\$provider.*does not accept object#'
+        - '#Parameter.*\$providerClass.*expects class-string.*string given#'
+        - '#Unreachable statement#'

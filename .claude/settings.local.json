@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./vendor/bin/pest)",
+      "Bash(php:*)",
+      "Bash(rm:*)",
+      "Bash(find:*)"
+    ],
+    "deny": []
+  }
+}
