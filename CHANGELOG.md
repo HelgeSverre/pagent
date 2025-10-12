@@ -6,7 +6,7 @@ All notable changes to Pagent will be documented in this file.
 
 ## [0.4.0] - 2025-10-12
 
-### 🤝 Major Release: Multi-Agent Orchestration
+### Major Release: Multi-Agent Orchestration
 
 Complete multi-agent coordination system with pipelines, handoffs, and delegation patterns.
 
@@ -54,7 +54,7 @@ Complete multi-agent coordination system with pipelines, handoffs, and delegatio
 
 ## [0.3.0] - 2025-10-11
 
-### 🛡️ Major Release: Safety Guards & Evaluation Framework
+### Major Release: Safety Guards & Evaluation Framework
 
 Complete safety system with guards, evaluation framework, and middleware pipeline.
 
@@ -115,7 +115,7 @@ Complete safety system with guards, evaluation framework, and middleware pipelin
 
 ## [0.2.0] - 2025-10-11
 
-### 🎉 Major Release: Automatic Tool/Function Calling
+### Major Release: Automatic Tool/Function Calling
 
 Complete implementation of tool calling with both Anthropic and OpenAI providers.
 
@@ -137,7 +137,7 @@ Complete implementation of tool calling with both Anthropic and OpenAI providers
   - Both providers return structured `tool_calls` array
 - **Examples Directory**: 5 comprehensive working demos
   - `examples/01-basic-chat.php` - Conversations with different providers
-  - `examples/02-tool-calling.php` - Automatic tool execution ⭐
+  - `examples/02-tool-calling.php` - Automatic tool execution
   - `examples/03-context-memory.php` - Context tracking
   - `examples/04-multi-provider.php` - Provider comparison
   - `examples/05-complete-demo.php` - Full feature demonstration
