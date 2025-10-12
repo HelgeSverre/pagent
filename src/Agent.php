@@ -12,12 +12,22 @@ use Pagent\Exceptions\GuardException;
 use Pagent\Tool\Tool;
 use RuntimeException;
 
+use function array_filter;
+use function array_keys;
 use function array_map;
 use function array_merge;
+use function array_slice;
+use function asort;
 use function class_exists;
+use function count;
+use function date;
 use function get_class;
+use function implode;
+use function is_array;
 use function is_string;
+use function json_decode;
 use function json_encode;
+use function levenshtein;
 use function sprintf;
 use function str_contains;
 use function ucfirst;
@@ -184,7 +194,21 @@ final class Agent
             }
         }
 
-        throw new RuntimeException("Tool '{$name}' not found");
+        // Better error message with suggestions
+        $available = array_map(fn($t) => $t->name, $this->tools);
+        $suggestions = $this->findSimilarToolNames($name, $available);
+
+        $message = "Tool '{$name}' not found";
+
+        if (! empty($suggestions)) {
+            $message .= '. Did you mean: ' . implode(', ', $suggestions) . '?';
+        }
+
+        if (! empty($available)) {
+            $message .= ' Available tools: ' . implode(', ', $available);
+        }
+
+        throw new RuntimeException($message);
     }
 
     public function guard(string|Guard $guard, ?Closure $check = null): self
@@ -291,6 +315,127 @@ final class Agent
         return new Orchestration\Delegation($this, $task);
     }
 
+    /**
+     * Clear all tools from this agent.
+     */
+    public function clearTools(): self
+    {
+        $this->tools = [];
+
+        return $this;
+    }
+
+    /**
+     * Clear all guards from this agent.
+     */
+    public function clearGuards(): self
+    {
+        $this->guards = [];
+        $this->fallback = null;
+
+        return $this;
+    }
+
+    /**
+     * Clear all middleware from this agent.
+     */
+    public function clearMiddleware(): self
+    {
+        $this->middleware = [];
+
+        return $this;
+    }
+
+    /**
+     * Reset agent to initial state (clear history, tools, guards, middleware).
+     */
+    public function reset(): self
+    {
+        $this->messages = [];
+        $this->tools = [];
+        $this->guards = [];
+        $this->middleware = [];
+        $this->fallback = null;
+
+        return $this;
+    }
+
+    /**
+     * Clone this agent with a new name.
+     */
+    public function clone(string $newName): Agent
+    {
+        $clone = new Agent($newName);
+        $clone->provider = $this->provider;
+        $clone->config = $this->config;
+        $clone->tools = $this->tools;
+        $clone->guards = $this->guards;
+        $clone->middleware = $this->middleware;
+        $clone->fallback = $this->fallback;
+        // Don't copy messages - fresh conversation
+
+        return $clone;
+    }
+
+    /**
+     * Export conversation history as JSON string.
+     */
+    public function exportConversation(): string
+    {
+        return json_encode([
+            'agent' => $this->name,
+            'messages' => $this->messages,
+            'exported_at' => date('c'),
+        ], JSON_PRETTY_PRINT);
+    }
+
+    /**
+     * Import conversation history from JSON string.
+     */
+    public function importConversation(string $json): self
+    {
+        $data = json_decode($json, true);
+
+        if (! isset($data['messages']) || ! is_array($data['messages'])) {
+            throw new RuntimeException('Invalid conversation data format');
+        }
+
+        $this->messages = $data['messages'];
+
+        return $this;
+    }
+
+    /**
+     * Get usage statistics for this agent.
+     */
+    public function getStats(): array
+    {
+        $totalMessages = count($this->messages);
+        $userMessages = count(array_filter($this->messages, fn($m) => $m['role'] === 'user'));
+        $assistantMessages = count(array_filter($this->messages, fn($m) => $m['role'] === 'assistant'));
+
+        return [
+            'agent' => $this->name,
+            'total_messages' => $totalMessages,
+            'user_messages' => $userMessages,
+            'assistant_messages' => $assistantMessages,
+            'tools_registered' => count($this->tools),
+            'guards_active' => count($this->guards),
+            'middleware_active' => count($this->middleware),
+        ];
+    }
+
+    /**
+     * Get guard statistics (how many times guards were checked).
+     */
+    public function getGuardStats(): array
+    {
+        return array_map(fn($guard) => [
+            'name' => $guard->getName(),
+            'active' => true,
+        ], $this->guards);
+    }
+
     private function runGuards(string $input, string $output): void
     {
         foreach ($this->guards as $guard) {
@@ -380,5 +525,31 @@ final class Agent
         }
 
         return $this->provider->prompt('', $options);
+    }
+
+    /**
+     * Find similar tool names using Levenshtein distance.
+     *
+     * @param string $needle The tool name to find
+     * @param array $haystack Available tool names
+     *
+     * @return array Similar tool names
+     */
+    private function findSimilarToolNames(string $needle, array $haystack): array
+    {
+        if (empty($haystack)) {
+            return [];
+        }
+
+        $distances = [];
+        foreach ($haystack as $toolName) {
+            $distances[$toolName] = levenshtein($needle, $toolName);
+        }
+
+        asort($distances);
+        $closest = array_slice($distances, 0, 3, true);
+
+        // Only return suggestions with distance <= 3
+        return array_keys(array_filter($closest, fn($dist) => $dist <= 3));
     }
 }
