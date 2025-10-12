@@ -1,17 +1,38 @@
 # Pagent 🩸
 
-PHP library for interacting with language models (LLMs), inspired by the functional-fluent-builder pattern
-in [Pest](https://pestphp.com).
+**A Pest-inspired LLM Agent Framework for PHP**
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/helgesverre/pagent.svg?style=flat-square)](https://packagist.org/packages/helgesverre/pagent)
+Build intelligent agents with automatic tool calling, multi-provider support, safety guards, and multi-agent orchestration—all with a clean, fluent API.
+
+[![Latest Version](https://img.shields.io/packagist/v/helgesverre/pagent.svg?style=flat-square)](https://packagist.org/packages/helgesverre/pagent)
+[![Tests](https://img.shields.io/github/actions/workflow/status/helgesverre/pagent/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/helgesverre/pagent/actions)
+[![Total Downloads](https://img.shields.io/packagist/dt/helgesverre/pagent.svg?style=flat-square)](https://packagist.org/packages/helgesverre/pagent)
+[![PHP Version](https://img.shields.io/packagist/php-v/helgesverre/pagent.svg?style=flat-square)](https://packagist.org/packages/helgesverre/pagent)
+[![License](https://img.shields.io/packagist/l/helgesverre/pagent.svg?style=flat-square)](https://github.com/helgesverre/pagent/blob/main/LICENSE)
+
+---
+
+## Why Pagent?
+
+- **🧪 Pest-Inspired API** - Fluent, expressive syntax that feels natural
+- **🔧 Automatic Tool Calling** - JSON schema generation from PHP functions
+- **🤖 Multi-Provider** - Anthropic Claude, OpenAI GPT, Mock (for testing)
+- **🛡️ Safety Guards** - PII detection, content filtering, prompt injection prevention
+- **📊 Evaluation Framework** - Test datasets with automated metrics and reports
+- **🔄 Multi-Agent Orchestration** - Pipeline, handoff, and delegation patterns
+- **⚡ Production Ready** - 169 tests, PHPStan level 9, PHP 8.3+ type safety
+
+---
 
 ## Installation
 
 ```bash
 composer require helgesverre/pagent
-
-
 ```
+
+**Requirements:**
+- PHP 8.3 or higher
+- Composer 2.x
 
 ## Quick Start
 
@@ -176,3 +197,29 @@ We've created **5 different guide styles** so you can learn in the way that work
 **Need something specific?** Check the [Recipes Guide](guide/02-recipes-task-oriented.md).
 
 **In a hurry?** The [Quick Start](guide/03-quick-start-minimal.md) has you covered.
+
+---
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on:
+- Development setup
+- Running tests
+- Code style guidelines
+- Pull request process
+
+Read our [Code of Conduct](CODE_OF_CONDUCT.md) and [Security Policy](SECURITY.md).
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for recent changes.
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.
+
+## Credits
+
+Created by [Helge Sverre](https://helgesver.re).
+
+Inspired by [Pest](https://pestphp.com)'s elegant API design.
