@@ -179,6 +179,71 @@ agent('bot')
 - Chunk-by-chunk processing
 - Streaming tool results
 
+### HTTP Server Integration
+
+**Priority: High - Deploy agents as HTTP services**
+
+Expose agents via HTTP endpoints (similar to Bun.serve()):
+
+- Built-in HTTP server for agent deployment
+- RESTful API generation from agents
+- WebSocket support for streaming responses
+- Request/response middleware
+- CORS configuration
+- Authentication and rate limiting
+- Health checks and metrics endpoints
+
+```php
+// Example: Expose agent via HTTP
+agent('support-bot')
+    ->system('You are a helpful support agent')
+    ->tool('search', 'Search knowledge base', fn($query) => /* ... */)
+    ->serve([
+        'host' => '0.0.0.0',
+        'port' => 8080,
+        'path' => '/api/chat',
+        'auth' => ['bearer' => env('API_TOKEN')],
+        'cors' => ['*'],
+        'rate_limit' => ['max' => 100, 'window' => 60],
+    ]);
+
+// Example: Multi-agent API
+server()
+    ->agent('support', agent('support-bot'), '/chat/support')
+    ->agent('sales', agent('sales-bot'), '/chat/sales')
+    ->agent('technical', agent('tech-bot'), '/chat/technical')
+    ->middleware('auth', new BearerAuth())
+    ->middleware('logging', new RequestLogger())
+    ->start('0.0.0.0:8080');
+
+// Example: Streaming endpoint
+agent('assistant')
+    ->serve([
+        'path' => '/stream',
+        'stream' => true, // Enable SSE streaming
+    ]);
+```
+
+**Features to implement:**
+- Built-in HTTP server (ReactPHP, Swoole, or RoadRunner)
+- Automatic API endpoint generation
+- Request validation and sanitization
+- Response formatting (JSON, SSE, WebSocket)
+- Session management via headers/cookies
+- Conversation state persistence
+- Graceful shutdown and restart
+- Production deployment guides
+- Docker container support
+- Kubernetes deployment examples
+
+**Use cases:**
+- Deploy agents as microservices
+- Create chatbot APIs
+- Build agent-powered webhooks
+- Serve multiple agents from single server
+- Integration with frontend applications
+- Mobile app backends
+
 ---
 
 ## v0.8.0 - Advanced Patterns
