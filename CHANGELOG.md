@@ -4,6 +4,54 @@ All notable changes to Pagent will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-10-12
+
+### 🤝 Major Release: Multi-Agent Orchestration
+
+Complete multi-agent coordination system with pipelines, handoffs, and delegation patterns.
+
+### Added
+
+- **Pipeline Pattern**:
+  - `Pipeline` class for sequential agent execution
+  - Transform functions between stages
+  - Error recovery with `onError()` handler
+  - Global `pipeline()` helper function
+  - Support for complex multi-stage workflows
+- **Handoff Pattern**:
+  - `Handoff` class for agent-to-agent transfers
+  - `Agent->handoff()` method to transfer conversations
+  - Full conversation history preservation
+  - Context packaging with handoff reason
+- **Delegation Pattern**:
+  - `Delegation` class for manager-worker coordination
+  - `Agent->delegate()` method for task delegation
+  - Supervisor functions for quality control
+  - `onComplete()` callbacks for post-processing
+  - Structured result objects with manager review
+- **Helper Functions**:
+  - `resolveAgent()` - Convert string/Agent to Agent instance
+  - Enhanced agent registry management
+- **Examples**:
+  - `examples/09-multi-agent.php` - Complete orchestration demo with 6 examples
+- **Test Coverage**:
+  - `tests/Unit/Orchestration/PipelineTest.php` - 7 tests
+  - `tests/Unit/Orchestration/HandoffTest.php` - 5 tests
+  - `tests/Unit/Orchestration/DelegationTest.php` - 5 tests
+
+### Changed
+
+- Test count increased from 134 to 150+ tests
+- Enhanced agent registry to support orchestration patterns
+
+### Technical Details
+
+- All orchestration classes in `src/Orchestration/` namespace
+- Full type safety with PHP 8.3
+- Comprehensive error handling and recovery
+- 17 new tests added (all passing)
+- 100% test pass rate maintained
+
 ## [0.3.0] - 2025-10-11
 
 ### 🛡️ Major Release: Safety Guards & Evaluation Framework
@@ -17,41 +65,34 @@ Complete safety system with guards, evaluation framework, and middleware pipelin
   - `GuardException` with detailed context
   - Agent methods: `guard()`, `fallback()`, `getGuards()`
   - Automatic guard execution in prompt flow
-  
 - **Built-in Guards**:
   - `PIIGuard` - Detects SSN, credit cards, emails, phone numbers, IP addresses
   - `ContentFilterGuard` - Blocks profanity and harmful content
   - `PromptInjectionGuard` - Prevents prompt injection attacks
   - Support for closure-based guards
-  
 - **Evaluation Framework**:
   - `Evaluator` class for systematic agent testing
   - `Dataset` class with JSON/CSV/Array loaders
   - `EvaluationResult` with statistical analysis
   - `Report` class with HTML/JSON/Markdown export
   - Global `evaluate()` function
-  
 - **Built-in Metrics**:
   - `KeywordMetric` - Check for presence of keywords
   - `LengthMetric` - Validate response length
   - `SimilarityMetric` - Compare with expected output
   - Support for custom metrics via closures
-  
 - **Middleware System**:
   - `Middleware` interface for request/response handlers
   - Before/after hooks for every prompt
   - Agent methods: `middleware()`, `getMiddleware()`
-  
 - **Built-in Middleware**:
   - `LoggingMiddleware` - PSR-3 compatible logging
   - `RateLimitMiddleware` - Request throttling with configurable limits
   - `MetricsMiddleware` - Performance tracking and token counting
-  
 - **Enhanced Tool System**:
   - `ToolValidator` for automatic input validation
   - Type checking for tool arguments
   - Better error messages for validation failures
-  
 - **Examples**:
   - `examples/06-safety-guards.php` - Guard demonstrations
   - `examples/07-evaluation.php` - Evaluation framework usage
@@ -85,30 +126,25 @@ Complete implementation of tool calling with both Anthropic and OpenAI providers
   - Detects tool calls in LLM responses
   - Executes tools and continues conversation with results
   - Works seamlessly with both Anthropic and OpenAI
-  
 - **Tool/Function Calling System**:
   - `Tool` class for creating tools from PHP closures
   - `ToolArgument` class with automatic type inference
   - Schema generation for both Anthropic (`input_schema`) and OpenAI (`parameters`)
   - Agent methods: `tool()`, `getTools()`, `executeTool()`
-  
 - **Provider Enhancements**:
   - Anthropic: Tool use API with `tool_result` blocks
   - OpenAI: Function calling with `tool_calls` messages
   - Both providers return structured `tool_calls` array
-  
 - **Examples Directory**: 5 comprehensive working demos
   - `examples/01-basic-chat.php` - Conversations with different providers
   - `examples/02-tool-calling.php` - Automatic tool execution ⭐
   - `examples/03-context-memory.php` - Context tracking
   - `examples/04-multi-provider.php` - Provider comparison
   - `examples/05-complete-demo.php` - Full feature demonstration
-  
 - **Infrastructure**:
   - `.env` support via vlucas/phpdotenv
   - `.env.example` with placeholder API keys
   - Pest v4 upgrade (v2.36 → v4.1.2)
-  
 - **Documentation**:
   - `ROADMAP.md` - Future features prioritized
   - `NEXT_STEPS.md` - Actionable development guide
