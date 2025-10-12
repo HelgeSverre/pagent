@@ -79,3 +79,24 @@ if ( ! function_exists('evaluate')) {
         return new Pagent\Evaluation\Evaluator($agentName);
     }
 }
+
+if ( ! function_exists('pipeline')) {
+    /**
+     * Create a pipeline for sequential agent execution.
+     */
+    function pipeline(string $name): Pagent\Orchestration\Pipeline
+    {
+        return new Pagent\Orchestration\Pipeline($name);
+    }
+}
+
+if ( ! function_exists('resolveAgent')) {
+    /**
+     * Resolve an agent from a string name or Agent instance.
+     * @param string<class-string>|Agent $agent
+     */
+    function resolveAgent(string|Agent $agent): Agent|AgentBuilder
+    {
+        return is_string($agent) ? agent($agent) : $agent;
+    }
+}

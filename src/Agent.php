@@ -188,7 +188,7 @@ final class Agent
 
             $anonymousGuard = new class ($name, $check) implements Guard {
                 public function __construct(
-                    private readonly string $name,
+                    private readonly string  $name,
                     private readonly Closure $check,
                 ) {}
 
@@ -260,6 +260,23 @@ final class Agent
     public function getMiddleware(): array
     {
         return $this->middleware;
+    }
+
+    public function handoff(string|Agent $targetAgent, ?string $reason = null): Agent
+    {
+        $handoff = new Orchestration\Handoff($this);
+        $handoff->to($targetAgent);
+
+        if ($reason) {
+            $handoff->because($reason);
+        }
+
+        return $handoff->transfer();
+    }
+
+    public function delegate(string $task): Orchestration\Delegation
+    {
+        return new Orchestration\Delegation($this, $task);
     }
 
     private function runGuards(string $input, string $output): void

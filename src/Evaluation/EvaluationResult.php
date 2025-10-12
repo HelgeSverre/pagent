@@ -10,9 +10,9 @@ final readonly class EvaluationResult
 {
     public function __construct(
         public string $agentName,
-        public array $results,
-        public array $metrics,
-        public int $datasetSize,
+        public array  $results,
+        public array  $metrics,
+        public int    $datasetSize,
     ) {}
 
     public function getAverageScore(string $metricName): float

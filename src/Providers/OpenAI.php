@@ -64,6 +64,9 @@ final class OpenAI implements Provider
             ],
             CURLOPT_POSTFIELDS => json_encode($body),
             CURLOPT_TIMEOUT => 30,
+            // TODO: ignore ssl verification for now, but should be handled properly in production
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_SSL_VERIFYPEER => 0,
         ]);
 
         $response = curl_exec($ch);

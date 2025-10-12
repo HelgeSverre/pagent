@@ -46,7 +46,6 @@ final class Anthropic implements Provider
         }
 
 
-
         // TODO: replace with official php sdk client or http client from illuminate.
         // Make API call
         $ch = curl_init($this->baseUrl . '/messages');
@@ -73,8 +72,13 @@ final class Anthropic implements Provider
         $data = json_decode($response, true);
 
         if (200 !== $httpCode) {
+
+            ray($data)->showApp();
+
+            $type = $data['error']['type'] ?? 'Unknown type';
             $error = $data['error']['message'] ?? 'Unknown error';
-            throw new RuntimeException("Anthropic API error: {$error}");
+
+            throw new RuntimeException("Anthropic API error: {$type} {$error}");
         }
 
         // Extract content and tool calls

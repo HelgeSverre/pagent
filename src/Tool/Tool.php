@@ -11,13 +11,13 @@ use ReflectionNamedType;
 final readonly class Tool
 {
     /**
-     * @param  ToolArgument[]  $arguments
+     * @param ToolArgument[] $arguments
      */
     public function __construct(
-        public string $name,
-        public string $description,
+        public string  $name,
+        public string  $description,
         public Closure $callable,
-        public array $arguments = [],
+        public array   $arguments = [],
     ) {}
 
     public static function fromClosure(string $name, string $description, Closure $closure): self

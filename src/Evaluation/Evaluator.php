@@ -39,7 +39,7 @@ final class Evaluator
             $this->metrics[$name] = new class ($name, $metric) implements Metric {
                 public function __construct(
                     private readonly string $name,
-                    private readonly mixed $callable,
+                    private readonly mixed  $callable,
                 ) {}
 
                 public function calculate(string $input, string $output, mixed $expected = null): float

@@ -7,11 +7,11 @@ namespace Pagent\Tool;
 final readonly class ToolArgument
 {
     public function __construct(
-        public string $name,
-        public string $type,
-        public bool $nullable = false,
+        public string  $name,
+        public string  $type,
+        public bool    $nullable = false,
         public ?string $description = null,
-        public mixed $default = null,
+        public mixed   $default = null,
     ) {}
 
     public function toJsonSchema(): array

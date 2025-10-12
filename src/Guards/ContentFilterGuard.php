@@ -16,7 +16,7 @@ final class ContentFilterGuard implements Guard
 
     public function __construct(
         private readonly array $customPatterns = [],
-        private readonly bool $strictMode = false,
+        private readonly bool  $strictMode = false,
     ) {
         if ( ! empty($customPatterns)) {
             $this->blockedPatterns = array_merge($this->blockedPatterns, $customPatterns);

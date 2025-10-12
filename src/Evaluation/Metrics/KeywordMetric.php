@@ -10,7 +10,7 @@ final class KeywordMetric implements Metric
 {
     public function __construct(
         private readonly array $keywords,
-        private readonly bool $requireAll = false,
+        private readonly bool  $requireAll = false,
     ) {}
 
     public function calculate(string $input, string $output, mixed $expected = null): float
