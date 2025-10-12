@@ -328,18 +328,45 @@ This provides metrics on:
 - Read the [documentation](README.md)
 - Ask questions in discussions
 
-## Code Review Checklist
+## Pull Request Guidelines
 
-Before submitting a PR, ensure:
+### Before Submitting
+
+1. **Ensure all quality checks pass:**
+   ```bash
+   make pr  # Runs full quality suite
+   ```
+
+2. **Update CHANGELOG.md:**
+   - Add entry under `[Unreleased]` section
+   - Follow [Keep a Changelog](https://keepachangelog.com/) format
+   - Use categories: Added, Changed, Deprecated, Removed, Fixed, Security
+
+3. **Write clear commit messages:**
+   - Use [Conventional Commits](https://www.conventionalcommits.org/) format
+   - Examples: `feat: add retry logic`, `fix: handle timeout errors`, `docs: update README`
+
+### PR Checklist
 
 - [ ] All tests pass (`make test`)
 - [ ] Code style is correct (`make format-check`)
 - [ ] Static analysis passes (`make analyse`)
-- [ ] New features have tests
-- [ ] Documentation is updated
-- [ ] Commit messages are clear
-- [ ] No debugging code left behind
-- [ ] CHANGELOG.md is updated
+- [ ] New features have tests (unit + integration if applicable)
+- [ ] Documentation is updated (README, guides, PHPDoc)
+- [ ] CHANGELOG.md entry added
+- [ ] Commit messages follow Conventional Commits
+- [ ] No debugging code or commented-out code
+- [ ] API changes are backward compatible (or clearly documented)
+
+### PR Title Format
+
+Use Conventional Commits format for PR titles:
+- `feat: add WebFetcher built-in tool`
+- `fix: handle timeout in tool execution`
+- `docs: improve installation guide`
+- `chore: update dependencies`
+
+Labels will be automatically applied based on PR title.
 
 ## Release Process
 

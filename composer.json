@@ -1,12 +1,31 @@
 {
   "name": "helgesverre/pagent",
-  "description": "A Pest-inspired LLM Agent Framework for PHP",
+  "description": "A Pest-inspired LLM Agent Framework for PHP with multi-provider support, automatic tool calling, safety guards, and multi-agent orchestration",
   "type": "library",
   "license": "MIT",
+  "keywords": [
+    "ai",
+    "llm",
+    "agent",
+    "chatbot",
+    "anthropic",
+    "openai",
+    "claude",
+    "gpt",
+    "tool-calling",
+    "pest",
+    "php"
+  ],
+  "homepage": "https://github.com/helgesverre/pagent",
+  "support": {
+    "issues": "https://github.com/helgesverre/pagent/issues",
+    "source": "https://github.com/helgesverre/pagent"
+  },
   "authors": [
     {
-      "name": "Pagent Team",
-      "email": "team@pagent.dev"
+      "name": "Helge Sverre",
+      "email": "helge.sverre@gmail.com",
+      "homepage": "https://helgesver.re"
     }
   ],
   "require": {
