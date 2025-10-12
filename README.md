@@ -4,18 +4,19 @@ PHP library for interacting with language models (LLMs).
 
 ## Features
 
-- Fluent API inspired by PestPHP
-- Multiple provider support (Anthropic, OpenAI)
-- Mock provider for testing
-- Conversation history tracking
-- **Tool/Function calling with automatic schema inference**
-- Provider-specific features exposed (intentionally leaky abstraction)
-- Global helper functions
+- 🎯 **Fluent API** inspired by PestPHP for elegant, readable code
+- 🤖 **Multi-Provider Support** - Anthropic Claude, OpenAI GPT, and Mock providers
+- 🔧 **Tool Calling** - Automatic schema generation and execution
+- 🛡️ **Safety Guards** - PII detection, content filtering, prompt injection prevention
+- 📊 **Evaluation Framework** - Test and measure agent performance
+- 🔄 **Multi-Agent Orchestration** - Pipelines, handoffs, and delegation patterns
+- 🧪 **Testing-First** - Mock providers and comprehensive test utilities
+- 🌐 **Global Registry** - Define once, use anywhere in your application
 
 ## Installation
 
 ```bash
-composer require pagent/pagent
+composer require helgesverre/pagent
 ```
 
 ## Quick Start
@@ -165,42 +166,75 @@ cp .env.example .env
 ./vendor/bin/pest --group=api
 ```
 
+## Documentation
+
+We've created **5 different guide styles** so you can learn in the way that works best for you:
+
+1. **[Getting Started (Conversational)](guide/01-getting-started-conversational.md)** - Friendly, interactive introduction with examples
+2. **[Recipes (Task-Oriented)](guide/02-recipes-task-oriented.md)** - Step-by-step solutions for common tasks
+3. **[Quick Start (Minimal)](guide/03-quick-start-minimal.md)** - TL;DR reference for when you're in a hurry
+4. **[Concepts (Deep Dive)](guide/04-concepts-deep-dive.md)** - Understand the architecture and design decisions
+5. **[API Reference (Technical)](guide/05-api-reference.md)** - Complete technical documentation
+
+**New to Pagent?** Start with the [Getting Started Guide](guide/01-getting-started-conversational.md).
+
+**Need something specific?** Check the [Recipes Guide](guide/02-recipes-task-oriented.md).
+
+**In a hurry?** The [Quick Start](guide/03-quick-start-minimal.md) has you covered.
+
 ## Examples
 
-See the `examples/` directory for working demonstrations:
+See the `examples/` directory for working code:
 
-- **[01-basic-chat.php](examples/01-basic-chat.php)** - Simple conversations with different providers
-- **[02-tool-calling.php](examples/02-tool-calling.php)** - Automatic tool execution
-- **[03-context-memory.php](examples/03-context-memory.php)** - Conversation history and context
-- **[04-multi-provider.php](examples/04-multi-provider.php)** - Comparing providers
-- **[05-complete-demo.php](examples/05-complete-demo.php)** - Comprehensive feature demonstration
+- `01-basic-usage.php` - Simple conversations with different providers
+- `02-tool-calling.php` - Automatic tool execution
+- `03-guards.php` - Safety guards (PII, content filtering)
+- `04-evaluation.php` - Agent performance testing
+- `05-middleware.php` - Rate limiting and metrics
+- `09-multi-agent.php` - Pipelines, handoffs, and delegation
 
-Legacy examples:
-- `example.php` - Basic agent usage
-- `example-api.php` - Real API examples  
-- `example-tools.php` - Tool schema generation
+## What's New in v0.4.0
 
-## What's New in v0.2.0
+🔄 **Multi-Agent Orchestration**
 
-✨ **Tool/Function Calling is Live!**
-
-Agents now automatically execute tools when needed:
+Build complex systems with multiple specialized agents:
 
 ```php
-agent('assistant')
-    ->provider('openai')
-    ->tool('calculate', 'Do math', fn(int $a, int $b) => $a + $b);
+// Sequential pipeline
+pipeline('content-creation')
+    ->agent('writer')
+    ->agent('editor')
+    ->agent('seo-optimizer')
+    ->run('Write a blog post about PHP agents');
 
-$response = agent('assistant')->prompt('What is 25 + 17?');
-// Tool is automatically called and result is returned: "The answer is 42"
+// Transfer between agents
+$specialized = agent('support')
+    ->handoff()
+    ->to('technical-specialist')
+    ->because('User needs technical help')
+    ->transfer();
+
+// Manager-worker delegation
+agent('manager')
+    ->delegate('Research PHP trends')
+    ->to('researcher')
+    ->supervise(fn($output) => strlen($output) > 100)
+    ->execute();
 ```
 
-Features:
-- ✅ Automatic tool execution loop
-- ✅ Works with both Anthropic and OpenAI
-- ✅ Supports multiple tools per agent
-- ✅ Type inference from PHP closures
-- ✅ JSON schema auto-generation
+### Previous Releases
+
+**v0.3.0** - Safety & Evaluation
+
+- Safety guards (PII, content filtering, prompt injection)
+- Evaluation framework with metrics
+- Middleware system
+
+**v0.2.0** - Tool Calling
+
+- Automatic schema generation from PHP closures
+- Multi-turn tool execution
+- Type-safe argument validation
 
 ## License
 
