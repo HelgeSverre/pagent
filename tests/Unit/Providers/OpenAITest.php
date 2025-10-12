@@ -14,28 +14,3 @@ it('accepts api key in config', function (): void {
 
     expect($provider)->toBeInstanceOf(OpenAI::class);
 });
-
-it('returns response object with correct structure', function (): void {
-    // Real API tests are in Integration/RealAPITest.php
-    $this->markTestSkipped('Real API calls tested in integration tests');
-});
-
-it('uses default model', function (): void {
-    // Real API tests are in Integration/RealAPITest.php
-    $this->markTestSkipped('Real API calls tested in integration tests');
-});
-
-it('allows custom model', function (): void {
-    // Real API tests are in Integration/RealAPITest.php
-    $this->markTestSkipped('Real API calls tested in integration tests');
-});
-
-it('handles system messages', function (): void {
-    // Real API tests are in Integration/RealAPITest.php
-    $this->markTestSkipped('Real API calls tested in integration tests');
-});
-
-it('calculates tokens', function (): void {
-    // Real API tests are in Integration/RealAPITest.php
-    $this->markTestSkipped('Real API calls tested in integration tests');
-});
