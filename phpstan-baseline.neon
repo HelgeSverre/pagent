@@ -1,0 +1,786 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 3
+			path: src/Agent.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$model\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$provider\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$raw_content\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$tool_calls\\.$#"
+			count: 3
+			path: src/Agent.php
+
+		-
+			message: "#^Call to function is_string\\(\\) with string will always evaluate to true\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Cannot call method prompt\\(\\) on Pagent\\\\Contracts\\\\Provider\\|null\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Else branch is unreachable because ternary operator condition is always true\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Method Pagent\\\\Agent\\:\\:fallback\\(\\) has parameter \\$callback with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Method Pagent\\\\Agent\\:\\:guard\\(\\) has parameter \\$check with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Method Pagent\\\\Agent\\:\\:tool\\(\\) has parameter \\$callable with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Method class@anonymous/src/Agent\\.php\\:201\\:\\:__construct\\(\\) has parameter \\$check with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Parameter \\#1 \\$haystack of function str_contains expects string, class\\-string\\<Pagent\\\\Contracts\\\\Provider\\>\\|false given\\.$#"
+			count: 3
+			path: src/Agent.php
+
+		-
+			message: "#^Parameter \\#1 \\$object of function get_class expects object, Pagent\\\\Contracts\\\\Provider\\|null given\\.$#"
+			count: 2
+			path: src/Agent.php
+
+		-
+			message: "#^Property Pagent\\\\Agent\\:\\:\\$fallback type has no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Property Pagent\\\\Agent\\:\\:\\$guards \\(array\\<Pagent\\\\Contracts\\\\Guard\\>\\) does not accept array\\<object\\>\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Property Pagent\\\\Agent\\:\\:\\$middleware \\(array\\<Pagent\\\\Contracts\\\\Middleware\\>\\) does not accept array\\<object\\>\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Method Pagent\\\\Evaluation\\\\Dataset\\:\\:filter\\(\\) has parameter \\$callback with no signature specified for callable\\.$#"
+			count: 1
+			path: src/Evaluation/Dataset.php
+
+		-
+			message: "#^Method Pagent\\\\Evaluation\\\\Dataset\\:\\:map\\(\\) has parameter \\$callback with no signature specified for callable\\.$#"
+			count: 1
+			path: src/Evaluation/Dataset.php
+
+		-
+			message: "#^Parameter \\#1 \\$items of class Pagent\\\\Evaluation\\\\Dataset constructor expects array, mixed given\\.$#"
+			count: 1
+			path: src/Evaluation/Dataset.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/Evaluation/Dataset.php
+
+		-
+			message: "#^Parameter \\#1 \\$stream of function fclose expects resource, resource\\|false given\\.$#"
+			count: 1
+			path: src/Evaluation/Dataset.php
+
+		-
+			message: "#^Parameter \\#1 \\$stream of function fgetcsv expects resource, resource\\|false given\\.$#"
+			count: 1
+			path: src/Evaluation/Dataset.php
+
+		-
+			message: "#^Method Pagent\\\\Evaluation\\\\EvaluationResult\\:\\:toJson\\(\\) should return string but returns string\\|false\\.$#"
+			count: 1
+			path: src/Evaluation/EvaluationResult.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 2
+			path: src/Evaluation/Evaluator.php
+
+		-
+			message: "#^Class Pagent\\\\Evaluation\\\\Evaluator has an uninitialized property \\$agent\\. Give it default value or assign it in the constructor\\.$#"
+			count: 1
+			path: src/Evaluation/Evaluator.php
+
+		-
+			message: "#^Class Pagent\\\\Evaluation\\\\Evaluator has an uninitialized property \\$dataset\\. Give it default value or assign it in the constructor\\.$#"
+			count: 1
+			path: src/Evaluation/Evaluator.php
+
+		-
+			message: "#^Method Pagent\\\\Evaluation\\\\Evaluator\\:\\:metric\\(\\) has parameter \\$metric with no signature specified for callable\\.$#"
+			count: 1
+			path: src/Evaluation/Evaluator.php
+
+		-
+			message: "#^Property Pagent\\\\Evaluation\\\\Evaluator\\:\\:\\$agent \\(Pagent\\\\Agent\\) does not accept Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\.$#"
+			count: 1
+			path: src/Evaluation/Evaluator.php
+
+		-
+			message: "#^Trying to invoke mixed but it's not a callable\\.$#"
+			count: 1
+			path: src/Evaluation/Evaluator.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 1
+			path: src/Middleware/LoggingMiddleware.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$model\\.$#"
+			count: 1
+			path: src/Middleware/LoggingMiddleware.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$provider\\.$#"
+			count: 1
+			path: src/Middleware/LoggingMiddleware.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$tokens\\.$#"
+			count: 1
+			path: src/Middleware/LoggingMiddleware.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$model\\.$#"
+			count: 1
+			path: src/Middleware/MetricsMiddleware.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$provider\\.$#"
+			count: 1
+			path: src/Middleware/MetricsMiddleware.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$tokens\\.$#"
+			count: 1
+			path: src/Middleware/MetricsMiddleware.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 4
+			path: src/Orchestration/Delegation.php
+
+		-
+			message: "#^Class Pagent\\\\Orchestration\\\\Delegation has an uninitialized property \\$worker\\. Give it default value or assign it in the constructor\\.$#"
+			count: 1
+			path: src/Orchestration/Delegation.php
+
+		-
+			message: "#^Method Pagent\\\\Orchestration\\\\Delegation\\:\\:onComplete\\(\\) has parameter \\$callback with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Orchestration/Delegation.php
+
+		-
+			message: "#^Method Pagent\\\\Orchestration\\\\Delegation\\:\\:supervise\\(\\) has parameter \\$supervisor with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Orchestration/Delegation.php
+
+		-
+			message: "#^Property Pagent\\\\Orchestration\\\\Delegation\\:\\:\\$onComplete type has no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Orchestration/Delegation.php
+
+		-
+			message: "#^Property Pagent\\\\Orchestration\\\\Delegation\\:\\:\\$supervisor type has no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Orchestration/Delegation.php
+
+		-
+			message: "#^Property Pagent\\\\Orchestration\\\\Delegation\\:\\:\\$worker \\(Pagent\\\\Agent\\) does not accept Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\.$#"
+			count: 1
+			path: src/Orchestration/Delegation.php
+
+		-
+			message: "#^Class Pagent\\\\Orchestration\\\\Handoff has an uninitialized property \\$toAgent\\. Give it default value or assign it in the constructor\\.$#"
+			count: 1
+			path: src/Orchestration/Handoff.php
+
+		-
+			message: "#^Property Pagent\\\\Orchestration\\\\Handoff\\:\\:\\$toAgent \\(Pagent\\\\Agent\\) does not accept Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\.$#"
+			count: 1
+			path: src/Orchestration/Handoff.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 1
+			path: src/Orchestration/Pipeline.php
+
+		-
+			message: "#^Method Pagent\\\\Orchestration\\\\Pipeline\\:\\:agent\\(\\) has parameter \\$transform with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Orchestration/Pipeline.php
+
+		-
+			message: "#^Method Pagent\\\\Orchestration\\\\Pipeline\\:\\:onError\\(\\) has parameter \\$handler with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Orchestration/Pipeline.php
+
+		-
+			message: "#^Property Pagent\\\\Orchestration\\\\Pipeline\\:\\:\\$errorHandler type has no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Orchestration/Pipeline.php
+
+		-
+			message: "#^Property Pagent\\\\Orchestration\\\\Pipeline\\:\\:\\$stages type has no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Orchestration/Pipeline.php
+
+		-
+			message: "#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\\.$#"
+			count: 1
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Cannot access offset 'content' on mixed\\.$#"
+			count: 2
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Cannot access offset 'error' on mixed\\.$#"
+			count: 2
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Cannot access offset 'id' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Cannot access offset 'input' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Cannot access offset 'input_tokens' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Cannot access offset 'message' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Cannot access offset 'model' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Cannot access offset 'name' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Cannot access offset 'output_tokens' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Cannot access offset 'stop_reason' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Cannot access offset 'text' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Cannot access offset 'type' on mixed\\.$#"
+			count: 2
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Cannot access offset 'usage' on mixed\\.$#"
+			count: 3
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|true given\\.$#"
+			count: 1
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Part \\$error \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
+			count: 1
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Part \\$type \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
+			count: 1
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 'arguments' on mixed\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 'choices' on mixed\\.$#"
+			count: 2
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 'content' on mixed\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 'error' on mixed\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 'finish_reason' on mixed\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 'function' on mixed\\.$#"
+			count: 2
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 'id' on mixed\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 'message' on mixed\\.$#"
+			count: 2
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 'model' on mixed\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 'name' on mixed\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 'tool_calls' on mixed\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 'total_tokens' on mixed\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 'usage' on mixed\\.$#"
+			count: 2
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Cannot access offset 0 on mixed\\.$#"
+			count: 2
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, mixed given\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|true given\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Part \\$error \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Method Pagent\\\\Tool\\\\Tool\\:\\:__construct\\(\\) has parameter \\$callable with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Tool/Tool.php
+
+		-
+			message: "#^Method Pagent\\\\Tool\\\\Tool\\:\\:fromClosure\\(\\) has parameter \\$closure with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Tool/Tool.php
+
+		-
+			message: "#^Access to an undefined property Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:\\$messages\\.$#"
+			count: 1
+			path: tests/Integration/BasicUsageTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 7
+			path: tests/Integration/BasicUsageTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$provider\\.$#"
+			count: 1
+			path: tests/Integration/BasicUsageTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:prompt\\(\\)\\.$#"
+			count: 6
+			path: tests/Integration/BasicUsageTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
+			count: 5
+			path: tests/Integration/BasicUsageTest.php
+
+		-
+			message: "#^Unable to resolve the template type TValue in call to function expect$#"
+			count: 7
+			path: tests/Integration/BasicUsageTest.php
+
+		-
+			message: "#^Access to an undefined property Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:\\$messages\\.$#"
+			count: 1
+			path: tests/Integration/ProviderFeaturesTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 9
+			path: tests/Integration/ProviderFeaturesTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$model\\.$#"
+			count: 4
+			path: tests/Integration/ProviderFeaturesTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$provider\\.$#"
+			count: 2
+			path: tests/Integration/ProviderFeaturesTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:model\\(\\)\\.$#"
+			count: 2
+			path: tests/Integration/ProviderFeaturesTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:prompt\\(\\)\\.$#"
+			count: 4
+			path: tests/Integration/ProviderFeaturesTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
+			count: 1
+			path: tests/Integration/ProviderFeaturesTest.php
+
+		-
+			message: "#^Function hasAnthropicKey not found\\.$#"
+			count: 1
+			path: tests/Integration/ProviderFeaturesTest.php
+
+		-
+			message: "#^Function hasOpenAiKey not found\\.$#"
+			count: 1
+			path: tests/Integration/ProviderFeaturesTest.php
+
+		-
+			message: "#^Function skipIfMissingAnthropicKey not found\\.$#"
+			count: 1
+			path: tests/Integration/ProviderFeaturesTest.php
+
+		-
+			message: "#^Function skipIfMissingOpenAiKey not found\\.$#"
+			count: 1
+			path: tests/Integration/ProviderFeaturesTest.php
+
+		-
+			message: "#^Unable to resolve the template type TValue in call to function expect$#"
+			count: 10
+			path: tests/Integration/ProviderFeaturesTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 10
+			path: tests/Integration/RealAPITest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$model\\.$#"
+			count: 3
+			path: tests/Integration/RealAPITest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$provider\\.$#"
+			count: 3
+			path: tests/Integration/RealAPITest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$tokens\\.$#"
+			count: 3
+			path: tests/Integration/RealAPITest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$usage\\.$#"
+			count: 3
+			path: tests/Integration/RealAPITest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:prompt\\(\\)\\.$#"
+			count: 1
+			path: tests/Integration/RealAPITest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
+			count: 1
+			path: tests/Integration/RealAPITest.php
+
+		-
+			message: "#^Unable to resolve the template type TValue in call to function expect$#"
+			count: 20
+			path: tests/Integration/RealAPITest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 6
+			path: tests/Integration/ToolCallingTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:getTools\\(\\)\\.$#"
+			count: 2
+			path: tests/Integration/ToolCallingTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:prompt\\(\\)\\.$#"
+			count: 6
+			path: tests/Integration/ToolCallingTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
+			count: 6
+			path: tests/Integration/ToolCallingTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:tool\\(\\)\\.$#"
+			count: 2
+			path: tests/Integration/ToolCallingTest.php
+
+		-
+			message: "#^Unable to resolve the template type TValue in call to function expect$#"
+			count: 6
+			path: tests/Integration/ToolCallingTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 1
+			path: tests/Unit/AgentBuilderTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
+			count: 2
+			path: tests/Unit/AgentBuilderTest.php
+
+		-
+			message: "#^Call to an undefined method Pest\\\\Expectation\\<Pagent\\\\Agent\\|null\\>\\:\\:toBeAgent\\(\\)\\.$#"
+			count: 3
+			path: tests/Unit/AgentBuilderTest.php
+
+		-
+			message: "#^Unable to resolve the template type TValue in call to function expect$#"
+			count: 1
+			path: tests/Unit/AgentBuilderTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 2
+			path: tests/Unit/AgentGuardsTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$guard_triggered\\.$#"
+			count: 1
+			path: tests/Unit/AgentGuardsTest.php
+
+		-
+			message: "#^Function testAgent not found\\.$#"
+			count: 6
+			path: tests/Unit/AgentGuardsTest.php
+
+		-
+			message: "#^Unable to resolve the template type TValue in call to function expect$#"
+			count: 2
+			path: tests/Unit/AgentGuardsTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 1
+			path: tests/Unit/AgentTest.php
+
+		-
+			message: "#^Unable to resolve the template type TValue in call to function expect$#"
+			count: 1
+			path: tests/Unit/AgentTest.php
+
+		-
+			message: "#^Function testAgent not found\\.$#"
+			count: 5
+			path: tests/Unit/AgentToolsTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
+			count: 5
+			path: tests/Unit/Evaluation/EvaluatorTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 1
+			path: tests/Unit/FunctionsTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:getName\\(\\)\\.$#"
+			count: 1
+			path: tests/Unit/FunctionsTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
+			count: 1
+			path: tests/Unit/FunctionsTest.php
+
+		-
+			message: "#^Unable to resolve the template type TValue in call to function expect$#"
+			count: 1
+			path: tests/Unit/FunctionsTest.php
+
+		-
+			message: "#^Function testAgent not found\\.$#"
+			count: 3
+			path: tests/Unit/Middleware/MiddlewareTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$manager\\.$#"
+			count: 1
+			path: tests/Unit/Orchestration/DelegationTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$manager_review\\.$#"
+			count: 1
+			path: tests/Unit/Orchestration/DelegationTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$supervised\\.$#"
+			count: 1
+			path: tests/Unit/Orchestration/DelegationTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$task\\.$#"
+			count: 1
+			path: tests/Unit/Orchestration/DelegationTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$worker\\.$#"
+			count: 1
+			path: tests/Unit/Orchestration/DelegationTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$worker_output\\.$#"
+			count: 1
+			path: tests/Unit/Orchestration/DelegationTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:delegate\\(\\)\\.$#"
+			count: 4
+			path: tests/Unit/Orchestration/DelegationTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
+			count: 2
+			path: tests/Unit/Orchestration/DelegationTest.php
+
+		-
+			message: "#^Function testAgent not found\\.$#"
+			count: 1
+			path: tests/Unit/Orchestration/DelegationTest.php
+
+		-
+			message: "#^Unable to resolve the template type TAndValue in call to method Pest\\\\Expectation\\<bool\\|null\\>\\:\\:and\\(\\)$#"
+			count: 1
+			path: tests/Unit/Orchestration/DelegationTest.php
+
+		-
+			message: "#^Unable to resolve the template type TAndValue in call to method Pest\\\\Expectation\\<mixed\\>\\:\\:and\\(\\)$#"
+			count: 4
+			path: tests/Unit/Orchestration/DelegationTest.php
+
+		-
+			message: "#^Unable to resolve the template type TAndValue in call to method Pest\\\\Expectation\\<object\\|null\\>\\:\\:and\\(\\)$#"
+			count: 1
+			path: tests/Unit/Orchestration/DelegationTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
+			count: 1
+			path: tests/Unit/Orchestration/HandoffTest.php
+
+		-
+			message: "#^Function testAgent not found\\.$#"
+			count: 5
+			path: tests/Unit/Orchestration/HandoffTest.php
+
+		-
+			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
+			count: 2
+			path: tests/Unit/Orchestration/PipelineTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
+			count: 5
+			path: tests/Unit/Providers/MockTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$model\\.$#"
+			count: 1
+			path: tests/Unit/Providers/MockTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$provider\\.$#"
+			count: 1
+			path: tests/Unit/Providers/MockTest.php
+
+		-
+			message: "#^Access to an undefined property object\\:\\:\\$tokens\\.$#"
+			count: 1
+			path: tests/Unit/Providers/MockTest.php
+
+		-
+			message: "#^Unable to resolve the template type TValue in call to function expect$#"
+			count: 8
+			path: tests/Unit/Providers/MockTest.php
