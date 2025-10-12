@@ -4,3 +4,7 @@ vendor
 composer.lock
 .env
 .DS_Store
+insights.json
+examples/reports/*.html
+examples/reports/*.json
+examples/reports/*.md
