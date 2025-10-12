@@ -128,7 +128,7 @@ describe('OpenAI-specific features', function (): void {
  * @group api
  */
 it('demonstrates provider switching based on task', function (): void {
-    if (! hasAnthropicKey() || ! hasOpenAiKey()) {
+    if (!hasAnthropicKey() || !hasOpenAiKey()) {
         $this->markTestSkipped('Both API keys required for this test');
     }
 
@@ -141,7 +141,7 @@ it('demonstrates provider switching based on task', function (): void {
     // Use OpenAI for quick summaries
     agent('summarizer')
         ->provider('openai')
-        ->model('gpt-3.5-turbo')
+        ->model('gpt-4.1-mini')
         ->system('You create brief summaries');
 
     $code = 'function add($a, $b) { return $a + $b; }';

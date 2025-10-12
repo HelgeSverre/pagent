@@ -29,3 +29,10 @@
 - **Methods**: Return type declarations required, void returns explicit
 - **PHPStan level 9**: Maximum strictness, ignores Pest function calls
 - **Naming**: Camelcase methods, snake_case for arrays/config keys
+
+## Documentation Policy
+
+- **DO NOT create new files** without explicit user approval
+- **Consolidate information** into existing files (DEVELOPMENT_ROADMAP.md, ROADMAP.md, etc.)
+- **Avoid fragmentation** - use existing structure rather than creating new documents
+- **Update existing files** when adding related information
