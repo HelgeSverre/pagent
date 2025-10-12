@@ -2,26 +2,41 @@
   {
     "input": "My order never arrived",
     "expected": "track order status",
-    "metadata": {"category": "shipping", "priority": "high"}
+    "metadata": {
+      "category": "shipping",
+      "priority": "high"
+    }
   },
   {
     "input": "I want to return this item",
     "expected": "return policy refund",
-    "metadata": {"category": "returns", "priority": "medium"}
+    "metadata": {
+      "category": "returns",
+      "priority": "medium"
+    }
   },
   {
     "input": "How do I reset my password?",
     "expected": "password reset instructions",
-    "metadata": {"category": "account", "priority": "low"}
+    "metadata": {
+      "category": "account",
+      "priority": "low"
+    }
   },
   {
     "input": "The product is defective",
     "expected": "replacement warranty refund",
-    "metadata": {"category": "quality", "priority": "high"}
+    "metadata": {
+      "category": "quality",
+      "priority": "high"
+    }
   },
   {
     "input": "Can I change my shipping address?",
     "expected": "shipping address update",
-    "metadata": {"category": "shipping", "priority": "medium"}
+    "metadata": {
+      "category": "shipping",
+      "priority": "medium"
+    }
   }
 ]

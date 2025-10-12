@@ -14,6 +14,7 @@ cp ../.env.example ../.env
 ## Running Examples
 
 ### 01 - Basic Chat
+
 Simple conversation examples with different providers:
 
 ```bash
@@ -21,6 +22,7 @@ php examples/01-basic-chat.php
 ```
 
 ### 02 - Tool Calling
+
 Automatic tool execution with function calling:
 
 ```bash
@@ -28,6 +30,7 @@ php examples/02-tool-calling.php
 ```
 
 ### 03 - Context & Memory
+
 Conversation history and context management:
 
 ```bash
@@ -35,6 +38,7 @@ php examples/03-context-memory.php
 ```
 
 ### 04 - Multi-Provider
+
 Using different providers for different tasks:
 
 ```bash
