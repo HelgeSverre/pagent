@@ -1,34 +1,34 @@
 {
-  "agent": "report-test",
-  "dataset_size": 1,
-  "summary": {
     "agent": "report-test",
     "dataset_size": 1,
-    "metrics": {
-      "keywords": {
-        "average": 0.6666666666666666,
-        "min": 0.6666666666666666,
-        "max": 0.6666666666666666,
-        "description": "Checks if any keywords are present: PHP, programming, language"
-      },
-      "length": {
-        "average": 0,
-        "min": 0,
-        "max": 0,
-        "description": "Checks if output is between 10 and 100 characters"
-      }
-    }
-  },
-  "results": [
-    {
-      "input": "What is PHP?",
-      "output": "PHP is a popular server-side scripting language used for creating dynamic web pages and web applications.",
-      "expected": "programming language",
-      "metrics": {
-        "keywords": 0.6666666666666666,
-        "length": 0
-      },
-      "metadata": []
-    }
-  ]
+    "summary": {
+        "agent": "report-test",
+        "dataset_size": 1,
+        "metrics": {
+            "keywords": {
+                "average": 1,
+                "min": 1,
+                "max": 1,
+                "description": "Checks if any keywords are present: PHP, programming, language"
+            },
+            "length": {
+                "average": 0,
+                "min": 0,
+                "max": 0,
+                "description": "Checks if output is between 10 and 100 characters"
+            }
+        }
+    },
+    "results": [
+        {
+            "input": "What is PHP?",
+            "output": "PHP is a popular server-side programming language used to create dynamic web pages and interactive websites.",
+            "expected": "programming language",
+            "metrics": {
+                "keywords": 1,
+                "length": 0
+            },
+            "metadata": []
+        }
+    ]
 }
