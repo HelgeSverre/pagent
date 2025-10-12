@@ -16,10 +16,12 @@
 - Environment configuration via .env
 
 **Metrics:**
-- 152 tests passing (336 assertions)
-- 99.3% pass rate
+- 169 tests passing (385 assertions)
+- 99.4% pass rate
 - 9 working examples
 - Full PHP 8.3 type safety
+- PHPStan level 9
+- Complete DX tooling (Makefile, git hooks, etc.)
 
 ---
 
@@ -84,16 +86,81 @@ function getWeather(
 
 Small improvements that add significant value:
 
-1. **Better error messages** - Include suggestions for typos
-2. **Add reset methods** - `clearTools()`, `clearGuards()`, `reset()`
-3. **Agent cloning** - Duplicate configuration easily
-4. **Conversation export/import** - Save and restore state
-5. **Usage statistics** - Track tokens, calls, duration per agent
-6. **Guard statistics** - Monitor how often guards trigger
+1. ✅ **Better error messages** - Include suggestions for typos (COMPLETED)
+2. ✅ **Add reset methods** - `clearTools()`, `clearGuards()`, `reset()` (COMPLETED)
+3. ✅ **Agent cloning** - Duplicate configuration easily (COMPLETED)
+4. ✅ **Conversation export/import** - Save and restore state (COMPLETED)
+5. ✅ **Usage statistics** - Track tokens, calls, duration per agent (COMPLETED)
+6. ✅ **Guard statistics** - Monitor how often guards trigger (COMPLETED)
 
 ---
 
-## v0.6.0 - Memory & Streaming
+## v0.6.0 - Observability & Monitoring
+
+### OpenTelemetry Integration
+
+**Priority: High - Production monitoring and debugging**
+
+Implement comprehensive observability with OpenTelemetry spans/traces/events:
+
+- Automatic tracing for all agent interactions
+- Span creation for tool calls, guard checks, middleware execution
+- Integration with observability platforms (Langfuse, Langsmith, Phoenix, etc.)
+- Performance metrics and latency tracking
+- Error tracking and debugging
+- Distributed tracing across multi-agent workflows
+
+```php
+// Example: Automatic instrumentation
+agent('bot')
+    ->observability('langfuse', [
+        'public_key' => '...',
+        'secret_key' => '...',
+        'trace_id' => 'session-123',
+    ])
+    ->prompt('Hello'); // Automatically traced
+
+// Example: Custom spans
+agent('bot')
+    ->withSpan('custom-operation', function() {
+        // Your code here
+        return $result;
+    });
+
+// Example: Manual event logging
+agent('bot')
+    ->logEvent('user-feedback', [
+        'rating' => 5,
+        'comment' => 'Great response',
+    ]);
+```
+
+**Features to implement:**
+- OpenTelemetry SDK integration
+- Automatic span creation for:
+  - Agent prompt/response cycles
+  - Tool execution
+  - Guard validation
+  - Middleware processing
+  - Multi-agent handoffs/delegation
+- Support for multiple backends:
+  - Langfuse (https://langfuse.com)
+  - Langsmith (https://www.langsmith.com)
+  - Phoenix (https://phoenix.arize.com)
+  - Generic OTLP exporters
+- Metadata enrichment (user ID, session ID, tags)
+- Cost tracking per trace
+- Token usage tracking
+- Error attribution and stack traces
+- Performance profiling
+
+**Reference:**
+- Mistral AI Observability: https://docs.mistral.ai/guides/observability/#integrations
+- OpenTelemetry PHP: https://opentelemetry.io/docs/languages/php/
+
+---
+
+## v0.7.0 - Memory & Streaming
 
 ### Memory & Persistence
 
@@ -114,7 +181,7 @@ Small improvements that add significant value:
 
 ---
 
-## v0.7.0 - Advanced Patterns
+## v0.8.0 - Advanced Patterns
 
 ### Agentic Reasoning Patterns
 
