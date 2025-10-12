@@ -6,13 +6,20 @@ namespace Pagent\Evaluation;
 
 use Pagent\Contracts\Metric;
 
+use function array_column;
+use function array_sum;
+use function count;
+use function json_encode;
+use function max;
+use function min;
+
 final readonly class EvaluationResult
 {
     public function __construct(
         public string $agentName,
-        public array  $results,
-        public array  $metrics,
-        public int    $datasetSize,
+        public array $results,
+        public array $metrics,
+        public int $datasetSize,
     ) {}
 
     public function getAverageScore(string $metricName): float

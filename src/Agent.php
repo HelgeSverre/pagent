@@ -12,10 +12,22 @@ use Pagent\Exceptions\GuardException;
 use Pagent\Tool\Tool;
 use RuntimeException;
 
+use function array_map;
+use function array_merge;
+use function class_exists;
+use function get_class;
+use function is_string;
+use function json_encode;
+use function sprintf;
+use function str_contains;
+use function ucfirst;
+
 final class Agent
 {
     public array $messages = [];
+
     private array $config = [];
+
     private ?Provider $provider = null;
 
     /** @var Tool[] */
@@ -77,7 +89,7 @@ final class Agent
 
     public function prompt(string $message, array $options = []): object
     {
-        if ( ! $this->provider) {
+        if (! $this->provider) {
             throw new RuntimeException("No provider set for agent '{$this->name}'");
         }
 
@@ -88,12 +100,12 @@ final class Agent
         $mergedOptions = array_merge($this->config, $options);
 
         // If we have message history, pass it along
-        if ( ! empty($this->messages)) {
+        if (! empty($this->messages)) {
             $mergedOptions['messages'] = $this->messages;
         }
 
         // Add tool schemas if we have tools
-        if ( ! empty($this->tools)) {
+        if (! empty($this->tools)) {
             $mergedOptions['tools'] = $this->getToolSchemas();
         }
 
@@ -111,12 +123,12 @@ final class Agent
         }
 
         // Handle tool calls automatically
-        while ( ! empty($response->tool_calls)) {
+        while (! empty($response->tool_calls)) {
             $response = $this->handleToolCalls($response);
         }
 
         // Run guards on the response
-        if ( ! empty($this->guards)) {
+        if (! empty($this->guards)) {
             try {
                 $this->runGuards($message, $response->content ?? '');
             } catch (GuardException $e) {
@@ -188,7 +200,7 @@ final class Agent
 
             $anonymousGuard = new class ($name, $check) implements Guard {
                 public function __construct(
-                    private readonly string  $name,
+                    private readonly string $name,
                     private readonly Closure $check,
                 ) {}
 
@@ -216,7 +228,7 @@ final class Agent
         }
 
         $fqcn = 'Pagent\\Guards\\' . ucfirst($guard) . 'Guard';
-        if ( ! class_exists($fqcn)) {
+        if (! class_exists($fqcn)) {
             throw new RuntimeException("Guard class '{$fqcn}' not found");
         }
 
@@ -247,7 +259,7 @@ final class Agent
         } else {
             $middlewareClass = 'Pagent\\Middleware\\' . ucfirst($middleware) . 'Middleware';
 
-            if ( ! class_exists($middlewareClass)) {
+            if (! class_exists($middlewareClass)) {
                 throw new RuntimeException("Middleware class '{$middlewareClass}' not found");
             }
 
@@ -282,7 +294,7 @@ final class Agent
     private function runGuards(string $input, string $output): void
     {
         foreach ($this->guards as $guard) {
-            if ( ! $guard->check($input, $output)) {
+            if (! $guard->check($input, $output)) {
                 throw new GuardException(
                     $guard->getViolationMessage(),
                     $guard->getName(),
@@ -316,7 +328,7 @@ final class Agent
         // For Anthropic, we need to include the full content blocks
         if (isset($response->raw_content)) {
             $assistantMessage['content'] = $response->raw_content;
-        } elseif ( ! empty($response->tool_calls)) {
+        } elseif (! empty($response->tool_calls)) {
             // For OpenAI, add tool_calls
             $assistantMessage['tool_calls'] = array_map(fn($call) => [
                 'id' => $call['id'],
@@ -363,7 +375,7 @@ final class Agent
         $options = $this->config;
         $options['messages'] = $this->messages;
 
-        if ( ! empty($this->tools)) {
+        if (! empty($this->tools)) {
             $options['tools'] = $this->getToolSchemas();
         }
 

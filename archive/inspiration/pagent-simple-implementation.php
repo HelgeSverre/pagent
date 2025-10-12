@@ -111,7 +111,7 @@ function expect($value)
 
         public function toContain(string $expected): self
         {
-            if ( ! str_contains($this->value, $expected)) {
+            if (! str_contains($this->value, $expected)) {
                 throw new Exception("Expected '{$this->value}' to contain '{$expected}'");
             }
             return $this;
@@ -264,7 +264,7 @@ trait HasTools
 
     public function executeTool(string $name, array $params): mixed
     {
-        if ( ! isset($this->tools[$name])) {
+        if (! isset($this->tools[$name])) {
             throw new Exception("Tool {$name} not found");
         }
 

@@ -36,9 +36,9 @@ pagent()->middleware([
 // File: agents/CustomerSupportAgent.php
 // =====================================================================
 
-use function Pagent\{agent, tool};
-
 use Pagent\Tools\{Database, EmailSender, TicketSystem};
+
+use function Pagent\{agent, tool};
 
 agent('customer-support')
     ->provider(OpenAI::class, [
@@ -162,7 +162,7 @@ evaluate('customer-support')
         'tone' => Metrics::sentiment_analysis([
             'expected' => 'professional_empathetic',
         ]),
-        'resolution_rate' => Metrics::custom(fn($input, $output) => $output->metadata['issue_resolved'] ? 1.0 : 0.0),
+        'resolution_rate' => Metrics::custom(fn ($input, $output) => $output->metadata['issue_resolved'] ? 1.0 : 0.0),
     ])
     ->baseline('gpt-3.5-turbo') // Compare against baseline
     ->report([

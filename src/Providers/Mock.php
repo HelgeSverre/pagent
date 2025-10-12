@@ -6,6 +6,8 @@ namespace Pagent\Providers;
 
 use Pagent\Contracts\Provider;
 
+use function mb_strlen;
+
 final class Mock implements Provider
 {
     private array $responses = [];

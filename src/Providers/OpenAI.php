@@ -7,9 +7,20 @@ namespace Pagent\Providers;
 use Pagent\Contracts\Provider;
 use RuntimeException;
 
+use function array_unshift;
+use function curl_close;
+use function curl_exec;
+use function curl_getinfo;
+use function curl_init;
+use function curl_setopt_array;
+use function getenv;
+use function json_decode;
+use function json_encode;
+
 final class OpenAI implements Provider
 {
     private string $apiKey;
+
     private string $baseUrl = 'https://api.openai.com/v1';
 
     public function __construct(array $config = [])
@@ -49,7 +60,7 @@ final class OpenAI implements Provider
         }
 
         // Add tools if provided
-        if (isset($options['tools']) && ! empty($options['tools'])) {
+        if (! empty($options['tools'])) {
             $body['tools'] = $options['tools'];
         }
 
@@ -73,14 +84,15 @@ final class OpenAI implements Provider
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if (false === $response) {
+        if ($response === false) {
             throw new RuntimeException('OpenAI API request failed');
         }
 
         $data = json_decode($response, true);
 
-        if (200 !== $httpCode) {
+        if ($httpCode !== 200) {
             $error = $data['error']['message'] ?? 'Unknown error';
+
             throw new RuntimeException("OpenAI API error: {$error}");
         }
 

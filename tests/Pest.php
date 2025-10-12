@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Dotenv\Dotenv;
 use Pagent\Agent;
 
-if (file_exists(__DIR__ . '/../.env')) {
+if (\file_exists(__DIR__ . '/../.env')) {
     $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->load();
 }
@@ -24,20 +24,23 @@ if (file_exists(__DIR__ . '/../.env')) {
 |--------------------------------------------------------------------------
 */
 
-expect()->extend('toBeAgent', fn() => $this->toBeInstanceOf(Agent::class));
+\expect()->extend('toBeAgent', fn() => $this->toBeInstanceOf(Agent::class));
 
-expect()->extend('toHaveProvider', function () {
+\expect()->extend('toHaveProvider', function () {
     $agent = $this->value;
-    if ( ! $agent instanceof Agent) {
+    if (! $agent instanceof Agent) {
         throw new InvalidArgumentException('Expected Agent instance');
     }
+
     try {
         $agent->prompt('test');
+
         return $this->toBeTrue(); // Has provider
     } catch (RuntimeException $e) {
-        if (str_contains($e->getMessage(), 'No provider set')) {
+        if (\str_contains($e->getMessage(), 'No provider set')) {
             return $this->toBeFalse();
         }
+
         throw $e;
     }
 });
@@ -54,7 +57,7 @@ expect()->extend('toHaveProvider', function () {
 function testAgent(string $name = 'test-agent'): Agent
 {
     $agent = new Agent($name);
-    $agent->provider(mock());
+    $agent->provider(\mock());
 
     return $agent;
 }
@@ -64,7 +67,7 @@ function testAgent(string $name = 'test-agent'): Agent
  */
 function hasEnv(string $key): bool
 {
-    return ! empty($_ENV[$key] ?? getenv($key));
+    return ! empty($_ENV[$key] ?? \getenv($key));
 }
 
 /**
@@ -72,9 +75,9 @@ function hasEnv(string $key): bool
  */
 function skipIfMissingEnv(string $key, ?string $message = null): void
 {
-    if ( ! hasEnv($key)) {
+    if (! \hasEnv($key)) {
         $message ??= "{$key} not set";
-        test()->markTestSkipped($message);
+        \test()->markTestSkipped($message);
     }
 }
 
@@ -83,9 +86,9 @@ function skipIfMissingEnv(string $key, ?string $message = null): void
  */
 function skipIfHasEnv(string $key, ?string $message = null): void
 {
-    if (hasEnv($key)) {
+    if (\hasEnv($key)) {
         $message ??= "{$key} is set in environment";
-        test()->markTestSkipped($message);
+        \test()->markTestSkipped($message);
     }
 }
 
@@ -94,7 +97,7 @@ function skipIfHasEnv(string $key, ?string $message = null): void
  */
 function hasAnthropicKey(): bool
 {
-    return hasEnv('ANTHROPIC_API_KEY');
+    return \hasEnv('ANTHROPIC_API_KEY');
 }
 
 /**
@@ -102,7 +105,7 @@ function hasAnthropicKey(): bool
  */
 function hasOpenAiKey(): bool
 {
-    return hasEnv('OPENAI_API_KEY');
+    return \hasEnv('OPENAI_API_KEY');
 }
 
 /**
@@ -110,7 +113,7 @@ function hasOpenAiKey(): bool
  */
 function skipIfMissingAnthropicKey(): void
 {
-    skipIfMissingEnv('ANTHROPIC_API_KEY');
+    \skipIfMissingEnv('ANTHROPIC_API_KEY');
 }
 
 /**
@@ -118,7 +121,7 @@ function skipIfMissingAnthropicKey(): void
  */
 function skipIfMissingOpenAiKey(): void
 {
-    skipIfMissingEnv('OPENAI_API_KEY');
+    \skipIfMissingEnv('OPENAI_API_KEY');
 }
 
 /**
@@ -126,7 +129,7 @@ function skipIfMissingOpenAiKey(): void
  */
 function skipIfHasAnthropicKey(): void
 {
-    skipIfHasEnv('ANTHROPIC_API_KEY');
+    \skipIfHasEnv('ANTHROPIC_API_KEY');
 }
 
 /**
@@ -134,12 +137,12 @@ function skipIfHasAnthropicKey(): void
  */
 function skipIfHasOpenAiKey(): void
 {
-    skipIfHasEnv('OPENAI_API_KEY');
+    \skipIfHasEnv('OPENAI_API_KEY');
 }
 
 /**
  * Clear agents before each test.
  */
-beforeEach(function (): void {
-    clearAgents();
+\beforeEach(function (): void {
+    \clearAgents();
 });

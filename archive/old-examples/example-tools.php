@@ -10,7 +10,7 @@ use Pagent\Tool\Tool;
 $weatherTool = Tool::fromClosure(
     'get_weather',
     'Get the current weather for a location',
-    fn(string $location, bool $include_forecast = false) => "The weather in {$location} is sunny. Forecast: " . ($include_forecast ? 'Clear skies ahead!' : 'N/A'),
+    fn (string $location, bool $include_forecast = false) => "The weather in {$location} is sunny. Forecast: " . ($include_forecast ? 'Clear skies ahead!' : 'N/A'),
 );
 
 echo "Tool: {$weatherTool->name}\n";
@@ -34,7 +34,7 @@ $agent = agent('assistant')
     ->tool(
         'calculate',
         'Perform mathematical calculations',
-        fn(int $a, int $b, string $operation = 'add') => match ($operation) {
+        fn (int $a, int $b, string $operation = 'add') => match ($operation) {
             'add' => $a + $b,
             'subtract' => $a - $b,
             'multiply' => $a * $b,
@@ -45,7 +45,7 @@ $agent = agent('assistant')
     ->tool(
         'get_time',
         'Get the current time',
-        fn(string $timezone = 'UTC') => "Current time in {$timezone}: " . date('Y-m-d H:i:s'),
+        fn (string $timezone = 'UTC') => "Current time in {$timezone}: " . date('Y-m-d H:i:s'),
     );
 
 // Don't call build() - just continue with the builder
@@ -67,7 +67,7 @@ echo $finalAgent->executeTool('get_time', ['Europe/Oslo']) . "\n";
 $processTool = Tool::fromClosure(
     'process_user',
     'Process user data and generate a report',
-    fn(string $name, int $age, float $score, bool $active, array $tags) => [
+    fn (string $name, int $age, float $score, bool $active, array $tags) => [
         'user' => $name,
         'age' => $age,
         'score' => $score,

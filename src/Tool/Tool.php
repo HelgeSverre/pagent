@@ -14,10 +14,10 @@ final readonly class Tool
      * @param ToolArgument[] $arguments
      */
     public function __construct(
-        public string  $name,
-        public string  $description,
+        public string $name,
+        public string $description,
         public Closure $callable,
-        public array   $arguments = [],
+        public array $arguments = [],
     ) {}
 
     public static function fromClosure(string $name, string $description, Closure $closure): self
@@ -60,7 +60,7 @@ final readonly class Tool
         foreach ($this->arguments as $arg) {
             $properties[$arg->name] = $arg->toJsonSchema();
 
-            if ( ! $arg->nullable && null === $arg->default) {
+            if (! $arg->nullable && $arg->default === null) {
                 $required[] = $arg->name;
             }
         }
@@ -74,7 +74,7 @@ final readonly class Tool
             ],
         ];
 
-        if ( ! empty($required)) {
+        if (! empty($required)) {
             $schema['input_schema']['required'] = $required;
         }
 
@@ -89,7 +89,7 @@ final readonly class Tool
         foreach ($this->arguments as $arg) {
             $properties[$arg->name] = $arg->toJsonSchema();
 
-            if ( ! $arg->nullable && null === $arg->default) {
+            if (! $arg->nullable && $arg->default === null) {
                 $required[] = $arg->name;
             }
         }
@@ -106,7 +106,7 @@ final readonly class Tool
             ],
         ];
 
-        if ( ! empty($required)) {
+        if (! empty($required)) {
             $schema['function']['parameters']['required'] = $required;
         }
 

@@ -6,6 +6,19 @@ namespace Pagent\Evaluation;
 
 use RuntimeException;
 
+use function array_combine;
+use function array_filter;
+use function array_map;
+use function count;
+use function fclose;
+use function fgetcsv;
+use function file_exists;
+use function file_get_contents;
+use function fopen;
+use function json_decode;
+use function json_last_error;
+use function json_last_error_msg;
+
 final class Dataset
 {
     /** @var array<int, array{input: string, expected?: string, metadata?: array}> */
@@ -18,14 +31,14 @@ final class Dataset
 
     public static function fromJson(string $path): self
     {
-        if ( ! file_exists($path)) {
+        if (! file_exists($path)) {
             throw new RuntimeException("Dataset file not found: {$path}");
         }
 
         $content = file_get_contents($path);
         $data = json_decode($content, true);
 
-        if (JSON_ERROR_NONE !== json_last_error()) {
+        if (json_last_error() !== JSON_ERROR_NONE) {
             throw new RuntimeException('Invalid JSON in dataset: ' . json_last_error_msg());
         }
 
@@ -34,7 +47,7 @@ final class Dataset
 
     public static function fromCsv(string $path, bool $hasHeader = true): self
     {
-        if ( ! file_exists($path)) {
+        if (! file_exists($path)) {
             throw new RuntimeException("Dataset file not found: {$path}");
         }
 
@@ -43,8 +56,9 @@ final class Dataset
         $headers = null;
 
         while (($row = fgetcsv($file)) !== false) {
-            if ($hasHeader && null === $headers) {
+            if ($hasHeader && $headers === null) {
                 $headers = $row;
+
                 continue;
             }
 

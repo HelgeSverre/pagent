@@ -9,9 +9,13 @@ use Exception;
 use Pagent\Agent;
 use RuntimeException;
 
+use function is_string;
+use function json_encode;
+use function resolveAgent;
+
 final class Pipeline
 {
-    /** @var array<int, array{agent: string|Agent, transform: ?Closure}> */
+    /** @var array<int, array{agent: Agent|string, transform: ?Closure}> */
     private array $stages = [];
 
     private ?Closure $errorHandler = null;
@@ -51,7 +55,7 @@ final class Pipeline
             try {
                 $agent = resolveAgent($stage['agent']);
 
-                if ( ! $agent instanceof Agent) {
+                if (! $agent instanceof Agent) {
                     throw new RuntimeException("Agent '{$agentName}' not found at stage {$index}");
                 }
 

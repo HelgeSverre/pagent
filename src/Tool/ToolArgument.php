@@ -7,18 +7,18 @@ namespace Pagent\Tool;
 final readonly class ToolArgument
 {
     public function __construct(
-        public string  $name,
-        public string  $type,
-        public bool    $nullable = false,
+        public string $name,
+        public string $type,
+        public bool $nullable = false,
         public ?string $description = null,
-        public mixed   $default = null,
+        public mixed $default = null,
     ) {}
 
     public function toJsonSchema(): array
     {
         $schema = ['type' => $this->phpTypeToJsonType($this->type)];
 
-        if (null !== $this->description) {
+        if ($this->description !== null) {
             $schema['description'] = $this->description;
         }
 

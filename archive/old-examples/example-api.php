@@ -11,7 +11,7 @@ echo "========================\n\n";
 $hasAnthropic = (bool) getenv('ANTHROPIC_API_KEY');
 $hasOpenAI = (bool) getenv('OPENAI_API_KEY');
 
-if ( ! $hasAnthropic && ! $hasOpenAI) {
+if (! $hasAnthropic && ! $hasOpenAI) {
     echo "⚠️  No API keys found!\n\n";
     echo "To run this example, set one or both environment variables:\n";
     echo "  export ANTHROPIC_API_KEY=\"your-key-here\"\n";

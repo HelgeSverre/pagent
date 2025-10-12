@@ -27,7 +27,7 @@ namespace Pagent\Core {
 
         public static function getAgent(string $name): ?Agent
         {
-            if ( ! isset(self::$agents[$name])) {
+            if (! isset(self::$agents[$name])) {
                 return null;
             }
             return call_user_func(self::$agents[$name]);
@@ -144,7 +144,7 @@ namespace Pagent\Core {
         public function register(): void
         {
             $config = $this->config; // Capture config in closure
-            Registry::addAgent($this->name, fn() => new Agent($config));
+            Registry::addAgent($this->name, fn () => new Agent($config));
         }
     }
 
@@ -172,7 +172,7 @@ namespace Pagent\Core {
                 throw new \Exception("Did not expect '{$this->value}' to contain '{$needle}'");
             }
 
-            if ( ! $this->negated && ! $contains) {
+            if (! $this->negated && ! $contains) {
                 throw new \Exception("Expected '{$this->value}' to contain '{$needle}'");
             }
 
@@ -187,7 +187,7 @@ namespace Pagent\Core {
                 throw new \Exception("Did not expect value to be '{$expected}'");
             }
 
-            if ( ! $this->negated && ! $equals) {
+            if (! $this->negated && ! $equals) {
                 throw new \Exception("Expected '{$expected}', got '{$this->value}'");
             }
 
@@ -202,7 +202,7 @@ namespace Pagent\Core {
                 throw new \Exception("Did not expect value to be a string");
             }
 
-            if ( ! $this->negated && ! $isString) {
+            if (! $this->negated && ! $isString) {
                 throw new \Exception("Expected value to be a string, got " . gettype($this->value));
             }
 
@@ -323,7 +323,7 @@ echo "Running behavior tests...\n\n";
 $results = Pagent\Core\Registry::runTests();
 
 // Summary
-$passed = count(array_filter($results, fn($r) => 'pass' === $r['status']));
+$passed = count(array_filter($results, fn ($r) => 'pass' === $r['status']));
 $failed = count($results) - $passed;
 
 echo "\n==========================================\n";

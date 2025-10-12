@@ -6,6 +6,10 @@ namespace Pagent\Evaluation;
 
 use RuntimeException;
 
+use function file_put_contents;
+use function pathinfo;
+use function round;
+
 final class Report
 {
     public function __construct(
@@ -134,7 +138,7 @@ HTML;
             default => throw new RuntimeException("Unsupported export format: {$extension}"),
         };
 
-        if (false === file_put_contents($path, $content)) {
+        if (file_put_contents($path, $content) === false) {
             throw new RuntimeException("Failed to write report to: {$path}");
         }
     }

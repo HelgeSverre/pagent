@@ -8,12 +8,19 @@ use Closure;
 use Pagent\Agent;
 use RuntimeException;
 
+use function is_string;
+use function resolveAgent;
+
 final class Delegation
 {
     private Agent $manager;
+
     private Agent $worker;
+
     private string $task;
+
     private ?Closure $supervisor = null;
+
     private ?Closure $onComplete = null;
 
     public function __construct(Agent $manager, string $task)
@@ -26,7 +33,7 @@ final class Delegation
     {
         $this->worker = resolveAgent($worker);
 
-        if ( ! $this->worker instanceof Agent) {
+        if (! $this->worker instanceof Agent) {
             $name = is_string($worker) ? $worker : 'unknown';
 
             throw new RuntimeException("Worker agent '{$name}' not found");
@@ -51,7 +58,7 @@ final class Delegation
 
     public function execute(): object
     {
-        if ( ! isset($this->worker)) {
+        if (! isset($this->worker)) {
             throw new RuntimeException('No worker agent assigned for delegation');
         }
 
@@ -62,7 +69,7 @@ final class Delegation
         if ($this->supervisor) {
             $review = ($this->supervisor)($workerResponse->content, $this->task);
 
-            if (false === $review) {
+            if ($review === false) {
                 throw new RuntimeException("Supervisor rejected worker output for task: {$this->task}");
             }
 
@@ -82,7 +89,7 @@ final class Delegation
             'worker_output' => $workerResponse->content,
             'manager' => $this->manager->getName(),
             'manager_review' => $managerReview->content,
-            'supervised' => null !== $this->supervisor,
+            'supervised' => $this->supervisor !== null,
         ];
 
         // Call completion callback if provided

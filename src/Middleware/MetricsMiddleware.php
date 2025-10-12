@@ -6,9 +6,17 @@ namespace Pagent\Middleware;
 
 use Pagent\Contracts\Middleware;
 
+use function array_column;
+use function array_sum;
+use function count;
+use function microtime;
+use function round;
+use function time;
+
 final class MetricsMiddleware implements Middleware
 {
     private array $metrics = [];
+
     private ?float $startTime = null;
 
     public function before(string $message, array $options): array
@@ -20,7 +28,7 @@ final class MetricsMiddleware implements Middleware
 
     public function after(object $response): object
     {
-        if (null !== $this->startTime) {
+        if ($this->startTime !== null) {
             $duration = microtime(true) - $this->startTime;
 
             $this->metrics[] = [

@@ -8,9 +8,15 @@ use Pagent\Agent;
 use Pagent\Contracts\Metric;
 use RuntimeException;
 
+use function agent;
+use function is_callable;
+use function is_string;
+use function pathinfo;
+
 final class Evaluator
 {
     private Agent $agent;
+
     private Dataset $dataset;
 
     /** @var Metric[] */
@@ -39,7 +45,7 @@ final class Evaluator
             $this->metrics[$name] = new class ($name, $metric) implements Metric {
                 public function __construct(
                     private readonly string $name,
-                    private readonly mixed  $callable,
+                    private readonly mixed $callable,
                 ) {}
 
                 public function calculate(string $input, string $output, mixed $expected = null): float
@@ -73,11 +79,11 @@ final class Evaluator
     {
         $this->agent = agent($this->agentName);
 
-        if ( ! $this->agent instanceof Agent) {
+        if (! $this->agent instanceof Agent) {
             throw new RuntimeException("Agent '{$this->agentName}' not found");
         }
 
-        if ( ! isset($this->dataset)) {
+        if (! isset($this->dataset)) {
             throw new RuntimeException('No dataset provided');
         }
 

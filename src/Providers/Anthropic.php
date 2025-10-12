@@ -7,9 +7,20 @@ namespace Pagent\Providers;
 use Pagent\Contracts\Provider;
 use RuntimeException;
 
+use function curl_close;
+use function curl_exec;
+use function curl_getinfo;
+use function curl_init;
+use function curl_setopt_array;
+use function getenv;
+use function json_decode;
+use function json_encode;
+use function ray;
+
 final class Anthropic implements Provider
 {
     private string $apiKey;
+
     private string $baseUrl = 'https://api.anthropic.com/v1';
 
     public function __construct(array $config = [])
@@ -45,7 +56,6 @@ final class Anthropic implements Provider
             $body['tools'] = $options['tools'];
         }
 
-
         // TODO: replace with official php sdk client or http client from illuminate.
         // Make API call
         $ch = curl_init($this->baseUrl . '/messages');
@@ -65,13 +75,13 @@ final class Anthropic implements Provider
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if (false === $response) {
+        if ($response === false) {
             throw new RuntimeException('Anthropic API request failed');
         }
 
         $data = json_decode($response, true);
 
-        if (200 !== $httpCode) {
+        if ($httpCode !== 200) {
 
             ray($data)->showApp();
 
@@ -86,9 +96,9 @@ final class Anthropic implements Provider
         $toolCalls = [];
 
         foreach ($data['content'] ?? [] as $block) {
-            if ('text' === $block['type']) {
+            if ($block['type'] === 'text') {
                 $content .= $block['text'];
-            } elseif ('tool_use' === $block['type']) {
+            } elseif ($block['type'] === 'tool_use') {
                 $toolCalls[] = [
                     'id' => $block['id'],
                     'name' => $block['name'],

@@ -9,7 +9,7 @@ use RuntimeException;
 final class GuardException extends RuntimeException
 {
     public function __construct(
-        string                 $message,
+        string $message,
         public readonly string $guardName,
         public readonly string $input,
         public readonly string $output,

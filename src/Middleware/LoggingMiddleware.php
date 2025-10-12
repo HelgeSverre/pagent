@@ -8,6 +8,8 @@ use Pagent\Contracts\Middleware;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
+use function mb_strlen;
+
 final class LoggingMiddleware implements Middleware
 {
     private LoggerInterface $logger;

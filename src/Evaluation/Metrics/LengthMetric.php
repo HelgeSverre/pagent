@@ -6,6 +6,9 @@ namespace Pagent\Evaluation\Metrics;
 
 use Pagent\Contracts\Metric;
 
+use function mb_strlen;
+use function min;
+
 final class LengthMetric implements Metric
 {
     public function __construct(
@@ -21,7 +24,7 @@ final class LengthMetric implements Metric
             return 0.0;
         }
 
-        if (PHP_INT_MAX === $this->maxLength) {
+        if ($this->maxLength === PHP_INT_MAX) {
             return 1.0;
         }
 
@@ -38,7 +41,7 @@ final class LengthMetric implements Metric
 
     public function getDescription(): string
     {
-        if (PHP_INT_MAX === $this->maxLength) {
+        if ($this->maxLength === PHP_INT_MAX) {
             return "Checks if output is at least {$this->minLength} characters";
         }
 

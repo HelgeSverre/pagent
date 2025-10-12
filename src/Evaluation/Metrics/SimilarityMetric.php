@@ -6,11 +6,14 @@ namespace Pagent\Evaluation\Metrics;
 
 use Pagent\Contracts\Metric;
 
+use function is_string;
+use function similar_text;
+
 final class SimilarityMetric implements Metric
 {
     public function calculate(string $input, string $output, mixed $expected = null): float
     {
-        if (null === $expected || ! is_string($expected)) {
+        if ($expected === null || ! is_string($expected)) {
             return 0.0;
         }
 

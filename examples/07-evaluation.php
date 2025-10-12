@@ -10,7 +10,7 @@ use Pagent\Evaluation\Metrics\KeywordMetric;
 use Pagent\Evaluation\Metrics\LengthMetric;
 use Pagent\Evaluation\Report;
 
-if (file_exists(__DIR__ . '/../.env')) {
+if (\file_exists(__DIR__ . '/../.env')) {
     $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->load();
 }
@@ -20,7 +20,7 @@ echo "====================================\n\n";
 
 echo "=== Example 1: Simple Evaluation ===\n\n";
 
-agent('support-bot')
+\agent('support-bot')
     ->provider('openai')
     ->model('gpt-3.5-turbo')
     ->system('You are a helpful customer support agent. Be concise and professional.');
@@ -33,7 +33,7 @@ $dataset = Dataset::fromArray([
 
 echo "Evaluating support-bot on {$dataset->count()} test cases...\n\n";
 
-$result = evaluate('support-bot')
+$result = \evaluate('support-bot')
     ->dataset($dataset)
     ->metric('keywords', new KeywordMetric(['order', 'refund', 'password', 'help']))
     ->metric('length', new LengthMetric(minLength: 20, maxLength: 200))
@@ -41,7 +41,7 @@ $result = evaluate('support-bot')
 
 echo "Results:\n";
 foreach ($result->getSummary()['metrics'] as $name => $data) {
-    $percentage = round($data['average'] * 100, 1);
+    $percentage = \round($data['average'] * 100, 1);
     echo "  {$name}: {$percentage}% (avg: {$data['average']})\n";
 }
 
@@ -50,12 +50,12 @@ echo "\n";
 echo "=== Example 2: Detailed Results ===\n\n";
 
 foreach ($result->results as $i => $item) {
-    echo "Test Case #" . ($i + 1) . ":\n";
+    echo 'Test Case #' . ($i + 1) . ":\n";
     echo "  Input: {$item['input']}\n";
-    echo "  Output: " . mb_substr($item['output'], 0, 80) . "...\n";
-    echo "  Scores: ";
+    echo '  Output: ' . \mb_substr($item['output'], 0, 80) . "...\n";
+    echo '  Scores: ';
     foreach ($item['metrics'] as $name => $score) {
-        $pct = round($score * 100);
+        $pct = \round($score * 100);
         echo "{$name}={$pct}% ";
     }
     echo "\n\n";
@@ -66,7 +66,7 @@ echo "=== Example 3: Loading from JSON File ===\n\n";
 $fileDataset = Dataset::fromJson(__DIR__ . '/datasets/support_tickets.json');
 echo "Loaded {$fileDataset->count()} test cases from JSON\n\n";
 
-$result2 = evaluate('support-bot')
+$result2 = \evaluate('support-bot')
     ->dataset($fileDataset)
     ->metric('response_quality', new KeywordMetric(['help', 'assist', 'sorry', 'order', 'refund']))
     ->metric('conciseness', new LengthMetric(minLength: 10, maxLength: 150))
@@ -75,14 +75,14 @@ $result2 = evaluate('support-bot')
 echo "Results for file-based dataset:\n";
 $summary = $result2->getSummary();
 foreach ($summary['metrics'] as $name => $data) {
-    echo "  {$name}: " . round($data['average'] * 100, 1) . "%\n";
+    echo "  {$name}: " . \round($data['average'] * 100, 1) . "%\n";
 }
 
 echo "\n";
 
 echo "=== Example 4: Custom Metric with Closure ===\n\n";
 
-$result3 = evaluate('support-bot')
+$result3 = \evaluate('support-bot')
     ->dataset(Dataset::fromArray([
         ['input' => 'Help me!', 'expected' => 'I can help'],
     ]))
@@ -90,20 +90,20 @@ $result3 = evaluate('support-bot')
         $politeWords = ['please', 'thank', 'sorry', 'happy', 'glad'];
         $found = 0;
         foreach ($politeWords as $word) {
-            if (str_contains(mb_strtolower($output), $word)) {
+            if (\str_contains(\mb_strtolower($output), $word)) {
                 $found++;
             }
         }
 
-        return min(1.0, $found / 2);
+        return \min(1.0, $found / 2);
     })
     ->run();
 
-echo "Politeness score: " . round($result3->getAverageScore('politeness') * 100, 1) . "%\n\n";
+echo 'Politeness score: ' . \round($result3->getAverageScore('politeness') * 100, 1) . "%\n\n";
 
 echo "=== Example 5: Export Reports ===\n\n";
 
-agent('report-test')
+\agent('report-test')
     ->provider('openai')
     ->system('You are a helpful assistant. Answer in one sentence.');
 
@@ -111,7 +111,7 @@ $reportDataset = Dataset::fromArray([
     ['input' => 'What is PHP?', 'expected' => 'programming language'],
 ]);
 
-$reportResult = evaluate('report-test')
+$reportResult = \evaluate('report-test')
     ->dataset($reportDataset)
     ->metric('keywords', new KeywordMetric(['PHP', 'programming', 'language']))
     ->metric('length', new LengthMetric(minLength: 10, maxLength: 100))
@@ -137,7 +137,7 @@ echo "\n";
 echo "=== Example 6: Evaluation Summary ===\n\n";
 
 echo "Full Summary:\n";
-print_r($reportResult->getSummary());
+\print_r($reportResult->getSummary());
 
 echo "\n✅ All evaluation examples completed!\n";
 echo "\n📊 Evaluation framework is ready to measure agent quality!\n";

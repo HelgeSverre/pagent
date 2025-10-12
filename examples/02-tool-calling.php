@@ -6,33 +6,33 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
-if (file_exists(__DIR__ . '/../.env')) {
+if (\file_exists(__DIR__ . '/../.env')) {
     $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
     $dotenv->load();
 }
 
 echo "=== Example 1: Calculator Tool ===\n\n";
 
-agent('math-assistant')
+\agent('math-assistant')
     ->provider('openai')
     ->system('You are a helpful math assistant.')
     ->tool('calculate', 'Perform basic arithmetic. Operation can be: add, subtract, multiply, or divide', function (string $operation, int $a, int $b): int|float {
-        return match (mb_strtolower($operation)) {
+        return match (\mb_strtolower($operation)) {
             'add', 'addition' => $a + $b,
             'subtract', 'subtraction' => $a - $b,
             'multiply', 'multiplication' => $a * $b,
-            'divide', 'division' => 0 !== $b ? $a / $b : throw new RuntimeException('Division by zero'),
+            'divide', 'division' => $b !== 0 ? $a / $b : throw new RuntimeException('Division by zero'),
             default => throw new RuntimeException("Unknown operation: {$operation}. Use add, subtract, multiply, or divide."),
         };
     });
 
-$response = agent('math-assistant')->prompt('What is 127 times 43?');
+$response = \agent('math-assistant')->prompt('What is 127 times 43?');
 echo "Q: What is 127 times 43?\n";
 echo "A: {$response->content}\n\n";
 
 echo "=== Example 2: Weather Tool ===\n\n";
 
-agent('weather-assistant')
+\agent('weather-assistant')
     ->provider('openai')
     ->system('You are a helpful weather assistant.')
     ->tool('get_weather', 'Get current weather for a city', function (string $city, bool $include_forecast = false): string {
@@ -52,33 +52,33 @@ agent('weather-assistant')
         return $result;
     });
 
-$response = agent('weather-assistant')->prompt('What is the weather like in Oslo?');
+$response = \agent('weather-assistant')->prompt('What is the weather like in Oslo?');
 echo "Q: What is the weather like in Oslo?\n";
 echo "A: {$response->content}\n\n";
 
 echo "=== Example 3: Multiple Tools ===\n\n";
 
-agent('multi-tool-assistant')
+\agent('multi-tool-assistant')
     ->provider('openai')
     ->system('You are a helpful assistant with access to various tools.')
-    ->tool('get_time', 'Get current time', fn(string $timezone = 'UTC'): string => "Current time in {$timezone}: " . date('H:i:s'))
-    ->tool('random_number', 'Generate random number', fn(int $min = 1, int $max = 100): int => rand($min, $max))
-    ->tool('reverse_string', 'Reverse a string', fn(string $text): string => strrev($text));
+    ->tool('get_time', 'Get current time', fn(string $timezone = 'UTC'): string => "Current time in {$timezone}: " . \date('H:i:s'))
+    ->tool('random_number', 'Generate random number', fn(int $min = 1, int $max = 100): int => \rand($min, $max))
+    ->tool('reverse_string', 'Reverse a string', fn(string $text): string => \strrev($text));
 
-$response = agent('multi-tool-assistant')->prompt('Generate a random number between 1 and 50, then tell me the current time.');
+$response = \agent('multi-tool-assistant')->prompt('Generate a random number between 1 and 50, then tell me the current time.');
 echo "Q: Generate a random number between 1 and 50, then tell me the current time.\n";
 echo "A: {$response->content}\n\n";
 
 echo "=== Example 4: Anthropic Tool Calling ===\n\n";
 
-if ( ! empty($_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY'))) {
-    agent('claude-calculator')
+if (! empty($_ENV['ANTHROPIC_API_KEY'] ?? \getenv('ANTHROPIC_API_KEY'))) {
+    \agent('claude-calculator')
         ->provider('anthropic')
         ->system('You are a helpful assistant.')
         ->tool('add', 'Add two numbers', fn(int $a, int $b): int => $a + $b)
         ->tool('multiply', 'Multiply two numbers', fn(int $a, int $b): int => $a * $b);
 
-    $response = agent('claude-calculator')->prompt('What is 25 + 17, and then multiply the result by 3?');
+    $response = \agent('claude-calculator')->prompt('What is 25 + 17, and then multiply the result by 3?');
     echo "Q: What is 25 + 17, and then multiply the result by 3?\n";
     echo "A: {$response->content}\n\n";
 } else {

@@ -7,10 +7,16 @@ namespace Pagent\Orchestration;
 use Pagent\Agent;
 use RuntimeException;
 
+use function is_string;
+use function json_encode;
+use function resolveAgent;
+
 final class Handoff
 {
     private Agent $fromAgent;
+
     private Agent $toAgent;
+
     private ?string $reason = null;
 
     public function __construct(Agent $fromAgent)
@@ -22,7 +28,7 @@ final class Handoff
     {
         $this->toAgent = resolveAgent($targetAgent);
 
-        if ( ! $this->toAgent instanceof Agent) {
+        if (! $this->toAgent instanceof Agent) {
             $name = is_string($targetAgent) ? $targetAgent : 'unknown';
 
             throw new RuntimeException("Target agent '{$name}' not found for handoff");
@@ -40,7 +46,7 @@ final class Handoff
 
     public function transfer(): Agent
     {
-        if ( ! isset($this->toAgent)) {
+        if (! isset($this->toAgent)) {
             throw new RuntimeException('No target agent specified for handoff');
         }
 

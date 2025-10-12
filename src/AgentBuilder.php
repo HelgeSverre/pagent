@@ -23,6 +23,7 @@ final class AgentBuilder
     public function __call(string $method, array $args): self
     {
         $this->agent->{$method}(...$args);
+
         return $this;
     }
 
@@ -36,6 +37,7 @@ final class AgentBuilder
         };
 
         $this->agent->provider($provider);
+
         return $this;
     }
 

@@ -200,7 +200,7 @@ arch('tool usage')
 
 stress('customer complaints')
     ->agent('support bot')
-    ->bombard(fn() => prompt('WHERE IS MY ORDER?!?!')
+    ->bombard(fn () => prompt('WHERE IS MY ORDER?!?!')
         ->simultaneously(100)
         ->duration('5 minutes'))
     ->expect()

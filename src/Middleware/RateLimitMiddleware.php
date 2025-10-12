@@ -7,6 +7,12 @@ namespace Pagent\Middleware;
 use Pagent\Contracts\Middleware;
 use RuntimeException;
 
+use function array_filter;
+use function count;
+use function max;
+use function min;
+use function time;
+
 final class RateLimitMiddleware implements Middleware
 {
     private array $requests = [];

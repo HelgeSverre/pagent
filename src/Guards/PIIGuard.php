@@ -6,6 +6,8 @@ namespace Pagent\Guards;
 
 use Pagent\Contracts\Guard;
 
+use function preg_match;
+
 final class PIIGuard implements Guard
 {
     private array $patterns = [

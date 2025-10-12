@@ -6,21 +6,21 @@ use Pagent\Agent;
 use Pagent\AgentBuilder;
 use Pagent\Registry;
 
-if ( ! function_exists('agent')) {
+if (! \function_exists('agent')) {
     /**
      * Create or retrieve an agent.
      */
     function agent(string $name): Agent|AgentBuilder
     {
         if (Registry::has($name)) {
-            return Registry::get($name);
+            return Registry::get($name) ?? new AgentBuilder($name);
         }
 
         return new AgentBuilder($name);
     }
 }
 
-if ( ! function_exists('agents')) {
+if (! \function_exists('agents')) {
     /**
      * Get all registered agents.
      */
@@ -30,7 +30,7 @@ if ( ! function_exists('agents')) {
     }
 }
 
-if ( ! function_exists('clearAgents')) {
+if (! \function_exists('clearAgents')) {
     /**
      * Clear all registered agents.
      */
@@ -40,7 +40,7 @@ if ( ! function_exists('clearAgents')) {
     }
 }
 
-if ( ! function_exists('anthropic')) {
+if (! \function_exists('anthropic')) {
     /**
      * Create an Anthropic provider instance.
      */
@@ -50,7 +50,7 @@ if ( ! function_exists('anthropic')) {
     }
 }
 
-if ( ! function_exists('openai')) {
+if (! \function_exists('openai')) {
     /**
      * Create an OpenAI provider instance.
      */
@@ -60,7 +60,7 @@ if ( ! function_exists('openai')) {
     }
 }
 
-if ( ! function_exists('mock')) {
+if (! \function_exists('mock')) {
     /**
      * Create a mock provider instance.
      */
@@ -70,7 +70,7 @@ if ( ! function_exists('mock')) {
     }
 }
 
-if ( ! function_exists('evaluate')) {
+if (! \function_exists('evaluate')) {
     /**
      * Create an evaluator for an agent.
      */
@@ -80,7 +80,7 @@ if ( ! function_exists('evaluate')) {
     }
 }
 
-if ( ! function_exists('pipeline')) {
+if (! \function_exists('pipeline')) {
     /**
      * Create a pipeline for sequential agent execution.
      */
@@ -90,13 +90,12 @@ if ( ! function_exists('pipeline')) {
     }
 }
 
-if ( ! function_exists('resolveAgent')) {
+if (! \function_exists('resolveAgent')) {
     /**
      * Resolve an agent from a string name or Agent instance.
-     * @param string<class-string>|Agent $agent
      */
     function resolveAgent(string|Agent $agent): Agent|AgentBuilder
     {
-        return is_string($agent) ? agent($agent) : $agent;
+        return \is_string($agent) ? \agent($agent) : $agent;
     }
 }

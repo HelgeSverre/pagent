@@ -6,6 +6,9 @@ namespace Pagent\Guards;
 
 use Pagent\Contracts\Guard;
 
+use function array_merge;
+use function preg_match;
+
 final class ContentFilterGuard implements Guard
 {
     private array $blockedPatterns = [
@@ -16,9 +19,9 @@ final class ContentFilterGuard implements Guard
 
     public function __construct(
         private readonly array $customPatterns = [],
-        private readonly bool  $strictMode = false,
+        private readonly bool $strictMode = false,
     ) {
-        if ( ! empty($customPatterns)) {
+        if (! empty($customPatterns)) {
             $this->blockedPatterns = array_merge($this->blockedPatterns, $customPatterns);
         }
     }

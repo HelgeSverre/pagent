@@ -124,7 +124,7 @@ final class AgentRepository
 
     public static function getAgent(string $name): ?Agent
     {
-        if ( ! isset(self::$agents[$name])) {
+        if (! isset(self::$agents[$name])) {
             return null;
         }
 
@@ -255,7 +255,7 @@ final class Agent
         }
 
         // Context
-        if ( ! empty($this->context)) {
+        if (! empty($this->context)) {
             $messages[] = [
                 'role' => 'system',
                 'content' => 'Context: ' . json_encode($this->context),
@@ -329,12 +329,12 @@ final class Expectation
     {
         if (is_array($expected)) {
             foreach ($expected as $item) {
-                if ( ! str_contains($this->value, $item)) {
+                if (! str_contains($this->value, $item)) {
                     throw new \Exception("Expected to contain '{$item}'");
                 }
             }
         } else {
-            if ( ! str_contains($this->value, $expected)) {
+            if (! str_contains($this->value, $expected)) {
                 throw new \Exception("Expected to contain '{$expected}'");
             }
         }
