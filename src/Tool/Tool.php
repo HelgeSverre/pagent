@@ -11,7 +11,7 @@ use ReflectionNamedType;
 final readonly class Tool
 {
     /**
-     * @param ToolArgument[] $arguments
+     * @param  ToolArgument[]  $arguments
      */
     public function __construct(
         public string $name,

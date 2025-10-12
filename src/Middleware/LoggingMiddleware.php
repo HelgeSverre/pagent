@@ -16,7 +16,7 @@ final class LoggingMiddleware implements Middleware
 
     public function __construct(?LoggerInterface $logger = null)
     {
-        $this->logger = $logger ?? new NullLogger();
+        $this->logger = $logger ?? new NullLogger;
     }
 
     public function before(string $message, array $options): array

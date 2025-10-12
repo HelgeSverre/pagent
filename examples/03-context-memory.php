@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
 // Load environment variables
-if (\file_exists(__DIR__ . '/../.env')) {
-    $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
+if (\file_exists(__DIR__.'/../.env')) {
+    $dotenv = Dotenv::createImmutable(__DIR__.'/..');
     $dotenv->load();
 }
 
@@ -109,6 +109,6 @@ foreach ($agent->messages as $i => $message) {
     echo \sprintf("[%d] %s: %s\n", $i + 1, \ucfirst($role), \mb_substr($content, 0, 100));
 }
 
-echo "\nTotal messages: " . \count($agent->messages) . "\n\n";
+echo "\nTotal messages: ".\count($agent->messages)."\n\n";
 
 echo "✅ All context/memory examples completed!\n";

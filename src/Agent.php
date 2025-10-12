@@ -195,17 +195,17 @@ final class Agent
         }
 
         // Better error message with suggestions
-        $available = array_map(fn($t) => $t->name, $this->tools);
+        $available = array_map(fn ($t) => $t->name, $this->tools);
         $suggestions = $this->findSimilarToolNames($name, $available);
 
         $message = "Tool '{$name}' not found";
 
         if (! empty($suggestions)) {
-            $message .= '. Did you mean: ' . implode(', ', $suggestions) . '?';
+            $message .= '. Did you mean: '.implode(', ', $suggestions).'?';
         }
 
         if (! empty($available)) {
-            $message .= ' Available tools: ' . implode(', ', $available);
+            $message .= ' Available tools: '.implode(', ', $available);
         }
 
         throw new RuntimeException($message);
@@ -222,7 +222,8 @@ final class Agent
         if ($check instanceof Closure) {
             $name = is_string($guard) ? $guard : 'closure';
 
-            $anonymousGuard = new class ($name, $check) implements Guard {
+            $anonymousGuard = new class($name, $check) implements Guard
+            {
                 public function __construct(
                     private readonly string $name,
                     private readonly Closure $check,
@@ -251,12 +252,12 @@ final class Agent
             return $this;
         }
 
-        $fqcn = 'Pagent\\Guards\\' . ucfirst($guard) . 'Guard';
+        $fqcn = 'Pagent\\Guards\\'.ucfirst($guard).'Guard';
         if (! class_exists($fqcn)) {
             throw new RuntimeException("Guard class '{$fqcn}' not found");
         }
 
-        $this->guards[] = new $fqcn();
+        $this->guards[] = new $fqcn;
 
         return $this;
     }
@@ -281,13 +282,13 @@ final class Agent
         if ($middleware instanceof Middleware) {
             $this->middleware[] = $middleware;
         } else {
-            $middlewareClass = 'Pagent\\Middleware\\' . ucfirst($middleware) . 'Middleware';
+            $middlewareClass = 'Pagent\\Middleware\\'.ucfirst($middleware).'Middleware';
 
             if (! class_exists($middlewareClass)) {
                 throw new RuntimeException("Middleware class '{$middlewareClass}' not found");
             }
 
-            $this->middleware[] = new $middlewareClass();
+            $this->middleware[] = new $middlewareClass;
         }
 
         return $this;
@@ -411,8 +412,8 @@ final class Agent
     public function getStats(): array
     {
         $totalMessages = count($this->messages);
-        $userMessages = count(array_filter($this->messages, fn($m) => $m['role'] === 'user'));
-        $assistantMessages = count(array_filter($this->messages, fn($m) => $m['role'] === 'assistant'));
+        $userMessages = count(array_filter($this->messages, fn ($m) => $m['role'] === 'user'));
+        $assistantMessages = count(array_filter($this->messages, fn ($m) => $m['role'] === 'assistant'));
 
         return [
             'agent' => $this->name,
@@ -430,7 +431,7 @@ final class Agent
      */
     public function getGuardStats(): array
     {
-        return array_map(fn($guard) => [
+        return array_map(fn ($guard) => [
             'name' => $guard->getName(),
             'active' => true,
         ], $this->guards);
@@ -455,11 +456,11 @@ final class Agent
         $provider = get_class($this->provider);
 
         if (str_contains($provider, 'Anthropic')) {
-            return array_map(fn($tool) => $tool->toAnthropicSchema(), $this->tools);
+            return array_map(fn ($tool) => $tool->toAnthropicSchema(), $this->tools);
         }
 
         if (str_contains($provider, 'OpenAI')) {
-            return array_map(fn($tool) => $tool->toOpenAISchema(), $this->tools);
+            return array_map(fn ($tool) => $tool->toOpenAISchema(), $this->tools);
         }
 
         return [];
@@ -475,7 +476,7 @@ final class Agent
             $assistantMessage['content'] = $response->raw_content;
         } elseif (! empty($response->tool_calls)) {
             // For OpenAI, add tool_calls
-            $assistantMessage['tool_calls'] = array_map(fn($call) => [
+            $assistantMessage['tool_calls'] = array_map(fn ($call) => [
                 'id' => $call['id'],
                 'type' => 'function',
                 'function' => [
@@ -530,9 +531,8 @@ final class Agent
     /**
      * Find similar tool names using Levenshtein distance.
      *
-     * @param string $needle The tool name to find
-     * @param array $haystack Available tool names
-     *
+     * @param  string  $needle  The tool name to find
+     * @param  array  $haystack  Available tool names
      * @return array Similar tool names
      */
     private function findSimilarToolNames(string $needle, array $haystack): array
@@ -550,6 +550,6 @@ final class Agent
         $closest = array_slice($distances, 0, 3, true);
 
         // Only return suggestions with distance <= 3
-        return array_keys(array_filter($closest, fn($dist) => $dist <= 3));
+        return array_keys(array_filter($closest, fn ($dist) => $dist <= 3));
     }
 }

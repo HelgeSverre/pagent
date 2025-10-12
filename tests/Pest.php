@@ -5,8 +5,8 @@ declare(strict_types=1);
 use Dotenv\Dotenv;
 use Pagent\Agent;
 
-if (\file_exists(__DIR__ . '/../.env')) {
-    $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
+if (\file_exists(__DIR__.'/../.env')) {
+    $dotenv = Dotenv::createImmutable(__DIR__.'/..');
     $dotenv->load();
 }
 
@@ -24,7 +24,7 @@ if (\file_exists(__DIR__ . '/../.env')) {
 |--------------------------------------------------------------------------
 */
 
-\expect()->extend('toBeAgent', fn() => $this->toBeInstanceOf(Agent::class));
+\expect()->extend('toBeAgent', fn () => $this->toBeInstanceOf(Agent::class));
 
 \expect()->extend('toHaveProvider', function () {
     $agent = $this->value;

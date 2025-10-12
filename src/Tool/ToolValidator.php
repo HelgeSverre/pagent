@@ -27,7 +27,7 @@ final class ToolValidator
 
         $requiredArgs = array_filter(
             $tool->arguments,
-            fn($arg) => ! $arg->nullable && $arg->default === null,
+            fn ($arg) => ! $arg->nullable && $arg->default === null,
         );
 
         if ($isAssociative) {
@@ -41,8 +41,8 @@ final class ToolValidator
         } else {
             if ($providedCount < count($requiredArgs)) {
                 throw new RuntimeException(
-                    "Tool '{$tool->name}' requires " . count($requiredArgs)
-                    . " arguments, {$providedCount} provided",
+                    "Tool '{$tool->name}' requires ".count($requiredArgs)
+                    ." arguments, {$providedCount} provided",
                 );
             }
         }

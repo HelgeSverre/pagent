@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
-if (\file_exists(__DIR__ . '/../.env')) {
-    $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
+if (\file_exists(__DIR__.'/../.env')) {
+    $dotenv = Dotenv::createImmutable(__DIR__.'/..');
     $dotenv->load();
 }
 

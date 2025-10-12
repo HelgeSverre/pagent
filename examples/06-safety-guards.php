@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 use Pagent\Guards\PIIGuard;
 
-if (\file_exists(__DIR__ . '/../.env')) {
-    $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
+if (\file_exists(__DIR__.'/../.env')) {
+    $dotenv = Dotenv::createImmutable(__DIR__.'/..');
     $dotenv->load();
 }
 
@@ -21,7 +21,7 @@ echo "=== Example 1: PII Guard (Prevents Leaking Personal Information) ===\n\n";
     ->provider('openai')
     ->system('You are a helpful assistant.')
     ->guard('pii')
-    ->fallback(fn($error) => 'I cannot share personal information.');
+    ->fallback(fn ($error) => 'I cannot share personal information.');
 
 $bot = \agent('secure-bot');
 
@@ -46,7 +46,7 @@ echo "=== Example 2: Content Filter (Prevents Harmful Content) ===\n\n";
     ->provider('openai')
     ->system('You are a helpful assistant.')
     ->guard('contentFilter')
-    ->fallback(fn($error) => 'I cannot provide that type of content.');
+    ->fallback(fn ($error) => 'I cannot provide that type of content.');
 
 $filtered = \agent('filtered-bot');
 
@@ -60,7 +60,7 @@ echo "=== Example 3: Prompt Injection Protection ===\n\n";
     ->provider('openai')
     ->system('You are a helpful assistant.')
     ->guard('promptInjection')
-    ->fallback(fn($error) => 'That request cannot be processed.');
+    ->fallback(fn ($error) => 'That request cannot be processed.');
 
 $protected = \agent('protected-bot');
 
@@ -87,7 +87,7 @@ echo "=== Example 4: Multiple Guards ===\n\n";
     ->guard('pii')
     ->guard('contentFilter')
     ->guard('promptInjection')
-    ->fallback(fn($error) => 'I apologize, but I cannot process that request for security reasons.');
+    ->fallback(fn ($error) => 'I apologize, but I cannot process that request for security reasons.');
 
 $multiGuard = \agent('multi-guard-bot');
 
@@ -110,7 +110,7 @@ echo "=== Example 5: Custom Guard with Closure ===\n\n";
 
         return true;
     })
-    ->fallback(fn($error) => 'I prefer not to discuss that topic.');
+    ->fallback(fn ($error) => 'I prefer not to discuss that topic.');
 
 $customBot = \agent('custom-guard-bot');
 
@@ -126,7 +126,7 @@ $piiGuard = new PIIGuard(['email', 'phone']);
     ->provider('openai')
     ->system('You are a helpful assistant.')
     ->guard($piiGuard)
-    ->fallback(fn($error) => 'Information filtered for privacy.');
+    ->fallback(fn ($error) => 'Information filtered for privacy.');
 
 $classBot = \agent('class-guard-bot');
 
@@ -138,9 +138,9 @@ echo "=== Example 7: Guard Inspection ===\n\n";
 
 $inspectBot = \agent('multi-guard-bot');
 
-echo 'Active guards: ' . \count($inspectBot->getGuards()) . "\n";
+echo 'Active guards: '.\count($inspectBot->getGuards())."\n";
 foreach ($inspectBot->getGuards() as $i => $guard) {
-    echo '  ' . ($i + 1) . ". {$guard->getName()}: {$guard->getViolationMessage()}\n";
+    echo '  '.($i + 1).". {$guard->getName()}: {$guard->getViolationMessage()}\n";
 }
 
 echo "\n✅ All safety guard examples completed!\n";

@@ -32,7 +32,7 @@ final class RateLimitMiddleware implements Middleware
 
             throw new RuntimeException(
                 "Rate limit exceeded. Try again in {$waitSeconds} seconds. "
-                . "Limit: {$this->maxRequests} requests per {$this->windowSeconds} seconds.",
+                ."Limit: {$this->maxRequests} requests per {$this->windowSeconds} seconds.",
             );
         }
 
@@ -56,6 +56,6 @@ final class RateLimitMiddleware implements Middleware
     private function pruneOldRequests(): void
     {
         $cutoff = time() - $this->windowSeconds;
-        $this->requests = array_filter($this->requests, fn($timestamp) => $timestamp > $cutoff);
+        $this->requests = array_filter($this->requests, fn ($timestamp) => $timestamp > $cutoff);
     }
 }

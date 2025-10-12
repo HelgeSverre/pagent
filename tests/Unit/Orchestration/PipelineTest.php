@@ -6,14 +6,14 @@ use Pagent\Agent;
 use Pagent\Orchestration\Pipeline;
 use Pagent\Registry;
 
-\test('it creates pipeline', function (): void {
+test('it creates pipeline', function (): void {
     $pipeline = \pipeline('test-pipeline');
 
-    \expect($pipeline)->toBeInstanceOf(Pipeline::class)
+    expect($pipeline)->toBeInstanceOf(Pipeline::class)
         ->and($pipeline->getName())->toBe('test-pipeline');
 });
 
-\test('it runs pipeline with sequential agents', function (): void {
+test('it runs pipeline with sequential agents', function (): void {
     $b1 = \agent('extractor')
         ->provider('mock')
         ->system('Extract key information');
@@ -29,11 +29,11 @@ use Pagent\Registry;
         ->agent('formatter')
         ->run('Process this data');
 
-    \expect($result)->toBeString();
+    expect($result)->toBeString();
 });
 
-\test('it passes output between stages', function (): void {
-    $mockProvider = \mock();
+test('it passes output between stages', function (): void {
+    $mockProvider = mock();
     $mockProvider->setResponse('stage1', 'STAGE1_OUTPUT');
     $mockProvider->setResponse('STAGE1_OUTPUT', 'FINAL_OUTPUT');
 
@@ -50,10 +50,10 @@ use Pagent\Registry;
         ->agent('stage2')
         ->run('stage1');
 
-    \expect($result)->toBe('FINAL_OUTPUT');
+    expect($result)->toBe('FINAL_OUTPUT');
 });
 
-\test('it supports transform functions between stages', function (): void {
+test('it supports transform functions between stages', function (): void {
     $b1 = \agent('parser')->provider('mock');
     unset($b1);
     $b2 = \agent('processor')->provider('mock');
@@ -61,13 +61,13 @@ use Pagent\Registry;
 
     $result = \pipeline('transform-test')
         ->agent('parser')
-        ->agent('processor', fn($prev) => \mb_strtoupper($prev))
+        ->agent('processor', fn ($prev) => mb_strtoupper($prev))
         ->run('input');
 
-    \expect($result)->toBeString();
+    expect($result)->toBeString();
 });
 
-\test('it stores results from each stage', function (): void {
+test('it stores results from each stage', function (): void {
     $b1 = \agent('agent1')->provider('mock');
     unset($b1);
     $b2 = \agent('agent2')->provider('mock');
@@ -81,30 +81,30 @@ use Pagent\Registry;
 
     $results = $pipe->getResults();
 
-    \expect($results)->toHaveCount(2)
+    expect($results)->toHaveCount(2)
         ->and($results[0])->toHaveKeys(['stage', 'agent', 'input', 'output', 'response']);
 });
 
-\test('it handles errors with error handler', function (): void {
+test('it handles errors with error handler', function (): void {
     $faulty = new Agent('faulty');
-    $faulty->provider(\mock());
+    $faulty->provider(mock());
     Registry::set('faulty', $faulty);
 
     $pipeline = \pipeline('error-test')
         ->agent('faulty')
-        ->onError(fn($error, $stage, $agent) => "Error at stage {$stage}: {$agent}");
+        ->onError(fn ($error, $stage, $agent) => "Error at stage {$stage}: {$agent}");
 
     $result = $pipeline
         ->agent('nonexistent')
         ->run('test');
 
-    \expect($result)->toContain('Error');
+    expect($result)->toContain('Error');
 });
 
-\test('it throws exception without error handler', function (): void {
+test('it throws exception without error handler', function (): void {
     $pipeline = \pipeline('no-handler')
         ->agent('nonexistent');
 
-    \expect(fn() => $pipeline->run('test'))
+    expect(fn () => $pipeline->run('test'))
         ->toThrow(RuntimeException::class, 'Pipeline');
 });

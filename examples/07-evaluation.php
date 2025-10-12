@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 use Pagent\Evaluation\Dataset;
@@ -10,8 +10,8 @@ use Pagent\Evaluation\Metrics\KeywordMetric;
 use Pagent\Evaluation\Metrics\LengthMetric;
 use Pagent\Evaluation\Report;
 
-if (\file_exists(__DIR__ . '/../.env')) {
-    $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
+if (\file_exists(__DIR__.'/../.env')) {
+    $dotenv = Dotenv::createImmutable(__DIR__.'/..');
     $dotenv->load();
 }
 
@@ -50,9 +50,9 @@ echo "\n";
 echo "=== Example 2: Detailed Results ===\n\n";
 
 foreach ($result->results as $i => $item) {
-    echo 'Test Case #' . ($i + 1) . ":\n";
+    echo 'Test Case #'.($i + 1).":\n";
     echo "  Input: {$item['input']}\n";
-    echo '  Output: ' . \mb_substr($item['output'], 0, 80) . "...\n";
+    echo '  Output: '.\mb_substr($item['output'], 0, 80)."...\n";
     echo '  Scores: ';
     foreach ($item['metrics'] as $name => $score) {
         $pct = \round($score * 100);
@@ -63,7 +63,7 @@ foreach ($result->results as $i => $item) {
 
 echo "=== Example 3: Loading from JSON File ===\n\n";
 
-$fileDataset = Dataset::fromJson(__DIR__ . '/datasets/support_tickets.json');
+$fileDataset = Dataset::fromJson(__DIR__.'/datasets/support_tickets.json');
 echo "Loaded {$fileDataset->count()} test cases from JSON\n\n";
 
 $result2 = \evaluate('support-bot')
@@ -75,7 +75,7 @@ $result2 = \evaluate('support-bot')
 echo "Results for file-based dataset:\n";
 $summary = $result2->getSummary();
 foreach ($summary['metrics'] as $name => $data) {
-    echo "  {$name}: " . \round($data['average'] * 100, 1) . "%\n";
+    echo "  {$name}: ".\round($data['average'] * 100, 1)."%\n";
 }
 
 echo "\n";
@@ -99,7 +99,7 @@ $result3 = \evaluate('support-bot')
     })
     ->run();
 
-echo 'Politeness score: ' . \round($result3->getAverageScore('politeness') * 100, 1) . "%\n\n";
+echo 'Politeness score: '.\round($result3->getAverageScore('politeness') * 100, 1)."%\n\n";
 
 echo "=== Example 5: Export Reports ===\n\n";
 
@@ -121,15 +121,15 @@ $reportResult = \evaluate('report-test')
 $report = new Report($reportResult);
 
 // Save as JSON
-$report->save(__DIR__ . '/reports/evaluation.json');
+$report->save(__DIR__.'/reports/evaluation.json');
 echo "✅ Saved JSON report to examples/reports/evaluation.json\n";
 
 // Save as Markdown
-$report->save(__DIR__ . '/reports/evaluation.md');
+$report->save(__DIR__.'/reports/evaluation.md');
 echo "✅ Saved Markdown report to examples/reports/evaluation.md\n";
 
 // Save as HTML
-$report->save(__DIR__ . '/reports/evaluation.html');
+$report->save(__DIR__.'/reports/evaluation.html');
 echo "✅ Saved HTML report to examples/reports/evaluation.html\n";
 
 echo "\n";

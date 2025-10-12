@@ -65,13 +65,13 @@ final class OpenAI implements Provider
         }
 
         // Make API call
-        $ch = curl_init($this->baseUrl . '/chat/completions');
+        $ch = curl_init($this->baseUrl.'/chat/completions');
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'Authorization: Bearer ' . $this->apiKey,
+                'Authorization: Bearer '.$this->apiKey,
             ],
             CURLOPT_POSTFIELDS => json_encode($body),
             CURLOPT_TIMEOUT => 30,

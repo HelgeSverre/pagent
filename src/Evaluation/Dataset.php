@@ -39,7 +39,7 @@ final class Dataset
         $data = json_decode($content, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new RuntimeException('Invalid JSON in dataset: ' . json_last_error_msg());
+            throw new RuntimeException('Invalid JSON in dataset: '.json_last_error_msg());
         }
 
         return new self($data);

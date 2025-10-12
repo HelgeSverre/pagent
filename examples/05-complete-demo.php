@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
-if (\file_exists(__DIR__ . '/../.env')) {
-    $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
+if (\file_exists(__DIR__.'/../.env')) {
+    $dotenv = Dotenv::createImmutable(__DIR__.'/..');
     $dotenv->load();
 }
 
@@ -67,7 +67,7 @@ echo "=== 2. Research Assistant ===\n\n";
 
         return 'No information found.';
     })
-    ->tool('calculate_age', 'Calculate age from year', fn(int $year): int => \date('Y') - $year);
+    ->tool('calculate_age', 'Calculate age from year', fn (int $year): int => \date('Y') - $year);
 
 $researcher = \agent('researcher');
 
@@ -80,12 +80,12 @@ echo "=== 3. Multi-Step Task with Tools ===\n\n";
 \agent('analyst')
     ->provider('openai')
     ->system('You are a data analyst. Use tools to help with calculations.')
-    ->tool('fetch_data', 'Fetch sales data', fn(string $month): array => [
+    ->tool('fetch_data', 'Fetch sales data', fn (string $month): array => [
         'january' => ['sales' => 10000, 'customers' => 50],
         'february' => ['sales' => 15000, 'customers' => 75],
         'march' => ['sales' => 12000, 'customers' => 60],
     ][\mb_strtolower($month)] ?? ['sales' => 0, 'customers' => 0])
-    ->tool('calculate_average', 'Calculate average', fn(int $total, int $count): float => $count > 0 ? $total / $count : 0);
+    ->tool('calculate_average', 'Calculate average', fn (int $total, int $count): float => $count > 0 ? $total / $count : 0);
 
 $analyst = \agent('analyst');
 
@@ -96,7 +96,7 @@ echo "Analyst: {$r4->content}\n\n";
 echo "=== 4. Conversation Inspection ===\n\n";
 
 echo "Message history for support-bot:\n";
-echo 'Total messages: ' . \count($support->messages) . "\n";
+echo 'Total messages: '.\count($support->messages)."\n";
 foreach (\array_slice($support->messages, 0, 4) as $i => $msg) {
     $role = \mb_strtoupper($msg['role']);
     $content = \is_string($msg['content']) ? \mb_substr($msg['content'], 0, 60) : '[complex]';
@@ -106,12 +106,12 @@ foreach (\array_slice($support->messages, 0, 4) as $i => $msg) {
 echo "\n=== 5. Tool Inspection ===\n\n";
 
 $tools = $support->getTools();
-echo 'Support bot has ' . \count($tools) . " tools:\n";
+echo 'Support bot has '.\count($tools)." tools:\n";
 foreach ($tools as $tool) {
     echo "  - {$tool->name}: {$tool->description}\n";
     echo '    Parameters: ';
-    $params = \array_map(fn($arg) => "{$arg->name}: {$arg->type}", $tool->arguments);
-    echo \implode(', ', $params) . "\n";
+    $params = \array_map(fn ($arg) => "{$arg->name}: {$arg->type}", $tool->arguments);
+    echo \implode(', ', $params)."\n";
 }
 
 echo "\n✅ Complete demo finished!\n";

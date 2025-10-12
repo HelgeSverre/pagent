@@ -45,6 +45,6 @@ final class KeywordMetric implements Metric
     {
         $mode = $this->requireAll ? 'all' : 'any';
 
-        return "Checks if {$mode} keywords are present: " . implode(', ', $this->keywords);
+        return "Checks if {$mode} keywords are present: ".implode(', ', $this->keywords);
     }
 }

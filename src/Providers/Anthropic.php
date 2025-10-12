@@ -58,13 +58,13 @@ final class Anthropic implements Provider
 
         // TODO: replace with official php sdk client or http client from illuminate.
         // Make API call
-        $ch = curl_init($this->baseUrl . '/messages');
+        $ch = curl_init($this->baseUrl.'/messages');
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
-                'x-api-key: ' . $this->apiKey,
+                'x-api-key: '.$this->apiKey,
                 'anthropic-version: 2023-06-01',
             ],
             CURLOPT_POSTFIELDS => json_encode($body),

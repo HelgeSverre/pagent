@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
-if (\file_exists(__DIR__ . '/../.env')) {
-    $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
+if (\file_exists(__DIR__.'/../.env')) {
+    $dotenv = Dotenv::createImmutable(__DIR__.'/..');
     $dotenv->load();
 }
 
@@ -20,7 +20,7 @@ echo "=== Example 1: Pipeline (Sequential Agents) ===\n\n";
     ->provider('openai')
     ->system(
         'You at randomy will swap out a word with a broken unicode character. '
-        . 'followed by a upside down emoji, nobody knows why.',
+        .'followed by a upside down emoji, nobody knows why.',
     );
 
 \agent('extractor')
@@ -102,7 +102,7 @@ $result = $manager->delegate('Write a PHP function that adds two numbers')
 
 echo "Task: {$result->task}\n";
 echo "Worker: {$result->worker}\n";
-echo 'Output: ' . \mb_substr($result->worker_output, 0, 100) . "...\n";
+echo 'Output: '.\mb_substr($result->worker_output, 0, 100)."...\n";
 echo "Manager Review: {$result->manager_review}\n\n";
 
 echo "=== Example 4: Pipeline with Transform ===\n\n";
@@ -117,7 +117,7 @@ echo "=== Example 4: Pipeline with Transform ===\n\n";
 
 $sentimentResult = \pipeline('sentiment-analysis')
     ->agent('analyzer')
-    ->agent('reporter', fn($sentiment) => "The sentiment was: {$sentiment}. Provide a one-sentence summary.")
+    ->agent('reporter', fn ($sentiment) => "The sentiment was: {$sentiment}. Provide a one-sentence summary.")
     ->run('This product is amazing! I love it!');
 
 echo "Pipeline with transform: {$sentimentResult}\n\n";
@@ -130,10 +130,10 @@ echo "=== Example 5: Pipeline with Error Recovery ===\n\n";
 $safeResult = \pipeline('safe-pipeline')
     ->agent('step1')
     ->agent('step2')
-    ->onError(fn($error, $stage, $agentName) => "Pipeline failed at stage {$stage} ({$agentName}). Recovered gracefully.")
+    ->onError(fn ($error, $stage, $agentName) => "Pipeline failed at stage {$stage} ({$agentName}). Recovered gracefully.")
     ->run('Test input');
 
-echo 'Safe pipeline result: ' . \mb_substr($safeResult, 0, 80) . "...\n\n";
+echo 'Safe pipeline result: '.\mb_substr($safeResult, 0, 80)."...\n\n";
 
 echo "=== Example 6: Complex Multi-Agent Workflow ===\n\n";
 
@@ -153,12 +153,12 @@ $support = \agent('customer-support');
 
 echo "Customer: Why am I being charged twice?\n";
 $response = $support->prompt('Why am I being charged twice on my account?');
-echo 'Support: ' . \mb_substr($response->content, 0, 80) . "...\n\n";
+echo 'Support: '.\mb_substr($response->content, 0, 80)."...\n\n";
 
 echo "Handing off to billing specialist...\n";
 $billing = $support->handoff('billing-specialist', 'Billing inquiry');
 $billingResponse = $billing->prompt('Please explain the charges');
-echo 'Billing: ' . \mb_substr($billingResponse->content, 0, 80) . "...\n\n";
+echo 'Billing: '.\mb_substr($billingResponse->content, 0, 80)."...\n\n";
 
 echo "✅ All multi-agent examples completed!\n";
 echo "\n🤝 Multi-agent orchestration enables complex workflows!\n";

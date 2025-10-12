@@ -42,7 +42,8 @@ final class Evaluator
         if ($metric instanceof Metric) {
             $this->metrics[$name] = $metric;
         } elseif (is_callable($metric)) {
-            $this->metrics[$name] = new class ($name, $metric) implements Metric {
+            $this->metrics[$name] = new class($name, $metric) implements Metric
+            {
                 public function __construct(
                     private readonly string $name,
                     private readonly mixed $callable,

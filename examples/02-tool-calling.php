@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
 
-if (\file_exists(__DIR__ . '/../.env')) {
-    $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
+if (\file_exists(__DIR__.'/../.env')) {
+    $dotenv = Dotenv::createImmutable(__DIR__.'/..');
     $dotenv->load();
 }
 
@@ -61,9 +61,9 @@ echo "=== Example 3: Multiple Tools ===\n\n";
 \agent('multi-tool-assistant')
     ->provider('openai')
     ->system('You are a helpful assistant with access to various tools.')
-    ->tool('get_time', 'Get current time', fn(string $timezone = 'UTC'): string => "Current time in {$timezone}: " . \date('H:i:s'))
-    ->tool('random_number', 'Generate random number', fn(int $min = 1, int $max = 100): int => \rand($min, $max))
-    ->tool('reverse_string', 'Reverse a string', fn(string $text): string => \strrev($text));
+    ->tool('get_time', 'Get current time', fn (string $timezone = 'UTC'): string => "Current time in {$timezone}: ".\date('H:i:s'))
+    ->tool('random_number', 'Generate random number', fn (int $min = 1, int $max = 100): int => \rand($min, $max))
+    ->tool('reverse_string', 'Reverse a string', fn (string $text): string => \strrev($text));
 
 $response = \agent('multi-tool-assistant')->prompt('Generate a random number between 1 and 50, then tell me the current time.');
 echo "Q: Generate a random number between 1 and 50, then tell me the current time.\n";
@@ -75,8 +75,8 @@ if (! empty($_ENV['ANTHROPIC_API_KEY'] ?? \getenv('ANTHROPIC_API_KEY'))) {
     \agent('claude-calculator')
         ->provider('anthropic')
         ->system('You are a helpful assistant.')
-        ->tool('add', 'Add two numbers', fn(int $a, int $b): int => $a + $b)
-        ->tool('multiply', 'Multiply two numbers', fn(int $a, int $b): int => $a * $b);
+        ->tool('add', 'Add two numbers', fn (int $a, int $b): int => $a + $b)
+        ->tool('multiply', 'Multiply two numbers', fn (int $a, int $b): int => $a * $b);
 
     $response = \agent('claude-calculator')->prompt('What is 25 + 17, and then multiply the result by 3?');
     echo "Q: What is 25 + 17, and then multiply the result by 3?\n";

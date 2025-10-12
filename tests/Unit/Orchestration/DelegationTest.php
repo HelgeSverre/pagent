@@ -6,15 +6,15 @@ use Pagent\Agent;
 use Pagent\Orchestration\Delegation;
 use Pagent\Registry;
 
-\test('it creates delegation', function (): void {
-    $manager = \testAgent('manager');
+test('it creates delegation', function (): void {
+    $manager = testAgent('manager');
 
     $delegation = new Delegation($manager, 'Build feature X');
 
-    \expect($delegation)->toBeInstanceOf(Delegation::class);
+    expect($delegation)->toBeInstanceOf(Delegation::class);
 });
 
-\test('it delegates task to worker', function (): void {
+test('it delegates task to worker', function (): void {
     $b1 = \agent('manager')
         ->provider('mock')
         ->system('You are a project manager');
@@ -31,7 +31,7 @@ use Pagent\Registry;
         ->to('worker')
         ->execute();
 
-    \expect($result)->toBeObject()
+    expect($result)->toBeObject()
         ->and($result->task)->toBe('Write a function')
         ->and($result->worker)->toBe('worker')
         ->and($result->manager)->toBe('manager')
@@ -39,8 +39,8 @@ use Pagent\Registry;
         ->and($result->manager_review)->toBeString();
 });
 
-\test('it supports supervision', function (): void {
-    $mockProvider = \mock();
+test('it supports supervision', function (): void {
+    $mockProvider = mock();
     $managerAgent = new Agent('manager');
     $managerAgent->provider($mockProvider);
     Registry::set('manager', $managerAgent);
@@ -61,12 +61,12 @@ use Pagent\Registry;
         })
         ->execute();
 
-    \expect($supervised)->toBeTrue()
+    expect($supervised)->toBeTrue()
         ->and($result->supervised)->toBeTrue();
 });
 
-\test('it calls onComplete callback', function (): void {
-    $mockProvider = \mock();
+test('it calls onComplete callback', function (): void {
+    $mockProvider = mock();
     $managerAgent = new Agent('manager');
     $managerAgent->provider($mockProvider);
     Registry::set('manager', $managerAgent);
@@ -84,11 +84,11 @@ use Pagent\Registry;
         })
         ->execute();
 
-    \expect($completed)->toBeTrue();
+    expect($completed)->toBeTrue();
 });
 
-\test('it throws when supervisor rejects', function (): void {
-    $mockProvider = \mock();
+test('it throws when supervisor rejects', function (): void {
+    $mockProvider = mock();
     $managerAgent = new Agent('manager');
     $managerAgent->provider($mockProvider);
     Registry::set('manager', $managerAgent);
@@ -97,9 +97,9 @@ use Pagent\Registry;
     $workerAgent->provider($mockProvider);
     Registry::set('worker', $workerAgent);
 
-    \expect(fn() => \agent('manager')->delegate('Task')
+    expect(fn () => \agent('manager')->delegate('Task')
         ->to('worker')
-        ->supervise(fn($output, $task) => false)
+        ->supervise(fn ($output, $task) => false)
         ->execute())
         ->toThrow(RuntimeException::class, 'Supervisor rejected');
 });
