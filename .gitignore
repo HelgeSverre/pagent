@@ -8,3 +8,15 @@ insights.json
 examples/reports/*.html
 examples/reports/*.json
 examples/reports/*.md
+
+# PHPStan
+.phpstan.cache
+.phpstan/
+
+# PHPUnit
+.phpunit.result.cache
+.phpunit.cache
+
+# Coverage
+coverage/
+.coverage/

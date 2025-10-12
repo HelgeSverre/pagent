@@ -1,18 +1,80 @@
 parameters:
+    # Analysis level (0-9, max is most strict)
     level: 9
+
+    # Paths to analyze
     paths:
         - src
         - tests
+
+    # Exclude paths from analysis
     excludePaths:
         - tests/Fixtures
         - tests/Pest.php
+        - archive
+
+    # PHP version compatibility
+    phpVersion: 80300
+
+    # Treat PHPDoc types as certain (set to false for more lenient analysis)
+    treatPhpDocTypesAsCertain: true
+
+    # Report unmatched ignored errors (useful for cleanup)
     reportUnmatchedIgnoredErrors: false
+
+    # Check missing type hints more strictly
+    checkMissingIterableValueType: true
+    checkGenericClassInNonGenericObjectType: true
+
+    # Additional checks
+    checkAlwaysTrueCheckTypeFunctionCall: true
+    checkAlwaysTrueInstanceof: true
+    checkAlwaysTrueStrictComparison: true
+    checkExplicitMixedMissingReturn: true
+    checkFunctionNameCase: true
+    checkInternalClassCaseSensitivity: true
+    checkTooWideReturnTypesInProtectedAndPublicMethods: true
+    checkUninitializedProperties: true
+    checkDynamicProperties: true
+
+    # Unused checks
+    checkMissingCallableSignature: true
+
+    # Ignore specific errors
     ignoreErrors:
+        # Ignore generic/iterable type hints (can be noisy in early development)
         - identifier: missingType.iterableValue
         - identifier: missingType.generics
+
+        # Pest testing framework functions
         - '#Function Pest\\.*#'
-        - '#Call to an undefined method.*AgentBuilder::rateLimit#'
+        - '#Call to an undefined function (test|it|describe|expect|beforeEach|afterEach)#'
+
+        # Spatie Ray debugging - conditional class loading
+        -
+            message: '#Call to method .* on an unknown class Spatie\\.*Ray#'
+            path: src/Providers/*.php
+
+        # Allow dynamic provider instantiation patterns
         - '#Parameter \$provider of class.*expects.*LLMProvider.*object given#'
         - '#Property.*\$provider.*does not accept object#'
         - '#Parameter.*\$providerClass.*expects class-string.*string given#'
-        - '#Unreachable statement#'
+
+        # Known unreachable code (after validation/guard patterns)
+        -
+            message: '#Unreachable statement#'
+            path: src/Agent.php
+
+        # Properties written but not read (may be used for future features)
+        -
+            message: '#Property .* is never read, only written#'
+            paths:
+                - src/Evaluation/Evaluator.php
+                - src/Guards/ContentFilterGuard.php
+
+includes:
+    # Baseline file to ignore existing issues (generate with: vendor/bin/phpstan analyse --generate-baseline)
+    - phpstan-baseline.neon
+
+# Use baseline file to track accepted issues
+# To regenerate baseline after fixing issues: composer analyse:baseline
