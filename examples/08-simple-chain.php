@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__.'/../vendor/autoload.php';
 
 use Pagent\Workflow\Chain;
 
@@ -33,7 +33,7 @@ $result = Chain::create()
 echo "=== Invoice Processing Chain ===\n\n";
 
 echo "Final Output:\n";
-echo $result->final . "\n\n";
+echo $result->final."\n\n";
 
 echo "Step-by-Step Results:\n";
 foreach ($result->steps as $step) {
@@ -42,10 +42,10 @@ foreach ($result->steps as $step) {
 
 echo "\nMetadata:\n";
 echo "Total Tokens: {$result->meta->totalTokens}\n";
-echo "Duration: " . round($result->meta->duration, 3) . "s\n";
+echo 'Duration: '.round($result->meta->duration, 3)."s\n";
 echo "Steps Executed: {$result->meta->stepsExecuted}\n";
 
 // Export for logging
 $export = $result->export();
 echo "\n=== Full Export (for logging) ===\n";
-echo json_encode($export, JSON_PRETTY_PRINT) . "\n";
+echo json_encode($export, JSON_PRETTY_PRINT)."\n";
