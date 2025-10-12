@@ -1,185 +1,79 @@
 # Changelog
 
-All notable changes to Pagent will be documented in this file.
+All notable changes to `pagent` will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.4.0] - 2025-10-12
-
-### Major Release: Multi-Agent Orchestration
-
-Complete multi-agent coordination system with pipelines, handoffs, and delegation patterns.
+## [0.5.0] - 2025-10-12
 
 ### Added
-
-- **Pipeline Pattern**:
-  - `Pipeline` class for sequential agent execution
-  - Transform functions between stages
-  - Error recovery with `onError()` handler
-  - Global `pipeline()` helper function
-  - Support for complex multi-stage workflows
-- **Handoff Pattern**:
-  - `Handoff` class for agent-to-agent transfers
-  - `Agent->handoff()` method to transfer conversations
-  - Full conversation history preservation
-  - Context packaging with handoff reason
-- **Delegation Pattern**:
-  - `Delegation` class for manager-worker coordination
-  - `Agent->delegate()` method for task delegation
-  - Supervisor functions for quality control
-  - `onComplete()` callbacks for post-processing
-  - Structured result objects with manager review
-- **Helper Functions**:
-  - `resolveAgent()` - Convert string/Agent to Agent instance
-  - Enhanced agent registry management
-- **Examples**:
-  - `examples/09-multi-agent.php` - Complete orchestration demo with 6 examples
-- **Test Coverage**:
-  - `tests/Unit/Orchestration/PipelineTest.php` - 7 tests
-  - `tests/Unit/Orchestration/HandoffTest.php` - 5 tests
-  - `tests/Unit/Orchestration/DelegationTest.php` - 5 tests
+- GitHub Actions CI/CD workflow with automated testing
+- Release Drafter for automated changelog generation
+- SECURITY.md with vulnerability disclosure policy
+- Export-ignore configuration for distribution optimization
+- Comprehensive CONTRIBUTING.md with development guidelines
+- Issue and PR templates for better community engagement
+- CODE_OF_CONDUCT.md for community standards
 
 ### Changed
+- Improved composer.json metadata with better keywords and support links
+- Enhanced README with installation instructions and badges
 
-- Test count increased from 134 to 150+ tests
-- Enhanced agent registry to support orchestration patterns
-
-### Technical Details
-
-- All orchestration classes in `src/Orchestration/` namespace
-- Full type safety with PHP 8.3
-- Comprehensive error handling and recovery
-- 17 new tests added (all passing)
-- 100% test pass rate maintained
-
-## [0.3.0] - 2025-10-11
-
-### Major Release: Safety Guards & Evaluation Framework
-
-Complete safety system with guards, evaluation framework, and middleware pipeline.
+## [0.4.0] - 2025-10-10
 
 ### Added
+- Multi-agent orchestration patterns (pipeline, handoff, delegation)
+- `resolveAgent()` helper function for dynamic agent resolution
+- Agent cloning with `->clone()` method
+- Conversation export/import functionality
+- Usage statistics tracking with `->getStats()`
+- Guard statistics monitoring with `->getGuardStats()`
+- Reset methods: `clearTools()`, `clearGuards()`, `clearMiddleware()`, `reset()`
+- Comprehensive guide documentation (5 different styles)
+- 100 article ideas for future content
 
-- **Safety Guards System**:
-  - `Guard` interface for custom guard implementations
-  - `GuardException` with detailed context
-  - Agent methods: `guard()`, `fallback()`, `getGuards()`
-  - Automatic guard execution in prompt flow
-- **Built-in Guards**:
-  - `PIIGuard` - Detects SSN, credit cards, emails, phone numbers, IP addresses
-  - `ContentFilterGuard` - Blocks profanity and harmful content
-  - `PromptInjectionGuard` - Prevents prompt injection attacks
-  - Support for closure-based guards
-- **Evaluation Framework**:
-  - `Evaluator` class for systematic agent testing
-  - `Dataset` class with JSON/CSV/Array loaders
-  - `EvaluationResult` with statistical analysis
-  - `Report` class with HTML/JSON/Markdown export
-  - Global `evaluate()` function
-- **Built-in Metrics**:
-  - `KeywordMetric` - Check for presence of keywords
-  - `LengthMetric` - Validate response length
-  - `SimilarityMetric` - Compare with expected output
-  - Support for custom metrics via closures
-- **Middleware System**:
-  - `Middleware` interface for request/response handlers
-  - Before/after hooks for every prompt
-  - Agent methods: `middleware()`, `getMiddleware()`
-- **Built-in Middleware**:
-  - `LoggingMiddleware` - PSR-3 compatible logging
-  - `RateLimitMiddleware` - Request throttling with configurable limits
-  - `MetricsMiddleware` - Performance tracking and token counting
-- **Enhanced Tool System**:
-  - `ToolValidator` for automatic input validation
-  - Type checking for tool arguments
-  - Better error messages for validation failures
-- **Examples**:
-  - `examples/06-safety-guards.php` - Guard demonstrations
-  - `examples/07-evaluation.php` - Evaluation framework usage
-  - `examples/08-middleware.php` - Middleware examples
-  - `examples/datasets/support_tickets.json` - Sample dataset
+### Improved
+- Better error messages with suggestions for typos
+- More robust conversation history management
+- Enhanced middleware pipeline
 
-### Changed
+### Metrics
+- 169 tests passing (385 assertions)
+- 99.4% test pass rate
+- PHPStan level 9 compliance
+- 9 working examples
 
-- Tool execution now validates arguments before calling
-- Agent.prompt() now runs middleware before and after provider calls
-- Improved error messages for missing tools and guards
-
-### Technical Details
-
-- 42 new tests added (all passing)
-- 100% test pass rate maintained
-- Full type safety with PHP 8.3
-- PSR-3 logging compatibility
-- Zero external dependencies (except PSR interfaces)
-
-## [0.2.0] - 2025-10-11
-
-### Major Release: Automatic Tool/Function Calling
-
-Complete implementation of tool calling with both Anthropic and OpenAI providers.
+## [0.3.0] - 2025-10-05
 
 ### Added
+- Safety guards (PII detection, content filtering, prompt injection prevention)
+- Evaluation framework with datasets and metrics
+- HTML/JSON/Markdown report generation
+- Middleware pipeline (logging, rate limiting, metrics tracking)
+- Tool validation with type checking
 
-- **Automatic Tool Execution**:
-  - Multi-turn conversation loop with tool calls
-  - Detects tool calls in LLM responses
-  - Executes tools and continues conversation with results
-  - Works seamlessly with both Anthropic and OpenAI
-- **Tool/Function Calling System**:
-  - `Tool` class for creating tools from PHP closures
-  - `ToolArgument` class with automatic type inference
-  - Schema generation for both Anthropic (`input_schema`) and OpenAI (`parameters`)
-  - Agent methods: `tool()`, `getTools()`, `executeTool()`
-- **Provider Enhancements**:
-  - Anthropic: Tool use API with `tool_result` blocks
-  - OpenAI: Function calling with `tool_calls` messages
-  - Both providers return structured `tool_calls` array
-- **Examples Directory**: 5 comprehensive working demos
-  - `examples/01-basic-chat.php` - Conversations with different providers
-  - `examples/02-tool-calling.php` - Automatic tool execution
-  - `examples/03-context-memory.php` - Context tracking
-  - `examples/04-multi-provider.php` - Provider comparison
-  - `examples/05-complete-demo.php` - Full feature demonstration
-- **Infrastructure**:
-  - `.env` support via vlucas/phpdotenv
-  - `.env.example` with placeholder API keys
-  - Pest v4 upgrade (v2.36 → v4.1.2)
-- **Documentation**:
-  - `ROADMAP.md` - Future features prioritized
-  - `NEXT_STEPS.md` - Actionable development guide
-  - `AGENTS.md` - AI coding assistant instructions
-  - `examples/README.md` - Example documentation
-
-### Changed
-
-- **Default Models**: Updated to latest Claude versions
-  - `claude-sonnet-4-20250514` (from `claude-3-sonnet-20240229`)
-- **Providers**: Check `$_ENV` before `getenv()` for dotenv v5 compatibility
-- **Agent.prompt()**: Now includes automatic tool execution loop
-- **`.gitignore`**: Added vendor, .env, .DS_Store
-
-### Fixed
-
-- Environment variable loading in test suite
-- Provider API key detection from .env
-- Pest v4 compatibility issues
-- Test helpers for better tool testing
-
-### Technical Details
-
-- Uses PHP 8.3 `ReflectionFunction` for parameter introspection
-- Supported types: string, int, float, bool, array
-- Handles nullable (`?type`) and default values
-- Generates provider-specific JSON schemas automatically
-- **Test Coverage**: 75 tests, 181 assertions, 100% pass rate
-
-## [0.1.0] - Initial Release
+## [0.2.0] - 2025-09-28
 
 ### Added
+- Multi-provider support (Anthropic Claude, OpenAI GPT, Mock)
+- Automatic tool calling with JSON schema generation
+- Conversation history and context management
+- Complete test suite
 
-- Core agent system with fluent API
-- Multiple LLM provider support (Anthropic, OpenAI)
-- Mock provider for testing
-- Conversation history tracking
-- Global helper functions
+## [0.1.0] - 2025-09-20
+
+### Added
+- Initial release
+- Fluent API inspired by PestPHP
+- Basic agent creation and interaction
+- Simple tool calling support
+
+[Unreleased]: https://github.com/helgesverre/pagent/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/helgesverre/pagent/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/helgesverre/pagent/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/helgesverre/pagent/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/helgesverre/pagent/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/helgesverre/pagent/releases/tag/v0.1.0
