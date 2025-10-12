@@ -1,4 +1,4 @@
-# Pagent Test Suite
+# Pagent - Test Suite
 
 ## Running Tests
 

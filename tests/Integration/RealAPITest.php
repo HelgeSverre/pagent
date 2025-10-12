@@ -107,11 +107,11 @@ describe('OpenAI API', function (): void {
         $openai = new OpenAI();
 
         $response = $openai->prompt('Hello', [
-            'model' => 'gpt-4-turbo-preview',
+            'model' => 'gpt-4.1-nano',
             'max_tokens' => 10,
         ]);
 
-        expect($response->model)->toContain('gpt-4');
+        expect($response->model)->toContain('gpt-4.1-nano');
     });
 
     it('handles conversation history', function (): void {

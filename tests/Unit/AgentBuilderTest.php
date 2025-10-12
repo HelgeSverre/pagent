@@ -64,7 +64,7 @@ it('forwards method calls to agent', function (): void {
     $builder
         ->provider('mock')
         ->system('System prompt')
-        ->model('gpt-4')
+        ->model('gpt-4.1-mini')
         ->temperature(0.5);
 
     $agent = $builder->build();

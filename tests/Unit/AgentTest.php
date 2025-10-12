@@ -36,7 +36,7 @@ it('configures agent settings fluently', function (): void {
     $agent
         ->provider($mock)
         ->system('You are helpful')
-        ->model('gpt-4')
+        ->model('gpt-4.1-mini')
         ->temperature(0.8)
         ->maxTokens(2000);
 

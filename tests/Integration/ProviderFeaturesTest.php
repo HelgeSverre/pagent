@@ -17,21 +17,19 @@ declare(strict_types=1);
  */
 describe('Anthropic-specific features', function (): void {
     beforeEach(function (): void {
-        if (empty($_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY'))) {
-            $this->markTestSkipped('ANTHROPIC_API_KEY not set');
-        }
+        skipIfMissingAnthropicKey();
     });
 
     it('uses Claude 3 Opus for complex tasks', function (): void {
         $anthropic = anthropic();
 
         $response = $anthropic->prompt('Explain quantum computing in simple terms', [
-            'model' => 'claude-opus-4-20250514',
+            'model' => 'claude-3-5-haiku-20241022',
             'max_tokens' => 200,
-            'temperature' => 0.7,
+            'temperature' => 0.1,
         ]);
 
-        expect($response->model)->toContain('claude-opus');
+        expect($response->model)->toContain('claude-3-5-haiku');
         expect($response->content)->toContain('quantum');
         expect(mb_strlen($response->content))->toBeGreaterThan(100);
     });
@@ -74,21 +72,19 @@ describe('Anthropic-specific features', function (): void {
  */
 describe('OpenAI-specific features', function (): void {
     beforeEach(function (): void {
-        if (empty($_ENV['OPENAI_API_KEY'] ?? getenv('OPENAI_API_KEY'))) {
-            $this->markTestSkipped('OPENAI_API_KEY not set');
-        }
+        skipIfMissingOpenAiKey();
     });
 
     it('uses GPT-4 for complex reasoning', function (): void {
         $openai = openai();
 
         $response = $openai->prompt('Write a haiku about programming', [
-            'model' => 'gpt-4',
+            'model' => 'gpt-4.1-mini',
             'temperature' => 0.8,
             'max_tokens' => 50,
         ]);
 
-        expect($response->model)->toContain('gpt-4');
+        expect($response->model)->toContain('gpt-4.1-mini');
         $lines = explode("\n", mb_trim($response->content));
         expect(count($lines))->toBe(3); // Haiku has 3 lines
     });
@@ -132,10 +128,7 @@ describe('OpenAI-specific features', function (): void {
  * @group api
  */
 it('demonstrates provider switching based on task', function (): void {
-    $hasAnthropic = ! empty($_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY'));
-    $hasOpenAI = ! empty($_ENV['OPENAI_API_KEY'] ?? getenv('OPENAI_API_KEY'));
-
-    if ( ! $hasAnthropic || ! $hasOpenAI) {
+    if ( ! hasAnthropicKey() || ! hasOpenAiKey()) {
         $this->markTestSkipped('Both API keys required for this test');
     }
 
