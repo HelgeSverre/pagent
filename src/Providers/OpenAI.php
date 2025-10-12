@@ -64,6 +64,7 @@ final class OpenAI implements Provider
             $body['tools'] = $options['tools'];
         }
 
+        // TODO: replace with Guzzle or Symfony HttpClient later
         // Make API call
         $ch = curl_init($this->baseUrl.'/chat/completions');
         curl_setopt_array($ch, [

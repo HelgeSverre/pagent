@@ -14,7 +14,7 @@ final class Pipeline
 
     public static function create(): self
     {
-        return new self();
+        return new self;
     }
 
     public function step(string $name, Agent|Provider $handler): self

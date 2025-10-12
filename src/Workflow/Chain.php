@@ -14,7 +14,7 @@ final class Chain
 
     public static function create(): self
     {
-        return new self();
+        return new self;
     }
 
     public function add(Agent|Provider $agent): self
