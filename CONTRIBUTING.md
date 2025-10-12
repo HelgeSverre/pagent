@@ -98,6 +98,7 @@ Pagent uses [Laravel Pint](https://laravel.com/docs/pint) with PER (PHP Evolving
 Configuration: `pint.json`
 
 Key rules:
+
 - Strict types declaration required
 - Short array syntax
 - Single space around binary operators
@@ -106,6 +107,7 @@ Key rules:
 - PHP 8.3 modern features
 
 **Auto-fix code style:**
+
 ```bash
 make fix
 # or
@@ -113,6 +115,7 @@ composer fix
 ```
 
 **Check without fixing:**
+
 ```bash
 make format-check
 # or
@@ -126,6 +129,7 @@ Pagent uses [PHPStan](https://phpstan.org/) at level 9 (maximum strictness).
 Configuration: `phpstan.neon`
 
 Key checks:
+
 - Type coverage and consistency
 - Unused code detection
 - Dead code detection
@@ -133,6 +137,7 @@ Key checks:
 - PHP 8.3 compatibility checks
 
 **Run analysis:**
+
 ```bash
 make analyse
 # or
@@ -140,6 +145,7 @@ composer analyse
 ```
 
 **Generate baseline for existing issues:**
+
 ```bash
 make baseline
 # or
@@ -151,6 +157,7 @@ composer analyse:baseline
 Pagent uses [Pest](https://pestphp.com/) for testing.
 
 **Run all tests:**
+
 ```bash
 make test
 # or
@@ -158,6 +165,7 @@ composer test
 ```
 
 **Run with coverage:**
+
 ```bash
 make test-coverage
 # or
@@ -165,6 +173,7 @@ composer test:coverage
 ```
 
 **Run specific test suites:**
+
 ```bash
 composer test:unit
 composer test:integration
@@ -175,11 +184,13 @@ composer test:integration
 Pre-commit hooks are automatically installed with `make setup`.
 
 The hook performs:
+
 1. PHP syntax validation
 2. Code style checking (auto-fixes if needed)
 3. Static analysis on staged files
 
 **Bypass hooks (not recommended):**
+
 ```bash
 git commit --no-verify
 ```
@@ -189,6 +200,7 @@ git commit --no-verify
 ### Starting a New Feature
 
 1. Create a new branch:
+
    ```bash
    git checkout -b feature/my-feature
    ```
@@ -201,6 +213,7 @@ git commit --no-verify
 ### Before Committing
 
 Run the pre-commit checks manually:
+
 ```bash
 make quick  # Quick check without tests
 # or
@@ -210,6 +223,7 @@ make check  # Check formatting and analysis
 ### Before Creating a PR
 
 1. Ensure all quality checks pass:
+
    ```bash
    make pr
    # or
@@ -217,6 +231,7 @@ make check  # Check formatting and analysis
    ```
 
 2. Check test coverage:
+
    ```bash
    make test-coverage
    ```
@@ -229,6 +244,7 @@ make check  # Check formatting and analysis
 ## CI/CD Pipeline
 
 The CI pipeline runs:
+
 1. Code style checks (Pint)
 2. Static analysis (PHPStan level 9)
 3. Unit tests
@@ -236,6 +252,7 @@ The CI pipeline runs:
 5. Coverage report
 
 Local equivalent:
+
 ```bash
 make ci
 ```
@@ -245,6 +262,7 @@ make ci
 ### PHPStan Cache Issues
 
 Clear the PHPStan cache:
+
 ```bash
 make clean
 # or
@@ -265,12 +283,14 @@ If PHPStan reports errors that you believe are false positives or will be fixed 
 ### Pint Conflicts
 
 If Pint makes changes you disagree with, you can:
+
 1. Adjust rules in `pint.json`
 2. Discuss in an issue before making changes
 
 ### Git Hooks Not Running
 
 Re-setup hooks:
+
 ```bash
 bash .githooks/setup.sh
 # or
@@ -286,6 +306,7 @@ make insights
 ```
 
 This provides metrics on:
+
 - Code complexity
 - Architecture
 - Code style

@@ -11,6 +11,7 @@ make setup
 ```
 
 This will:
+
 1. Install all dependencies
 2. Configure git pre-commit hooks
 3. Initialize testing framework
@@ -35,21 +36,25 @@ make help
 ### Code Quality Tools
 
 #### 1. Laravel Pint (Code Formatter)
+
 - **Preset:** PER (PHP Evolving Recommendation)
 - **Config:** `pint.json`
 - **Run:** `make fix` or `composer fix`
 
 #### 2. PHPStan (Static Analysis)
+
 - **Level:** 9 (maximum strictness)
 - **Config:** `phpstan.neon`
 - **Run:** `make analyse` or `composer analyse`
 - **Baseline:** `phpstan-baseline.neon` (tracks accepted issues)
 
 #### 3. Pest (Testing Framework)
+
 - **Config:** `phpunit.xml`
 - **Run:** `make test` or `composer test`
 
 #### 4. Git Pre-commit Hooks
+
 - Automatic code quality checks before commits
 - Location: `.githooks/`
 - Checks: PHP syntax, code style, static analysis
@@ -153,7 +158,9 @@ make baseline
 ## Configuration Files
 
 ### pint.json
+
 Defines code style rules. Key features:
+
 - PER preset (modern PHP standards)
 - Strict types required
 - Alphabetically sorted imports
@@ -161,7 +168,9 @@ Defines code style rules. Key features:
 - Framework-appropriate rules (not Laravel app specific)
 
 ### phpstan.neon
+
 Defines static analysis rules. Key features:
+
 - Level 9 (maximum strictness)
 - PHP 8.3 compatibility checks
 - Type coverage and consistency
@@ -169,7 +178,9 @@ Defines static analysis rules. Key features:
 - Baseline support for tracking accepted issues
 
 ### .githooks/pre-commit
+
 Automatic checks before commits:
+
 1. PHP syntax validation
 2. Code style checking (auto-fixes)
 3. Static analysis on staged files
@@ -179,6 +190,7 @@ Can be bypassed with `git commit --no-verify` (not recommended)
 ## PHPStan Baseline Workflow
 
 The baseline file (`phpstan-baseline.neon`) tracks issues that are:
+
 - Accepted technical debt
 - False positives
 - Will be fixed later
@@ -186,6 +198,7 @@ The baseline file (`phpstan-baseline.neon`) tracks issues that are:
 ### When to Update Baseline
 
 **Generate initial baseline:**
+
 ```bash
 make baseline
 # or
@@ -193,6 +206,7 @@ composer analyse:baseline
 ```
 
 **After fixing issues:**
+
 ```bash
 # Fix code issues, then regenerate baseline
 make baseline
@@ -224,6 +238,7 @@ bash .githooks/setup.sh
 ### Bypass Hooks
 
 Only for emergencies:
+
 ```bash
 git commit --no-verify
 ```
@@ -247,6 +262,7 @@ This ensures local checks match CI, reducing CI failures.
 ### Issue: PHPStan reports cached errors
 
 **Solution:**
+
 ```bash
 make clean
 make analyse
@@ -256,6 +272,7 @@ make analyse
 
 **Solution:**
 Check if git hooks are modifying files:
+
 ```bash
 git diff  # See what changed
 make format-check  # Verify style issues
@@ -264,6 +281,7 @@ make format-check  # Verify style issues
 ### Issue: Hooks not running
 
 **Solution:**
+
 ```bash
 bash .githooks/setup.sh
 ```
@@ -271,6 +289,7 @@ bash .githooks/setup.sh
 ### Issue: Tests failing locally but not in IDE
 
 **Solution:**
+
 ```bash
 composer dump-autoload
 make test
@@ -282,6 +301,7 @@ make test
 Already configured with `--memory-limit=1G` in composer scripts.
 
 To increase further, edit `composer.json`:
+
 ```json
 "analyse": "phpstan analyse --memory-limit=2G"
 ```
@@ -308,11 +328,13 @@ To increase further, edit `composer.json`:
 ### VS Code
 
 Install extensions:
+
 - `bmewburn.vscode-intelephense-client` (PHP)
 - `m1guelpf.better-pest` (Pest testing)
 - `swordev.phpstan` (PHPStan)
 
 Create `.vscode/settings.json`:
+
 ```json
 {
   "php.validate.executablePath": "/usr/bin/php",
@@ -327,11 +349,13 @@ Create `.vscode/settings.json`:
 ### PHP Insights
 
 For deeper metrics:
+
 ```bash
 make insights
 ```
 
 Provides scores for:
+
 - Code quality
 - Complexity
 - Architecture
@@ -340,17 +364,20 @@ Provides scores for:
 ### Watch Mode (Requires `entr`)
 
 Auto-run tests on file changes:
+
 ```bash
 make watch-test
 ```
 
 Install `entr`:
+
 - macOS: `brew install entr`
 - Linux: `apt-get install entr`
 
 ## Environment Variables
 
 Create `.env` for test configuration:
+
 ```bash
 # API Keys for integration tests
 OPENAI_API_KEY=sk-...
@@ -384,6 +411,7 @@ make pr       # Prepare for PR
 ```
 
 **Configuration Files:**
+
 - `pint.json` - Code style
 - `phpstan.neon` - Static analysis
 - `phpstan-baseline.neon` - Accepted issues
@@ -392,6 +420,7 @@ make pr       # Prepare for PR
 - `.githooks/pre-commit` - Pre-commit checks
 
 **Goals:**
+
 - Zero friction development
 - Automatic quality enforcement
 - Fast feedback loops

@@ -128,7 +128,7 @@ describe('OpenAI-specific features', function (): void {
  * @group api
  */
 it('demonstrates provider switching based on task', function (): void {
-    if (!hasAnthropicKey() || !hasOpenAiKey()) {
+    if (! hasAnthropicKey() || ! hasOpenAiKey()) {
         $this->markTestSkipped('Both API keys required for this test');
     }
 

@@ -9,6 +9,7 @@
 ### What We've Built
 
 **Core Features:**
+
 - ✅ Fluent API inspired by PestPHP
 - ✅ Multi-provider support (Anthropic Claude, OpenAI GPT, Mock)
 - ✅ Automatic tool calling with JSON schema generation
@@ -21,6 +22,7 @@
 - ✅ Complete documentation (5 different guide styles)
 
 **Metrics:**
+
 - 📊 **169 tests** passing (385 assertions)
 - 🎯 **99.4% pass rate**
 - 📚 **9 working examples**
@@ -30,6 +32,7 @@
 - 🎨 **5 documentation styles** (Conversational, Recipes, Quick Start, Concepts, API Reference)
 
 **Recent Additions (v0.4.0):**
+
 - ✅ Multi-agent orchestration patterns
 - ✅ `resolveAgent()` helper function
 - ✅ Pipeline pattern for sequential execution
@@ -50,6 +53,7 @@
 #### Tasks:
 
 1. **GitHub Actions CI/CD** (1 hour)
+
    ```yaml
    # .github/workflows/tests.yml
    - PHP 8.3 matrix testing
@@ -86,6 +90,7 @@
    - Tool calling architecture
 
 **Deliverables:**
+
 - ✅ Public Packagist package
 - ✅ Automated CI/CD testing
 - ✅ Community-ready documentation
@@ -163,11 +168,13 @@ agent('bot')
 **These have been implemented:**
 
 1. ✅ **Better error messages** - Includes suggestions for typos
+
    ```php
    // "Tool 'calc' not found. Did you mean 'calculate'? Available: add, multiply, divide"
    ```
 
 2. ✅ **Reset methods** - Clear configuration
+
    ```php
    agent('bot')->clearTools();
    agent('bot')->clearGuards();
@@ -176,17 +183,20 @@ agent('bot')
    ```
 
 3. ✅ **Agent cloning** - Duplicate configuration
+
    ```php
    $bot2 = agent('bot1')->clone('bot2');
    ```
 
 4. ✅ **Conversation export/import** - Save and restore state
+
    ```php
    $json = agent('bot')->exportConversation();
    agent('bot')->importConversation($json);
    ```
 
 5. ✅ **Usage statistics** - Track performance
+
    ```php
    $stats = agent('bot')->getStats(); // Total tokens, calls, duration
    ```
@@ -206,6 +216,7 @@ agent('bot')
 **Status**: Ready to start
 
 **Publishing (Priority: HIGH):**
+
 - [ ] Set up GitHub Actions CI/CD
 - [ ] Publish to Packagist
 - [ ] Add README badges
@@ -214,6 +225,7 @@ agent('bot')
 - [ ] Share and promote (Reddit, Twitter, awesome-php)
 
 **Enhanced Tools (Priority: MEDIUM):**
+
 - [ ] Tool timeout configuration
 - [ ] Retry logic with exponential backoff
 - [ ] Return type validation
@@ -222,6 +234,7 @@ agent('bot')
 - [ ] Tool error recovery and fallbacks
 
 **Success Criteria:**
+
 - ✅ Published to Packagist
 - ✅ GitHub Actions CI/CD running
 - ✅ Tool timeout and retry support
@@ -264,6 +277,7 @@ agent('bot')->logEvent('user-feedback', [
 ```
 
 **Features:**
+
 - [ ] OpenTelemetry SDK integration
 - [ ] Automatic span creation for:
   - Agent prompt/response cycles
@@ -283,6 +297,7 @@ agent('bot')->logEvent('user-feedback', [
 - [ ] Performance profiling and bottleneck detection
 
 **References:**
+
 - Mistral AI Observability: https://docs.mistral.ai/guides/observability/#integrations
 - OpenTelemetry PHP: https://opentelemetry.io/docs/languages/php/
 
@@ -298,6 +313,7 @@ agent('bot')->logEvent('user-feedback', [
 Persistent storage for long-running conversations and knowledge accumulation.
 
 **Features:**
+
 - [ ] Persistent conversation storage (SQLite, Redis, MySQL)
 - [ ] Automatic conversation summarization for long contexts
 - [ ] Context window management with intelligent pruning
@@ -327,6 +343,7 @@ agent('research')
 Real-time output for better user experience.
 
 **Features:**
+
 - [ ] Server-Sent Events (SSE) for streaming responses
 - [ ] WebSocket integration
 - [ ] Progress callbacks during execution
@@ -352,6 +369,7 @@ agent('worker')->onProgress(function($status) {
 Deploy agents as HTTP services (inspired by Bun.serve()).
 
 **Features:**
+
 - [ ] Built-in HTTP server (ReactPHP, Swoole, or RoadRunner)
 - [ ] Automatic API endpoint generation from agents
 - [ ] RESTful API with request/response validation
@@ -395,6 +413,7 @@ agent('assistant')->serve([
 ```
 
 **Use Cases:**
+
 - Deploy agents as microservices
 - Create chatbot APIs for frontends
 - Build agent-powered webhooks
@@ -414,7 +433,9 @@ agent('assistant')->serve([
 Implement advanced prompting and reasoning techniques.
 
 **Features:**
+
 - [ ] **ReAct Pattern** - Reasoning + Acting loop
+
   ```php
   agent('solver')->react(
       thought: 'I need to calculate the total',
@@ -424,6 +445,7 @@ Implement advanced prompting and reasoning techniques.
   ```
 
 - [ ] **Chain-of-Thought** - Step-by-step reasoning with validation
+
   ```php
   agent('math')->chainOfThought()
       ->step('Understand the problem')
@@ -434,6 +456,7 @@ Implement advanced prompting and reasoning techniques.
   ```
 
 - [ ] **Tree of Thoughts** - Explore multiple reasoning paths
+
   ```php
   agent('planner')->treeOfThoughts([
       'branches' => 3, // Explore 3 different approaches
@@ -443,6 +466,7 @@ Implement advanced prompting and reasoning techniques.
   ```
 
 - [ ] **Plan-and-Execute** - Strategic task decomposition
+
   ```php
   agent('coordinator')
       ->plan('Write a research paper')
@@ -463,7 +487,9 @@ Implement advanced prompting and reasoning techniques.
 #### Advanced Orchestration
 
 **Features:**
+
 - [ ] **Swarm Intelligence** - Multi-agent voting and consensus
+
   ```php
   swarm(['agent1', 'agent2', 'agent3'])
       ->vote('What should we do?')
@@ -471,6 +497,7 @@ Implement advanced prompting and reasoning techniques.
   ```
 
 - [ ] **Conditional Routing** - Dynamic agent selection
+
   ```php
   router()
       ->when('intent' === 'technical', agent('tech-support'))
@@ -479,6 +506,7 @@ Implement advanced prompting and reasoning techniques.
   ```
 
 - [ ] **Parallel Execution** - Run agents concurrently
+
   ```php
   parallel([
       agent('translator')->task('Translate to Spanish'),
@@ -508,6 +536,7 @@ Implement advanced prompting and reasoning techniques.
 #### Enterprise Features
 
 **Features:**
+
 - [ ] Cost tracking and budget enforcement
 - [ ] Comprehensive audit logging for compliance
 - [ ] Health checks and monitoring endpoints
@@ -521,7 +550,9 @@ Implement advanced prompting and reasoning techniques.
 #### Developer Experience
 
 **Features:**
+
 - [ ] CLI tool for interactive development
+
   ```bash
   pagent chat assistant
   pagent test --dataset tests/data.json
@@ -535,6 +566,7 @@ Implement advanced prompting and reasoning techniques.
   - Performance profiling
 
 - [ ] Mock providers with scenario recording/replay
+
   ```php
   $mock = mock()->record('scenario1.json');
   // ... run tests ...
@@ -637,7 +669,7 @@ class WeatherRequest {
     #[Field(description: 'City name')]
     #[Constraint\Length(min: 2, max: 100)]
     public string $city;
-    
+
     #[Field(description: 'Include forecast')]
     public bool $includeForecast = false;
 }
@@ -766,6 +798,7 @@ agent('weather')->tool('getWeather', WeatherRequest::class, fn(WeatherRequest $r
 ## 📊 Success Metrics
 
 ### v0.5.0 Goals:
+
 - [ ] Published to Packagist with auto-updates
 - [ ] GitHub Actions CI/CD running on all PRs
 - [ ] 175+ tests passing (95%+ pass rate)
@@ -774,18 +807,21 @@ agent('weather')->tool('getWeather', WeatherRequest::class, fn(WeatherRequest $r
 - [ ] 10+ community stars/downloads
 
 ### v0.6.0 Goals:
+
 - [ ] Full OpenTelemetry integration
 - [ ] 2+ observability platform integrations
 - [ ] Cost tracking per agent/trace
 - [ ] Production usage examples
 
 ### v0.7.0 Goals:
+
 - [ ] Memory persistence working
 - [ ] SSE streaming implemented
 - [ ] HTTP server deployable
 - [ ] Docker deployment guide
 
 ### v1.0.0 Goals:
+
 - [ ] 250+ tests passing
 - [ ] 50+ community stars
 - [ ] 5+ production users
