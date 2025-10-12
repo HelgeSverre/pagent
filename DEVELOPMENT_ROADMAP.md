@@ -4,7 +4,7 @@
 
 ---
 
-## 🎉 Current Status - v0.4.0 (Production Ready!)
+## 🎉 Current Status - v0.5.1 (Workflow & Tools Ready!)
 
 ### What We've Built
 
@@ -17,34 +17,58 @@
 - ✅ Evaluation framework (datasets, metrics, HTML/JSON/MD reports)
 - ✅ Middleware pipeline (logging, rate limiting, metrics tracking)
 - ✅ Multi-agent orchestration (pipeline, handoff, delegation patterns)
+- ✅ **Workflow patterns** (Chain, Pipeline with named steps & transforms)
+- ✅ **8 Built-in Tools** (FileRead, FileWrite, Glob, Grep, WebFetch, Bash, PdfReader, DataExtract)
 - ✅ Tool validation with type checking
 - ✅ Conversation history and context management
 - ✅ Complete documentation (5 different guide styles)
 
 **Metrics:**
 
-- 📊 **169 tests** passing (385 assertions)
-- 🎯 **99.4% pass rate**
-- 📚 **9 working examples**
+- 📊 **229 tests** passing (508 assertions) 
+- 🎯 **99%+ pass rate**
+- 📚 **11 working examples**
 - 🔒 **PHPStan level 9** (maximum strictness)
 - 🚀 **PHP 8.3** full type safety
+- 🛠️ **8 production-ready tools** with security guards
+- 🔄 **2 workflow patterns** (Chain, Pipeline)
 - 📖 **100 article ideas** planned
 - 🎨 **5 documentation styles** (Conversational, Recipes, Quick Start, Concepts, API Reference)
 
-**Recent Additions (v0.4.0):**
+**Recent Additions (v0.5.1):**
 
-- ✅ Multi-agent orchestration patterns
-- ✅ `resolveAgent()` helper function
-- ✅ Pipeline pattern for sequential execution
-- ✅ Handoff pattern for agent-to-agent transfer
-- ✅ Delegation pattern for manager-worker coordination
-- ✅ Comprehensive guide documentation
+- ✅ **Chain Workflow** - Simple sequential agent execution
+- ✅ **Pipeline Workflow** - Named steps with intermediate results access
+- ✅ **Transform steps** - Data manipulation between agent calls
+- ✅ **8 Built-in Tools:**
+  - FileRead - Read files with security guards
+  - FileWrite - Write/create files safely
+  - Glob - Find files with `**/*.php` patterns
+  - Grep - Search text/regex in files
+  - WebFetch - HTTP GET with SSRF protection
+  - Bash - Execute shell commands (whitelisted)
+  - PdfReader - Extract text from PDFs (pdftotext)
+  - DataExtract - Structured extraction with JSON Schema
+- ✅ **Security features:** Path traversal prevention, SSRF protection, command whitelisting
+- ✅ **46 tool tests** with comprehensive coverage
 
 ---
 
-## 🎯 Immediate Next Steps (Choose Your Path)
+## 🎯 Immediate Next Steps
 
-### 🚀 Path A: Publish & Share (RECOMMENDED FIRST)
+### ✅ COMPLETED: v0.5.1 - Workflows & Tools
+
+**Implemented:**
+- Chain and Pipeline workflow patterns
+- 8 production-ready tools with security guards
+- 46 tool tests passing
+- 2 workflow examples
+
+**Status:** Ready for use! 🎉
+
+---
+
+### 🚀 Path A: Publish & Share (NEXT PRIORITY)
 
 **Time**: 3-4 hours  
 **Goal**: Make Pagent public and discoverable  
