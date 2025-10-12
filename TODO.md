@@ -1,65 +1,78 @@
-# Pagent TODO - Prioritized Action Items
+# Pagent Development Roadmap
 
-## ✅ Recently Completed
+## Current Status - v0.4.0
 
-### v0.4.0 - SHIPPED! 🎉
+**Production Ready**
 
-- [x] Multi-Agent Orchestration (Pipeline, Handoff, Delegation)
-- [x] Safety & Guards System (PIIGuard, ContentFilterGuard, PromptInjectionGuard)
-- [x] Evaluation Framework (Dataset, Evaluator, Metrics, Reports)
-- [x] Middleware System (Logging, RateLimit, Metrics)
-- [x] Tool Validation (Automatic argument validation)
-- [x] 9 Working Examples
-- [x] 150+ tests passing
+- Core agent system with fluent API
+- Multi-provider support (Anthropic, OpenAI, Mock)
+- Automatic tool calling and execution
+- Safety guards (PII, content filtering, prompt injection)
+- Evaluation framework (datasets, metrics, HTML/JSON/MD reports)
+- Middleware pipeline (logging, rate limiting, metrics)
+- Tool validation with type checking
+- Multi-agent orchestration (pipeline, handoff, delegation)
+- Conversation history and context management
+- Environment configuration via .env
 
----
-
-## 🔥 High Priority - Do Next
-
-### 1. Quick Polish & Publishing (v0.5.0)
-
-**Estimated**: 2-4 hours  
-**Value**: Make it public and installable
-
-**Tasks**:
-
-- [ ] **GitHub Actions CI/CD**
-  ```yaml
-  .github/workflows/tests.yml
-  - PHP 8.3
-  - Run Pest tests
-  - Run PHPStan analyse
-  - Code formatting check
-  ```
-- [ ] **Publish to Packagist** - Register and enable auto-sync
-- [ ] **Add badges to README** - Build status, version, downloads, license
-- [ ] **Update README** - Add v0.3.0 features (guards, evaluation, middleware)
-- [ ] **Create CONTRIBUTING.md** - Contribution guidelines
-
-**Files to create**:
-
-```
-.github/workflows/tests.yml
-CONTRIBUTING.md
-```
+**Metrics:**
+- 152 tests passing (336 assertions)
+- 99.3% pass rate
+- 9 working examples
+- Full PHP 8.3 type safety
 
 ---
 
-### 2. Enhanced Tool System (v0.5.0)
+## v0.5.0 - Publishing & Enhanced Tools
 
-**Estimated**: 4-6 hours  
-**Value**: Better DX and error handling
+### Publishing Tasks
 
-**What to build**:
+**Priority: High - Make it public and installable**
+
+- [ ] Set up GitHub Actions CI/CD workflow
+  - PHP 8.3 matrix testing
+  - Run Pest test suite
+  - PHPStan static analysis
+  - Code style checks with Pint
+- [ ] Publish to Packagist
+  - Register package as `helgesverre/pagent`
+  - Enable automatic updates from GitHub
+- [ ] Add README badges
+  - Build status
+  - Latest version
+  - Downloads
+  - License
+- [ ] Create CONTRIBUTING.md
+  - Development setup guide
+  - Testing requirements
+  - Code style guidelines
+  - Pull request process
+- [ ] Create architecture diagram
+  - System overview
+  - Component relationships
+  - Data flow
+
+### Enhanced Tool System
+
+**Priority: High - Better developer experience**
+
+Features to add:
+- Tool timeout configuration
+- Retry logic with exponential backoff
+- Return type validation
+- PHP attributes for descriptions
+- Built-in tools (FileReader, WebFetcher, Calculator)
+- Better error messages with suggestions
 
 ```php
+// Example: Tool with advanced features
 agent('bot')
     ->tool('fetch', 'Fetch data', fn(string $url) => /* ... */)
-        ->timeout(5) // seconds
+        ->timeout(5)
         ->retry(3)
         ->onError(fn($e) => 'Fetch failed');
 
-// Attributes for better descriptions
+// Example: Attributes for better documentation
 #[Description('Get weather for a location')]
 function getWeather(
     #[Param('City name')] string $city,
@@ -67,211 +80,166 @@ function getWeather(
 ): string
 ```
 
-**Tasks**:
+### Quick Wins
 
-- [ ] Tool timeout support
-- [ ] Retry logic for failed tools
-- [ ] Return type validation
-- [ ] Attribute support for descriptions
-- [ ] Built-in tools (FileReader, WebFetcher, Calculator)
-- [ ] Tool error handling with recovery
+Small improvements that add significant value:
 
-**Files to create**:
-
-```
-src/Tool/ToolConfig.php
-src/Tool/BuiltInTools/
-src/Attributes/Description.php
-src/Attributes/Param.php
-```
+1. **Better error messages** - Include suggestions for typos
+2. **Add reset methods** - `clearTools()`, `clearGuards()`, `reset()`
+3. **Agent cloning** - Duplicate configuration easily
+4. **Conversation export/import** - Save and restore state
+5. **Usage statistics** - Track tokens, calls, duration per agent
+6. **Guard statistics** - Monitor how often guards trigger
 
 ---
 
-## ⚡ Quick Wins (30-60 min each)
+## v0.6.0 - Memory & Streaming
 
-Priority ordered:
+### Memory & Persistence
 
-1. [ ] **Better error messages** - Include suggestions
+- Persistent conversation storage (SQLite, Redis, MySQL)
+- Conversation summarization for long contexts
+- Context window management and intelligent pruning
+- Session management with TTL
+- Vector storage integration (Pinecone, Weaviate, Qdrant)
+- RAG (Retrieval-Augmented Generation) support
 
-   ```php
-   // "Tool 'calc' not found. Available: add, multiply, divide"
-   ```
+### Streaming Support
 
-2. [ ] **Add clearTools() and clearGuards()** - Reset agent state
-
-   ```php
-   agent('bot')->clearTools()->clearGuards();
-   ```
-
-3. [ ] **Tool return type validation**
-
-   ```php
-   ->tool('get_age', 'Get age', fn(): int => "30") // RuntimeException!
-   ```
-
-4. [ ] **Add agent()->reset()** - Clear history and state
-
-   ```php
-   agent('bot')->reset(); // Clear messages, tools, guards
-   ```
-
-5. [ ] **Streaming support foundation** - Callback interface
-
-   ```php
-   agent('bot')->stream(fn($chunk) => echo $chunk);
-   ```
-
-6. [ ] **Add agent cloning** - Duplicate configuration
-   ```php
-   $bot2 = agent('bot1')->clone('bot2');
-   ```
+- Server-Sent Events (SSE) for real-time output
+- WebSocket integration
+- Progress callbacks during execution
+- Chunk-by-chunk processing
+- Streaming tool results
 
 ---
 
-## 📋 Progress Tracking
+## v0.7.0 - Advanced Patterns
 
-### v0.1.0 ✅ (Foundation)
+### Agentic Reasoning Patterns
 
-- [x] Core agent system
-- [x] Multi-provider support
-- [x] Conversation history
-- [x] Basic testing
+- ReAct pattern (Reasoning + Acting loop)
+- Chain-of-Thought prompting with validation
+- Tree of Thoughts for exploring multiple paths
+- Plan-and-Execute for strategic task decomposition
+- Reflection loops for self-improvement
+- Self-critique and iterative refinement
 
-### v0.2.0 ✅ (Tool Calling)
+### Advanced Orchestration
 
-- [x] Tool calling implementation
-- [x] Anthropic & OpenAI integration
-- [x] Automatic execution loop
-- [x] 5 working examples
-
-### v0.3.0 ✅ (Safety & Evaluation)
-
-- [x] Safety guards system
-- [x] Evaluation framework
-- [x] Middleware pipeline
-- [x] Tool validation
-- [x] 134 tests passing
-
-### v0.4.0 ✅ (Multi-Agent Orchestration)
-
-- [x] Pipeline pattern
-- [x] Handoff pattern
-- [x] Delegation pattern
-- [x] Error recovery
-- [x] 150+ tests passing
-
-### v0.5.0 (Next - Publishing & Tools)
-
-- [ ] GitHub Actions
-- [ ] Packagist publishing
-- [ ] Architecture diagram
-- [ ] Updated README
-- [ ] Enhanced tool system
+- Swarm pattern with multi-agent voting
+- Conditional routing based on context
+- Parallel agent execution
+- State machines for complex workflows
+- Agent priority and scheduling
+- Resource allocation and load balancing
 
 ---
 
-## 🎯 Suggested Next Session Plan
+## v1.0.0 - Enterprise Ready
 
-### Option A: Publish & Polish (Recommended for visibility)
+### Enterprise Features
 
-**Time**: 2-4 hours
+- Cost tracking and budget enforcement
+- Audit logging for compliance
+- Health checks and monitoring endpoints
+- Caching strategies (prompt caching, response caching)
+- Fine-tuning integration for custom models
+- A/B testing framework for agent variants
+- Deployment strategies (canary, blue-green)
+- Rate limiting and throttling
+- Multi-tenancy support
 
-1. Set up GitHub Actions workflow
-2. Publish to Packagist
-3. Add badges and update README
-4. Create architecture diagram
-5. Share on social media
+### Developer Experience
 
-**Outcome**: Public, installable package
-
----
-
-### Option B: Multi-Agent Features (Recommended for features)
-
-**Time**: 8-12 hours
-
-1. Implement Pipeline for sequential agents
-2. Add agent handoff mechanism
-3. Create delegation pattern
-4. Write comprehensive tests
-5. Create multi-agent examples
-
-**Outcome**: Unique orchestration capabilities
+- CLI tool for interactive development
+- Web-based debugging UI
+- Mock providers with scenario recording/replay
+- Laravel package with first-class integration
+- Symfony bundle
+- Custom PHPUnit assertions for testing
+- Performance profiling and benchmarks
+- Documentation generator from code
 
 ---
 
-### Option C: Enhanced Tools (Quick wins)
-
-**Time**: 4-6 hours
-
-1. Add tool timeout support
-2. Implement retry logic
-3. Return type validation
-4. Built-in tools (file, web, calc)
-5. Better error messages
-
-**Outcome**: More robust tool system
-
----
-
-## 🛠️ Technical Debt
+## Technical Debt
 
 ### High Priority
 
-- [ ] Fix remaining PHPStan errors (~168 warnings)
-- [ ] Extract HTTP client to separate class
-- [ ] Add retry logic for API failures
-- [ ] Improve error messages throughout
+- Fix PHPStan errors (~168 warnings in tests)
+- Extract HTTP client to PSR-18 compatible class
+- Add retry logic for API failures with backoff
+- Improve error messages with context and suggestions
+- Add request/response interceptors
 
 ### Medium Priority
 
-- [ ] Add request timeout configuration
-- [ ] Implement response caching
-- [ ] Add debug/verbose mode
-- [ ] Create performance benchmarks
+- Add request timeout configuration per provider
+- Implement intelligent response caching
+- Add debug/verbose mode for troubleshooting
+- Create comprehensive performance benchmarks
+- Extract provider implementations to separate packages
 
 ### Low Priority
 
-- [ ] Memory usage tracking
-- [ ] Conversation history optimization
-- [ ] Add more comprehensive logging
+- Memory usage tracking and optimization
+- Conversation history pruning strategies
+- Provider failover mechanisms
+- Comprehensive logging throughout framework
 
 ---
 
-## 📊 Current Status
+## Long-term Vision
 
-**What's Working** (v0.4.0):
+### Community & Ecosystem
 
-- ✅ Core agent system with fluent API
-- ✅ Multi-provider (Anthropic, OpenAI, Mock)
-- ✅ Automatic tool calling & execution
-- ✅ Safety guards (PII, content, prompt injection)
-- ✅ Evaluation framework (datasets, metrics, reports)
-- ✅ Middleware pipeline (logging, rate limiting, metrics)
-- ✅ Tool validation (type checking, required args)
-- ✅ Multi-agent orchestration (pipeline, handoff, delegation)
-- ✅ Conversation history & context
-- ✅ Environment configuration
+- Plugin system for custom providers
+- Community tool registry
+- Agent template marketplace
+- Pre-built agents for common use cases:
+  - Customer support agents
+  - Research assistants
+  - Code review agents
+  - Data analysis agents
+  - Content generation
+- Example projects and starter kits
+- Video tutorials and workshops
 
-**What's Next**:
+### Documentation
 
-- 🎯 Publishing to Packagist
-- 🎯 Enhanced tool features
-- 🎯 Memory & persistence
-- 🎯 Streaming responses
-
-**Test Coverage**: 150+ passing (99.3%)
-**Production Ready**: YES ✅
+- Comprehensive API documentation
+- Architecture decision records (ADRs)
+- Real-world case studies
+- Performance optimization guide
+- Security best practices
+- Migration guides between versions
+- Internationalization support
 
 ---
 
-## 🚀 Recommendation
+## Recommended Next Steps
 
-**For maximum impact, do Option A (Publish) first**, then Option B (Multi-Agent).
+**This Week (4-6 hours):**
+1. Set up GitHub Actions workflow (1 hour)
+2. Publish to Packagist (1 hour)
+3. Add badges and polish README (1 hour)
+4. Create CONTRIBUTING.md (1 hour)
+5. Create architecture diagram (2 hours)
 
-This gets Pagent into developers' hands while you build the advanced features.
+**Next Week (6-8 hours):**
+1. Tool timeout and retry logic (2-3 hours)
+2. Built-in tools library (2-3 hours)
+3. Better error messages (2 hours)
 
-**Estimated time to v0.4.0**: 15-20 hours  
-**Estimated time to v1.0.0**: 40-60 hours
+**Following Week (8-10 hours):**
+1. Memory persistence layer (4-5 hours)
+2. Streaming support foundation (4-5 hours)
 
-Let's ship it! 🎉
+---
+
+**Current Version:** v0.4.0
+**Next Milestone:** v0.5.0 (Publishing & Enhanced Tools)
+**Target:** v1.0.0 in 40-60 hours of focused development
+
+**Status:** Production ready, ready for public release
