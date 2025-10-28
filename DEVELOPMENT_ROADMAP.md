@@ -25,7 +25,7 @@
 
 **Metrics:**
 
-- 📊 **229 tests** passing (508 assertions) 
+- 📊 **229 tests** passing (508 assertions)
 - 🎯 **99%+ pass rate**
 - 📚 **11 working examples**
 - 🔒 **PHPStan level 9** (maximum strictness)
@@ -54,11 +54,267 @@
 
 ---
 
+## 🎯 Next 10 Innovation Features
+
+**Updated:** 2025-10-28
+**Focus:** New capabilities & cutting-edge patterns
+**Timeline:** 2-3 months (40-60 hours total)
+
+### 🚀 Game-Changing Features (High Impact)
+
+1. **Streaming Support (SSE + WebSocket)** 🌊 GAME CHANGER
+   - **Time:** 4-5 hours
+   - **Impact:** Real-time responses, better UX, ChatGPT-like experience
+   - **Value:** Users see responses as they're generated
+   - **Version:** v0.7.0
+   ```php
+   agent('assistant')->streamTo(function($chunk) {
+       echo "data: {$chunk}\n\n";
+       flush();
+   });
+
+   // WebSocket support
+   agent('chat')->websocket('ws://localhost:8080');
+   ```
+
+2. **HTTP Server Integration** 🌐 GAME CHANGER
+   - **Time:** 6-8 hours
+   - **Impact:** Deploy agents as microservices, API endpoints
+   - **Value:** Create chatbot APIs, webhooks, mobile backends
+   - **Version:** v0.7.0
+   ```php
+   agent('support-bot')
+       ->serve([
+           'host' => '0.0.0.0',
+           'port' => 8080,
+           'path' => '/api/chat',
+           'auth' => ['bearer' => env('API_TOKEN')],
+           'stream' => true
+       ]);
+   ```
+
+3. **Memory & Persistence Layer** 💾 HIGH VALUE
+   - **Time:** 4-5 hours
+   - **Impact:** Long-running conversations, context retention
+   - **Value:** Support agents with history, RAG systems
+   - **Version:** v0.7.0
+   ```php
+   agent('support')
+       ->memory('sqlite', ['path' => 'conversations.db'])
+       ->sessionId('user-' . auth()->id());
+
+   // Vector storage for RAG
+   agent('research')
+       ->memory('pinecone', ['api_key' => '...'])
+       ->tool('search-docs', fn($q) => /* vector search */);
+   ```
+
+4. **OpenTelemetry Observability** 📊 PRODUCTION READY
+   - **Time:** 10-15 hours
+   - **Impact:** Production monitoring, debugging, cost tracking
+   - **Value:** Langfuse, Langsmith, Phoenix integration
+   - **Version:** v0.6.0
+   ```php
+   agent('bot')
+       ->observability('langfuse', [
+           'public_key' => env('LANGFUSE_KEY'),
+           'trace_id' => 'session-' . uniqid(),
+       ])
+       ->prompt('Hello'); // Automatically traced
+   ```
+
+### 🧠 Advanced Reasoning Patterns (Innovation)
+
+5. **ReAct Pattern (Reasoning + Acting)** 🤖 CUTTING EDGE
+   - **Time:** 3-4 hours
+   - **Impact:** Self-directed problem-solving agents
+   - **Value:** Agents that think through problems step-by-step
+   - **Version:** v0.8.0
+   ```php
+   agent('solver')->react(
+       thought: 'I need to calculate the total',
+       action: fn() => $this->tool('calculate', [10, 20]),
+       observation: fn($result) => "The result is {$result}",
+   );
+   ```
+
+6. **Chain-of-Thought Reasoning** 🧩 CUTTING EDGE
+   - **Time:** 3-4 hours
+   - **Impact:** Improved accuracy on complex tasks
+   - **Value:** Break down complex problems systematically
+   - **Version:** v0.8.0
+   ```php
+   agent('math')->chainOfThought()
+       ->step('Understand the problem')
+       ->step('Break into sub-problems')
+       ->step('Solve each sub-problem')
+       ->step('Combine results')
+       ->validate(fn($output) => /* check */);
+   ```
+
+7. **Tree of Thoughts (Multi-Path Exploration)** 🌳 RESEARCH GRADE
+   - **Time:** 5-6 hours
+   - **Impact:** Explore multiple solution paths
+   - **Value:** Find optimal solutions through parallel reasoning
+   - **Version:** v0.8.0
+   ```php
+   agent('planner')->treeOfThoughts([
+       'branches' => 3,  // 3 different approaches
+       'depth' => 2,     // 2 levels deep
+       'selector' => fn($branches) => /* pick best */,
+   ]);
+   ```
+
+### 🤝 Multi-Agent Orchestration (Collaboration)
+
+8. **Swarm Intelligence (Voting & Consensus)** 🐝 INNOVATIVE
+   - **Time:** 4-5 hours
+   - **Impact:** Democratic decision-making across agents
+   - **Value:** Reduce hallucinations, improve reliability
+   - **Version:** v0.8.0
+   ```php
+   swarm(['agent1', 'agent2', 'agent3'])
+       ->vote('What should we do?')
+       ->consensus(threshold: 0.7);
+   ```
+
+9. **Conditional Router (Dynamic Selection)** 🔀 HIGH VALUE
+   - **Time:** 2-3 hours
+   - **Impact:** Smart agent selection based on intent
+   - **Value:** Customer support routing, multi-domain bots
+   - **Version:** v0.8.0
+   ```php
+   router()
+       ->when('intent' === 'technical', agent('tech-support'))
+       ->when('intent' === 'billing', agent('billing'))
+       ->default(agent('general'));
+   ```
+
+10. **Parallel Agent Execution** ⚡ PERFORMANCE
+    - **Time:** 3-4 hours
+    - **Impact:** Concurrent task processing
+    - **Value:** Translate + summarize + analyze simultaneously
+    - **Version:** v0.8.0
+    ```php
+    parallel([
+        agent('translator')->task('Translate to Spanish'),
+        agent('summarizer')->task('Create summary'),
+        agent('analyzer')->task('Analyze sentiment'),
+    ])->await();
+    ```
+
+### 📊 Summary
+
+**Total Estimated Time:** 45-63 hours
+**Game Changers:** 24-33 hours (Tasks 1-4)
+**Reasoning Patterns:** 11-14 hours (Tasks 5-7)
+**Orchestration:** 9-12 hours (Tasks 8-10)
+
+**Recommended Order (Maximum Impact):**
+1. **Streaming Support** → Immediate UX improvement
+2. **HTTP Server** → Enables production deployments
+3. **ReAct Pattern** → Showcase advanced reasoning
+4. **Conditional Router** → Practical multi-agent systems
+5. **Memory & Persistence** → Long-running conversations
+6. **Swarm Intelligence** → Unique selling point
+7. **OpenTelemetry** → Production monitoring
+8. **Chain-of-Thought** → Advanced reasoning
+9. **Parallel Execution** → Performance optimization
+10. **Tree of Thoughts** → Research-grade feature
+
+**Quick Start Recommendations:**
+- Start with **Streaming** (4-5h) for immediate wow factor
+- Add **Conditional Router** (2-3h) for practical value
+- Implement **ReAct Pattern** (3-4h) to differentiate from competitors
+
+### 💡 Bonus: Experimental Features (Not Yet in Roadmap)
+
+11. **Semantic Caching** 🧠
+    - Cache responses based on semantic similarity, not exact match
+    - Use embeddings to detect similar prompts
+    - Reduce API costs by 40-60%
+
+12. **Human-in-the-Loop (HITL)** 👤
+    ```php
+    agent('approval-bot')
+        ->requireHumanApproval(
+            when: fn($action) => $action['risk'] === 'high',
+            notify: 'admin@example.com'
+        );
+    ```
+
+13. **Agent Marketplace/Registry** 🏪
+    - Community-shared agent configurations
+    - Pre-trained agents for common tasks
+    - One-line installation: `agent()->load('customer-support-v2')`
+
+14. **Auto-Tool Discovery** 🔍
+    - Agents automatically discover available tools
+    - LLM generates tool schemas from docblocks
+    - No manual tool registration needed
+
+15. **Multi-Modal Support** 🎨
+    - Image analysis, audio transcription, video processing
+    - Vision APIs integration (GPT-4 Vision, Claude Vision)
+    - Text-to-speech output streaming
+
+### 📊 Feature Impact Matrix
+
+```
+                            │ Implementation │ User      │ Market      │ Priority
+                            │ Time (hours)   │ Impact    │ Differentiation │ Score
+────────────────────────────┼────────────────┼───────────┼──────────────┼─────────
+1. Streaming Support        │ 4-5            │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐⭐     │ 9.5/10
+2. HTTP Server              │ 6-8            │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐⭐⭐   │ 9.8/10
+3. Memory & Persistence     │ 4-5            │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐       │ 8.5/10
+4. OpenTelemetry            │ 10-15          │ ⭐⭐⭐⭐   │ ⭐⭐⭐⭐     │ 8.0/10
+5. ReAct Pattern            │ 3-4            │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐⭐⭐   │ 9.5/10
+6. Chain-of-Thought         │ 3-4            │ ⭐⭐⭐⭐   │ ⭐⭐⭐⭐⭐   │ 9.0/10
+7. Tree of Thoughts         │ 5-6            │ ⭐⭐⭐     │ ⭐⭐⭐⭐⭐   │ 7.5/10
+8. Swarm Intelligence       │ 4-5            │ ⭐⭐⭐⭐   │ ⭐⭐⭐⭐⭐   │ 9.0/10
+9. Conditional Router       │ 2-3            │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐       │ 8.5/10
+10. Parallel Execution      │ 3-4            │ ⭐⭐⭐⭐   │ ⭐⭐⭐       │ 7.5/10
+────────────────────────────┴────────────────┴───────────┴──────────────┴─────────
+
+🏆 **Top 5 by ROI (Return on Investment):**
+1. HTTP Server (9.8) - Deploy agents as APIs instantly
+2. Streaming + ReAct (9.5 each) - UX + Intelligence
+3. Chain-of-Thought (9.0) - Advanced reasoning
+4. Swarm Intelligence (9.0) - Unique competitive advantage
+5. Memory & Persistence (8.5) - Long-term conversations
+```
+
+### 🎯 Suggested Development Sprints
+
+**Sprint 1 (Week 1-2): "Production Ready" - 10-13 hours**
+- Streaming Support (4-5h)
+- Conditional Router (2-3h)
+- Parallel Execution (3-4h)
+- **Result:** Real-time agents with smart routing
+
+**Sprint 2 (Week 3-4): "API Platform" - 6-8 hours**
+- HTTP Server Integration (6-8h)
+- **Result:** Deploy agents as microservices
+
+**Sprint 3 (Week 5-6): "Advanced Reasoning" - 10-14 hours**
+- ReAct Pattern (3-4h)
+- Chain-of-Thought (3-4h)
+- Swarm Intelligence (4-5h)
+- **Result:** State-of-the-art agent reasoning
+
+**Sprint 4 (Week 7-8): "Enterprise Features" - 14-20 hours**
+- Memory & Persistence (4-5h)
+- OpenTelemetry (10-15h)
+- **Result:** Production-grade monitoring & persistence
+
+---
+
 ## 🎯 Immediate Next Steps
 
 ### ✅ COMPLETED: v0.5.1 - Workflows & Tools
 
 **Implemented:**
+
 - Chain and Pipeline workflow patterns
 - 8 production-ready tools with security guards
 - 46 tool tests passing
@@ -76,37 +332,34 @@
 
 #### Tasks:
 
-1. **GitHub Actions CI/CD** (1 hour)
+1. ✅ **GitHub Actions CI/CD** (1 hour) - COMPLETED
+   - ✅ PHP 8.3 matrix testing
+   - ✅ Run Pest test suite
+   - ✅ PHPStan static analysis
+   - ✅ Code style checks with Pint
+   - ✅ Release drafter workflow
 
-   ```yaml
-   # .github/workflows/tests.yml
-   - PHP 8.3 matrix testing
-   - Run Pest test suite
-   - PHPStan static analysis
-   - Code style checks with Pint
-   - Code coverage reporting
-   ```
+2. ⏳ **Publish to Packagist** (30 min) - READY TO PUBLISH
+   - ✅ Package name set as `helgesverre/pagent`
+   - ✅ GitHub repository linked
+   - ❌ Register on Packagist.org
+   - ❌ Enable automatic updates from GitHub releases
 
-2. **Publish to Packagist** (30 min)
-   - Register package as `helgesverre/pagent`
-   - Link GitHub repository
-   - Enable automatic updates from GitHub releases
+3. ✅ **Polish README** (1 hour) - COMPLETED
+   - ✅ Installation via Composer documented
+   - ✅ Badges added (version, downloads, PHP version, license)
+   - ✅ v0.5.1 features highlighted
+   - ✅ Quick start guide updated
+   - ✅ Documentation links added
 
-3. **Polish README** (1 hour)
-   - Add installation via Composer
-   - Add badges (build status, version, downloads, license)
-   - Highlight v0.4.0 features
-   - Update quick start guide
-   - Link to new documentation guides
+4. ✅ **Create CONTRIBUTING.md** (30 min) - COMPLETED
+   - ✅ Contribution guidelines (7.6K comprehensive)
+   - ✅ Development setup instructions
+   - ✅ Testing requirements
+   - ✅ Code style guide
+   - ✅ Pull request process
 
-4. **Create CONTRIBUTING.md** (30 min)
-   - Contribution guidelines
-   - Development setup instructions
-   - Testing requirements
-   - Code style guide (Pint configuration)
-   - Pull request process
-
-5. **Create Architecture Diagram** (1 hour)
+5. ❌ **Create Architecture Diagram** (1 hour) - NOT STARTED
    - System overview (Mermaid diagram)
    - Component relationships
    - Data flow visualization
@@ -115,7 +368,7 @@
 
 **Deliverables:**
 
-- ✅ Public Packagist package
+- ⏳ Public Packagist package (ready to publish)
 - ✅ Automated CI/CD testing
 - ✅ Community-ready documentation
 - ✅ Clear contribution path
@@ -615,9 +868,28 @@ Implement advanced prompting and reasoning techniques.
 
 ### High Priority
 
-- [ ] **Fix PHPStan errors** (~168 warnings in test files)
-  - Most are from dynamic LLM response objects
-  - Add proper type stubs or suppress selectively
+- [ ] **Fix PHPStan errors** (26 errors in src folder, tests excluded)
+  - **Agent.php** (3 errors):
+    - Line 238: Closure parameter signature missing
+    - Line 397: exportConversation() return type (string|false instead of string)
+    - Line 411: Mixed offset access on 'messages'
+  - **Tools/Bash.php** (1 error):
+    - Line 59: setWorkingDirectory() expects string, gets string|false
+  - **Tools/DataExtract.php** (1 error):
+    - Line 81: Undefined property access on object::$content
+  - **Tools/Glob.php** (4 errors):
+    - Line 47: recursiveGlob() parameter expects string, gets string|false
+    - Lines 101, 105, 111: Method calls on mixed types
+  - **Tools/Grep.php** (5 errors):
+    - Line 14: Unused property $contextLines
+    - Line 58: findFiles() expects string, gets string|false
+    - Lines 126, 130, 132: Method calls on mixed types
+  - **Workflow/Chain.php** (4 errors):
+    - Lines 40, 45, 54: Undefined property accesses on object
+    - Line 47: Undefined property on Pagent\Agent|Pagent\Contracts\Provider
+  - **Workflow/Pipeline.php** (8 errors):
+    - Lines 13, 31: Callable signatures missing
+    - Lines 53-69: Undefined property accesses and callable type issues
 
 - [ ] **Extract HTTP client** to PSR-18 compatible class
   - Make it swappable (Guzzle, Symfony HTTP Client, etc.)
@@ -856,11 +1128,22 @@ agent('weather')->tool('getWeather', WeatherRequest::class, fn(WeatherRequest $r
 
 ## 🎯 Current Status Summary
 
-**Version:** v0.4.0  
-**Status:** ✅ Production Ready  
-**Next Milestone:** v0.5.0 (Publishing & Enhanced Tools)  
-**Estimated Time to v1.0.0:** 40-60 hours of focused development
+**Version:** v0.5.1
+**Status:** ✅ Workflows & Tools Ready
+**Next Milestone:** v0.6.0 (Publishing Complete & Enhanced Tools)
+**Estimated Time to v1.0.0:** 35-50 hours of focused development
 
-**Immediate Priority:** Path A (Publishing) - Get Pagent public!
+**Recent Progress:**
+- ✅ GitHub Actions CI/CD configured (tests.yml, release-drafter.yml)
+- ✅ README badges added (4 badges: version, downloads, PHP, license)
+- ✅ CONTRIBUTING.md created (7.6K comprehensive guide)
+- ✅ CODE_OF_CONDUCT.md created (1.0K)
+- ✅ SECURITY.md created (4.3K)
+- ✅ Documentation structure (6 framework integration guides)
+- ❌ **Packagist publishing** - PENDING (ready to publish)
+- ❌ **Architecture diagram** - NOT STARTED
+- ❌ **PHPStan errors** - 26 errors remaining
+
+**Immediate Priority:** Complete Path A (Packagist + Diagram) + Fix PHPStan!
 
 **All systems go!** 🚀

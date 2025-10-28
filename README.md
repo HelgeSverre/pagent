@@ -15,12 +15,13 @@ Build intelligent agents with automatic tool calling, multi-provider support, sa
 ## Why Pagent?
 
 - **🧪 Pest-Inspired API** - Fluent, expressive syntax that feels natural
+- **🌊 Real-Time Streaming** - SSE streaming for ChatGPT-like experiences
 - **🔧 Automatic Tool Calling** - JSON schema generation from PHP functions
 - **🤖 Multi-Provider** - Anthropic Claude, OpenAI GPT, Mock (for testing)
 - **🛡️ Safety Guards** - PII detection, content filtering, prompt injection prevention
 - **📊 Evaluation Framework** - Test datasets with automated metrics and reports
 - **🔄 Multi-Agent Orchestration** - Pipeline, handoff, and delegation patterns
-- **⚡ Production Ready** - 169 tests, PHPStan level 9, PHP 8.3+ type safety
+- **⚡ Production Ready** - 240+ tests, PHPStan level 9, PHP 8.3+ type safety
 
 ---
 
@@ -31,6 +32,7 @@ composer require helgesverre/pagent
 ```
 
 **Requirements:**
+
 - PHP 8.3 or higher
 - Composer 2.x
 
@@ -46,7 +48,17 @@ agent('assistant')
 // Use the agent
 $response = agent('assistant')->prompt('Hello!');
 echo $response->content;
+
+// Or stream responses in real-time
+agent('assistant')->streamTo('Tell me a story', function ($chunk) {
+    if ($chunk->isText()) {
+        echo $chunk->content;
+        flush();
+    }
+});
 ```
+
+**📖 [Read the full streaming guide →](docs/streaming.md)**
 
 ## Providers
 
@@ -183,6 +195,8 @@ cp .env.example .env
 
 ## Documentation
 
+### Learning Guides
+
 We've created **5 different guide styles** so you can learn in the way that works best for you:
 
 1. **[Getting Started (Conversational)](guide/01-getting-started-conversational.md)** - Friendly, interactive
@@ -198,11 +212,23 @@ We've created **5 different guide styles** so you can learn in the way that work
 
 **In a hurry?** The [Quick Start](guide/03-quick-start-minimal.md) has you covered.
 
+### Integration Guides
+
+Learn how to integrate Pagent into your application:
+
+- **[Centralized Configuration Pattern](docs/centralized-configuration.md)** - Set up a global `agents.php` file (recommended)
+- **[Slim Framework Integration](docs/slim-integration.md)** - Complete Slim 4.x setup with DI and middleware
+- **Laravel Integration** - Coming soon
+- **Symfony Integration** - Coming soon
+
+See the [docs/](docs/) folder for all integration guides.
+
 ---
 
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on:
+
 - Development setup
 - Running tests
 - Code style guidelines
