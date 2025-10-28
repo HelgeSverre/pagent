@@ -32,14 +32,3 @@ test('web fetch blocks private IPs with SSRF protection', function () {
     expect(fn () => $tool->execute(['url' => 'http://192.168.1.1']))
         ->toThrow(RuntimeException::class, 'SSRF protection');
 });
-
-test('web fetch allows private IPs when SSRF protection disabled', function () {
-    $tool = new WebFetch(ssrfProtection: false);
-
-    // This will fail to connect but shouldn't throw SSRF error
-    try {
-        $tool->execute(['url' => 'http://192.168.1.1']);
-    } catch (RuntimeException $e) {
-        expect($e->getMessage())->not->toContain('SSRF protection');
-    }
-})->skip('Requires network');
