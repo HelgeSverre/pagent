@@ -8,7 +8,9 @@ use Closure;
 use Pagent\Contracts\Guard;
 use Pagent\Contracts\Middleware;
 use Pagent\Contracts\Provider;
+use Pagent\Contracts\ToolInterface;
 use Pagent\Exceptions\GuardException;
+use Pagent\Streaming\StreamResponse;
 use Pagent\Tool\Tool;
 use RuntimeException;
 
@@ -40,7 +42,7 @@ final class Agent
 
     private ?Provider $provider = null;
 
-    /** @var Tool[] */
+    /** @var ToolInterface[] */
     private array $tools = [];
 
     /** @var Guard[] */
@@ -166,20 +168,109 @@ final class Agent
         return $response;
     }
 
+    /**
+     * Stream a prompt to the LLM and get a streaming response
+     */
+    public function stream(string $message, array $options = []): StreamResponse
+    {
+        if (! $this->provider) {
+            throw new RuntimeException("No provider set for agent '{$this->name}'");
+        }
+
+        // Check if provider supports streaming
+        if (! method_exists($this->provider, 'streamPrompt')) {
+            throw new RuntimeException(
+                'Provider '.get_class($this->provider).' does not support streaming. '.
+                'Use the prompt() method instead.'
+            );
+        }
+
+        // Add to message history
+        $this->messages[] = ['role' => 'user', 'content' => $message];
+
+        // Merge agent config with prompt options
+        $mergedOptions = array_merge($this->config, $options);
+
+        // If we have message history, pass it along
+        if (! empty($this->messages)) {
+            $mergedOptions['messages'] = $this->messages;
+        }
+
+        // Add tool schemas if we have tools
+        if (! empty($this->tools)) {
+            $mergedOptions['tools'] = $this->getToolSchemas();
+        }
+
+        // Run before middleware
+        foreach ($this->middleware as $mw) {
+            $mergedOptions = $mw->before($message, $mergedOptions);
+        }
+
+        // Call provider's streaming method
+        $streamResponse = $this->provider->streamPrompt($message, $mergedOptions);
+
+        return $streamResponse;
+    }
+
+    /**
+     * Stream a prompt and send each chunk to a callback
+     */
+    public function streamTo(string $message, callable $callback, array $options = []): string
+    {
+        $streamResponse = $this->stream($message, $options);
+
+        // Stream to callback and collect full content
+        $streamResponse->streamTo($callback);
+
+        $fullContent = $streamResponse->getFullContent();
+
+        // Add assistant response to history
+        if (! empty($fullContent)) {
+            $this->messages[] = ['role' => 'assistant', 'content' => $fullContent];
+        }
+
+        // Run guards on the full response
+        if (! empty($this->guards)) {
+            try {
+                $this->runGuards($message, $fullContent);
+            } catch (GuardException $e) {
+                if ($this->fallback) {
+                    $fallbackContent = ($this->fallback)($e);
+
+                    return $fallbackContent;
+                }
+
+                throw $e;
+            }
+        }
+
+        return $fullContent;
+    }
+
     public function getName(): string
     {
         return $this->name;
     }
 
-    public function tool(string $name, string $description, Closure $callable): self
+    public function tool(string|ToolInterface $nameOrTool, ?string $description = null, ?Closure $callable = null): self
     {
-        $this->tools[] = Tool::fromClosure($name, $description, $callable);
+        if ($nameOrTool instanceof ToolInterface) {
+            $this->tools[] = $nameOrTool;
+
+            return $this;
+        }
+
+        if ($description === null || $callable === null) {
+            throw new RuntimeException('Description and callable are required when providing tool name as string');
+        }
+
+        $this->tools[] = Tool::fromClosure($nameOrTool, $description, $callable);
 
         return $this;
     }
 
     /**
-     * @return Tool[]
+     * @return ToolInterface[]
      */
     public function getTools(): array
     {
@@ -189,13 +280,13 @@ final class Agent
     public function executeTool(string $name, array $arguments): mixed
     {
         foreach ($this->tools as $tool) {
-            if ($tool->name === $name) {
+            if ($tool->name() === $name) {
                 return $tool->execute($arguments);
             }
         }
 
         // Better error message with suggestions
-        $available = array_map(fn ($t) => $t->name, $this->tools);
+        $available = array_map(fn ($t) => $t->name(), $this->tools);
         $suggestions = $this->findSimilarToolNames($name, $available);
 
         $message = "Tool '{$name}' not found";
