@@ -1,0 +1,62 @@
+{
+    "session_id": "conversation-1",
+    "messages": [
+        {
+            "role": "user",
+            "content": "I have a cat named Whiskers who is 3 years old"
+        },
+        {
+            "role": "assistant",
+            "content": "Mock response to: I have a cat named Whiskers who is 3 years old"
+        },
+        {
+            "role": "user",
+            "content": "I also have a dog named Max who loves to play fetch"
+        },
+        {
+            "role": "assistant",
+            "content": "Mock response to: I also have a dog named Max who loves to play fetch"
+        },
+        {
+            "role": "user",
+            "content": "My favorite hobby is photography, especially landscape photography"
+        },
+        {
+            "role": "assistant",
+            "content": "Mock response to: My favorite hobby is photography, especially landscape photography"
+        },
+        {
+            "role": "user",
+            "content": "I work as a software engineer specializing in PHP and Laravel"
+        },
+        {
+            "role": "assistant",
+            "content": "Mock response to: I work as a software engineer specializing in PHP and Laravel"
+        },
+        {
+            "role": "user",
+            "content": "I'm planning a vacation to Japan next month for cherry blossom season"
+        },
+        {
+            "role": "assistant",
+            "content": "Mock response to: I'm planning a vacation to Japan next month for cherry blossom season"
+        },
+        {
+            "role": "user",
+            "content": "I've been learning to play guitar for about six months now"
+        },
+        {
+            "role": "assistant",
+            "content": "Mock response to: I've been learning to play guitar for about six months now"
+        },
+        {
+            "role": "user",
+            "content": "What's my cat's name?"
+        },
+        {
+            "role": "assistant",
+            "content": "Mock response to: What's my cat's name?"
+        }
+    ],
+    "updated_at": "2025-10-28T20:36:26+00:00"
+}

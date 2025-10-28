@@ -7,6 +7,7 @@ We are committed to making participation in Pagent a harassment-free experience 
 ## Our Standards
 
 **Positive behavior:**
+
 - Using welcoming and inclusive language
 - Being respectful of differing viewpoints
 - Accepting constructive criticism gracefully
@@ -14,6 +15,7 @@ We are committed to making participation in Pagent a harassment-free experience 
 - Showing empathy towards others
 
 **Unacceptable behavior:**
+
 - Harassment, trolling, or insulting comments
 - Public or private attacks
 - Publishing others' private information

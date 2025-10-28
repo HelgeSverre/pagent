@@ -93,20 +93,22 @@
        ]);
    ```
 
-3. **Memory & Persistence Layer** 💾 HIGH VALUE
-   - **Time:** 4-5 hours
+3. **Memory & Persistence Layer** 💾 ✅ COMPLETED (v0.6.0)
+   - **Time:** 4 hours (actual)
    - **Impact:** Long-running conversations, context retention
-   - **Value:** Support agents with history, RAG systems
-   - **Version:** v0.7.0
+   - **Value:** Support agents with history, session management
+   - **Delivered:** SQLite, File, Null adapters + Context Manager
    ```php
    agent('support')
        ->memory('sqlite', ['path' => 'conversations.db'])
-       ->sessionId('user-' . auth()->id());
+       ->sessionId('user-123')
+       ->contextWindow(100000)
+       ->prompt('Hello');
 
-   // Vector storage for RAG
-   agent('research')
-       ->memory('pinecone', ['api_key' => '...'])
-       ->tool('search-docs', fn($q) => /* vector search */);
+   // Context window management with pruning
+   agent('chat')
+       ->memory('file', ['path' => 'storage/sessions'])
+       ->contextWindow(50000, 'sliding');
    ```
 
 4. **OpenTelemetry Observability** 📊 PRODUCTION READY
@@ -1128,22 +1130,27 @@ agent('weather')->tool('getWeather', WeatherRequest::class, fn(WeatherRequest $r
 
 ## 🎯 Current Status Summary
 
-**Version:** v0.5.1
-**Status:** ✅ Workflows & Tools Ready
-**Next Milestone:** v0.6.0 (Publishing Complete & Enhanced Tools)
-**Estimated Time to v1.0.0:** 35-50 hours of focused development
+**Version:** v0.6.0
+**Status:** ✅ Memory & Persistence Ready
+**Next Milestone:** v0.7.0 (HTTP Server + Advanced Features)
+**Estimated Time to v1.0.0:** 30-45 hours of focused development
 
-**Recent Progress:**
-- ✅ GitHub Actions CI/CD configured (tests.yml, release-drafter.yml)
-- ✅ README badges added (4 badges: version, downloads, PHP, license)
-- ✅ CONTRIBUTING.md created (7.6K comprehensive guide)
-- ✅ CODE_OF_CONDUCT.md created (1.0K)
-- ✅ SECURITY.md created (4.3K)
-- ✅ Documentation structure (6 framework integration guides)
-- ❌ **Packagist publishing** - PENDING (ready to publish)
-- ❌ **Architecture diagram** - NOT STARTED
-- ❌ **PHPStan errors** - 26 errors remaining
+**Recent Progress (v0.6.0):**
+- ✅ **Streaming Support** (v0.5.1) - Real-time SSE streaming, 21 tests
+- ✅ **Memory & Persistence** (v0.6.0) - SQLite/File adapters, 63 tests
+- ✅ **Context Management** - Token counting, pruning strategies
+- ✅ **Session Management** - Multi-session support, isolation
+- ✅ **3 Memory Examples** - SQLite, File, Multi-session demos
+- ✅ **Comprehensive Docs** - 820-line memory-persistence.md guide
+- ✅ **Test Coverage** - 265+ tests passing (all green!)
 
-**Immediate Priority:** Complete Path A (Packagist + Diagram) + Fix PHPStan!
+**Completed Features:**
+- ✅ Streaming (SSE, WebSocket-ready)
+- ✅ Memory persistence (3 adapters)
+- ✅ Context window management
+- ✅ Session isolation
+- ✅ 5 atomic git commits (clean history)
+
+**Next Priority:** HTTP Server Integration (v0.7.0) or ReAct Pattern!
 
 **All systems go!** 🚀

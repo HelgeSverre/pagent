@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pagent\Tools;
 
-abstract class Tool
+use Pagent\Contracts\ToolInterface;
+
+abstract class Tool implements ToolInterface
 {
     abstract public function name(): string;
 
@@ -15,5 +17,34 @@ abstract class Tool
     public function parameters(): array
     {
         return [];
+    }
+
+    public function toAnthropicSchema(): array
+    {
+        $params = $this->parameters();
+
+        $schema = [
+            'name' => $this->name(),
+            'description' => $this->description(),
+            'input_schema' => $params,
+        ];
+
+        return $schema;
+    }
+
+    public function toOpenAISchema(): array
+    {
+        $params = $this->parameters();
+
+        $schema = [
+            'type' => 'function',
+            'function' => [
+                'name' => $this->name(),
+                'description' => $this->description(),
+                'parameters' => $params,
+            ],
+        ];
+
+        return $schema;
     }
 }

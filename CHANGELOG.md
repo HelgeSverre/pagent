@@ -7,9 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2025-10-28
+
+### 🚀 First Stable Release - Production Ready!
+
+This is the first stable release of Pagent, marking it production-ready for building LLM agents in PHP.
+
+### Fixed
+
+- **[CRITICAL SECURITY]** Removed disabled SSL verification in OpenAI provider - now properly validates certificates
+- Fixed `AgentBuilder::__call()` return type to properly support fluent API (returns mixed instead of self)
+- Fixed OpenAI provider to pass through additional options (enables `response_format` for JSON mode)
+- Fixed Anthropic provider debug call - now guards `ray()` with `function_exists()` check
+
+### Changed
+
+- Updated composer.json PHP requirement from `^8.4` to `^8.3` (aligning with documentation)
+- Moved `laravel/pint` from `require` to `require-dev` (development tool, not runtime dependency)
+- Added `ext-curl` as explicit requirement in composer.json
+- Updated test count in README from 169 to 229 tests (reflects actual count)
+
+### Added
+
+- New `docs/` folder with integration guides
+- Centralized configuration pattern guide (`docs/centralized-configuration.md`)
+- Slim Framework integration guide (`docs/slim-integration.md`)
+- `pagent()` helper function pattern for global agent access
+
+### Metrics
+
+- 229 tests passing (548 assertions)
+- PHPStan level 9 compliance with baseline
+- PHP 8.3+ compatibility
+- Zero security vulnerabilities
+
 ## [0.5.0] - 2025-10-12
 
 ### Added
+
 - GitHub Actions CI/CD workflow with automated testing
 - Release Drafter for automated changelog generation
 - SECURITY.md with vulnerability disclosure policy
@@ -19,12 +54,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CODE_OF_CONDUCT.md for community standards
 
 ### Changed
+
 - Improved composer.json metadata with better keywords and support links
 - Enhanced README with installation instructions and badges
 
 ## [0.4.0] - 2025-10-10
 
 ### Added
+
 - Multi-agent orchestration patterns (pipeline, handoff, delegation)
 - `resolveAgent()` helper function for dynamic agent resolution
 - Agent cloning with `->clone()` method
@@ -36,11 +73,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 100 article ideas for future content
 
 ### Improved
+
 - Better error messages with suggestions for typos
 - More robust conversation history management
 - Enhanced middleware pipeline
 
 ### Metrics
+
 - 169 tests passing (385 assertions)
 - 99.4% test pass rate
 - PHPStan level 9 compliance
@@ -49,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2025-10-05
 
 ### Added
+
 - Safety guards (PII detection, content filtering, prompt injection prevention)
 - Evaluation framework with datasets and metrics
 - HTML/JSON/Markdown report generation
@@ -58,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2025-09-28
 
 ### Added
+
 - Multi-provider support (Anthropic Claude, OpenAI GPT, Mock)
 - Automatic tool calling with JSON schema generation
 - Conversation history and context management
@@ -66,6 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2025-09-20
 
 ### Added
+
 - Initial release
 - Fluent API inspired by PestPHP
 - Basic agent creation and interaction

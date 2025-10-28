@@ -16,12 +16,13 @@ Build intelligent agents with automatic tool calling, multi-provider support, sa
 
 - **🧪 Pest-Inspired API** - Fluent, expressive syntax that feels natural
 - **🌊 Real-Time Streaming** - SSE streaming for ChatGPT-like experiences
+- **💾 Memory & Persistence** - SQLite, File, and custom storage adapters
 - **🔧 Automatic Tool Calling** - JSON schema generation from PHP functions
 - **🤖 Multi-Provider** - Anthropic Claude, OpenAI GPT, Mock (for testing)
 - **🛡️ Safety Guards** - PII detection, content filtering, prompt injection prevention
 - **📊 Evaluation Framework** - Test datasets with automated metrics and reports
 - **🔄 Multi-Agent Orchestration** - Pipeline, handoff, and delegation patterns
-- **⚡ Production Ready** - 240+ tests, PHPStan level 9, PHP 8.3+ type safety
+- **⚡ Production Ready** - 265+ tests, PHPStan level 9, PHP 8.3+ type safety
 
 ---
 
@@ -56,9 +57,16 @@ agent('assistant')->streamTo('Tell me a story', function ($chunk) {
         flush();
     }
 });
+
+// Persist conversations across sessions
+agent('support')
+    ->memory('sqlite', ['path' => 'storage/conversations.db'])
+    ->sessionId('user-123')
+    ->contextWindow(100000)
+    ->prompt('Hello');
 ```
 
-**📖 [Read the full streaming guide →](docs/streaming.md)**
+**📖 Explore:** [Streaming Guide](docs/streaming.md) | [Memory & Persistence](docs/memory-persistence.md)
 
 ## Providers
 

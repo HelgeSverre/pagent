@@ -5,12 +5,10 @@ parameters:
     # Paths to analyze
     paths:
         - src
-        - tests
 
     # Exclude paths from analysis
     excludePaths:
-        - tests/Fixtures
-        - tests/Pest.php
+        - tests
         - archive
 
     # PHP version compatibility

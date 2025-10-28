@@ -9,7 +9,7 @@ Thank you for considering contributing to Pagent! This document outlines the dev
 1. Clone the repository
 2. Install dependencies and setup hooks:
    ```bash
-   make setup
+   just setup
    ```
    Or manually:
    ```bash
@@ -29,48 +29,48 @@ Thank you for considering contributing to Pagent! This document outlines the dev
 
 ```bash
 # Run tests
-make test
+just test
 
 # Fix code style
-make fix
+just fix
 
 # Run static analysis
-make analyse
+just analyse
 
 # Run full quality suite
-make quality
+just quality
 
 # Quick dev cycle (fix + test)
-make dev
+just dev
 
 # Prepare for PR (format + analyse + test)
-make pr
+just pr
 ```
 
 ### Available Commands
 
-#### Make Commands (Recommended)
+#### Just Commands (Recommended)
 
-- `make help` - Show all available commands
-- `make install` - Install dependencies
-- `make setup` - Complete initial setup
-- `make test` - Run all tests
-- `make test-coverage` - Run tests with coverage report
-- `make test-unit` - Run only unit tests
-- `make test-integration` - Run only integration tests
-- `make analyse` - Run PHPStan static analysis
-- `make baseline` - Generate PHPStan baseline
-- `make fix` - Auto-fix code style issues
-- `make format-check` - Check code style without fixing
-- `make check` - Run format check + analysis (no tests)
-- `make quality` - Run full quality suite (format + analyse + tests)
-- `make quality-fix` - Fix code style then run quality suite
-- `make insights` - Run PHP Insights for code quality metrics
-- `make clean` - Clean cache files
-- `make ci` - Run CI pipeline (check + test)
-- `make dev` - Quick dev cycle (fix + test)
-- `make pr` - Prepare for PR (full quality suite)
-- `make quick` - Quick check without tests
+- `just help` - Show all available commands
+- `just install` - Install dependencies
+- `just setup` - Complete initial setup
+- `just test` - Run all tests
+- `just test-coverage` - Run tests with coverage report
+- `just test-unit` - Run only unit tests
+- `just test-integration` - Run only integration tests
+- `just analyse` - Run PHPStan static analysis
+- `just baseline` - Generate PHPStan baseline
+- `just fix` - Auto-fix code style issues
+- `just format-check` - Check code style without fixing
+- `just check` - Run format check + analysis (no tests)
+- `just quality` - Run full quality suite (format + analyse + tests)
+- `just quality-fix` - Fix code style then run quality suite
+- `just insights` - Run PHP Insights for code quality metrics
+- `just clean` - Clean cache files
+- `just ci` - Run CI pipeline (check + test)
+- `just dev` - Quick dev cycle (fix + test)
+- `just pr` - Prepare for PR (full quality suite)
+- `just quick` - Quick check without tests
 
 #### Composer Commands
 
@@ -81,8 +81,8 @@ make pr
 - `composer analyse` - Run PHPStan analysis
 - `composer analyse:baseline` - Generate PHPStan baseline
 - `composer analyse:clear` - Clear PHPStan cache
-- `composer fix` - Auto-fix code style
-- `composer fix:dry` - Check code style (dry run)
+- `composer format` - Auto-fix code style
+- `composer format:dry` - Check code style (dry run)
 - `composer format` - Alias for fix
 - `composer format:check` - Check formatting without fixing
 - `composer quality` - Run format check + analyse + test
@@ -109,15 +109,15 @@ Key rules:
 **Auto-fix code style:**
 
 ```bash
-make fix
+just fix
 # or
-composer fix
+composer format
 ```
 
 **Check without fixing:**
 
 ```bash
-make format-check
+just format-check
 # or
 composer format:check
 ```
@@ -139,7 +139,7 @@ Key checks:
 **Run analysis:**
 
 ```bash
-make analyse
+just analyse
 # or
 composer analyse
 ```
@@ -147,7 +147,7 @@ composer analyse
 **Generate baseline for existing issues:**
 
 ```bash
-make baseline
+just baseline
 # or
 composer analyse:baseline
 ```
@@ -159,7 +159,7 @@ Pagent uses [Pest](https://pestphp.com/) for testing.
 **Run all tests:**
 
 ```bash
-make test
+just test
 # or
 composer test
 ```
@@ -167,7 +167,7 @@ composer test
 **Run with coverage:**
 
 ```bash
-make test-coverage
+just test-coverage
 # or
 composer test:coverage
 ```
@@ -181,7 +181,7 @@ composer test:integration
 
 ### Git Hooks
 
-Pre-commit hooks are automatically installed with `make setup`.
+Pre-commit hooks are automatically installed with `just setup`.
 
 The hook performs:
 
@@ -207,7 +207,7 @@ git commit --no-verify
 
 2. Make your changes and test frequently:
    ```bash
-   make dev  # Runs fix + test
+   just dev  # Runs fix + test
    ```
 
 ### Before Committing
@@ -215,9 +215,9 @@ git commit --no-verify
 Run the pre-commit checks manually:
 
 ```bash
-make quick  # Quick check without tests
+just quick  # Quick check without tests
 # or
-make check  # Check formatting and analysis
+just check  # Check formatting and analysis
 ```
 
 ### Before Creating a PR
@@ -225,15 +225,15 @@ make check  # Check formatting and analysis
 1. Ensure all quality checks pass:
 
    ```bash
-   make pr
+   just pr
    # or
-   make quality
+   just quality
    ```
 
 2. Check test coverage:
 
    ```bash
-   make test-coverage
+   just test-coverage
    ```
 
 3. Review your changes:
@@ -254,7 +254,7 @@ The CI pipeline runs:
 Local equivalent:
 
 ```bash
-make ci
+just ci
 ```
 
 ## Troubleshooting
@@ -264,7 +264,7 @@ make ci
 Clear the PHPStan cache:
 
 ```bash
-make clean
+just clean
 # or
 composer analyse:clear
 ```
@@ -277,7 +277,7 @@ If PHPStan reports errors that you believe are false positives or will be fixed 
 2. If it's a legitimate issue, fix it
 3. If it's accepted technical debt, add to baseline:
    ```bash
-   make baseline
+   just baseline
    ```
 
 ### Pint Conflicts
@@ -294,7 +294,7 @@ Re-setup hooks:
 ```bash
 bash .githooks/setup.sh
 # or
-make hooks
+just hooks
 ```
 
 ## PHP Insights (Optional)
@@ -302,7 +302,7 @@ make hooks
 For deeper code quality analysis:
 
 ```bash
-make insights
+just insights
 ```
 
 This provides metrics on:
@@ -318,7 +318,7 @@ This provides metrics on:
 2. **Keep methods small** - Single responsibility principle
 3. **Use type hints** - PHP 8.3 union types, intersection types
 4. **Document complex logic** - PHPDoc for arrays, generics
-5. **Run `make dev` frequently** - Catch issues early
+5. **Run `just dev` frequently** - Catch issues early
 6. **Never commit without tests passing** - Quality first
 7. **Use descriptive commit messages** - Follow conventional commits
 
@@ -333,8 +333,9 @@ This provides metrics on:
 ### Before Submitting
 
 1. **Ensure all quality checks pass:**
+
    ```bash
-   make pr  # Runs full quality suite
+   just pr  # Runs full quality suite
    ```
 
 2. **Update CHANGELOG.md:**
@@ -348,9 +349,9 @@ This provides metrics on:
 
 ### PR Checklist
 
-- [ ] All tests pass (`make test`)
-- [ ] Code style is correct (`make format-check`)
-- [ ] Static analysis passes (`make analyse`)
+- [ ] All tests pass (`just test`)
+- [ ] Code style is correct (`just format-check`)
+- [ ] Static analysis passes (`just analyse`)
 - [ ] New features have tests (unit + integration if applicable)
 - [ ] Documentation is updated (README, guides, PHPDoc)
 - [ ] CHANGELOG.md entry added
@@ -361,6 +362,7 @@ This provides metrics on:
 ### PR Title Format
 
 Use Conventional Commits format for PR titles:
+
 - `feat: add WebFetcher built-in tool`
 - `fix: handle timeout in tool execution`
 - `docs: improve installation guide`
@@ -372,7 +374,7 @@ Labels will be automatically applied based on PR title.
 
 1. Update version in relevant files
 2. Update CHANGELOG.md
-3. Run full quality suite: `make pr`
+3. Run full quality suite: `just pr`
 4. Create release tag
 5. Push to GitHub
 

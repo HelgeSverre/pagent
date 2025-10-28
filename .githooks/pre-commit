@@ -52,7 +52,7 @@ print_status "$YELLOW" "2/3 Running code formatter (Pint)..."
 if ! composer format:check > /dev/null 2>&1; then
     print_status "$RED" "Code style issues detected!"
     print_status "$YELLOW" "Running automatic fix..."
-    composer fix
+    composer format
 
     # Stage the fixed files
     for FILE in $STAGED_FILES; do

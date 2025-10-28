@@ -20,11 +20,11 @@ final class AgentBuilder
         Registry::set($this->agent->getName(), $this->agent);
     }
 
-    public function __call(string $method, array $args): self
+    public function __call(string $method, array $args): mixed
     {
-        $this->agent->{$method}(...$args);
+        $result = $this->agent->{$method}(...$args);
 
-        return $this;
+        return $result instanceof Agent ? $this : $result;
     }
 
     public function provider(string $providerName, array $config = []): self

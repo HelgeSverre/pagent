@@ -88,3 +88,138 @@ it('returns the same agent instance for fluent calls', function (): void {
     expect($result2)->toBe($agent);
     expect($result3)->toBe($agent);
 });
+
+// ========================================
+// CRITICAL SECURITY: Tool Call Loop Protection
+// ========================================
+// These tests document required loop protection to prevent infinite loops
+// and resource exhaustion from malicious or buggy tool call chains.
+
+test('it prevents infinite tool call loops', function (): void {
+    // Create a mock provider that always returns tool_calls (infinite loop scenario)
+    $callCount = 0;
+    $mock = new class($callCount) implements \Pagent\Contracts\Provider
+    {
+        private int $callCount = 0;
+
+        public function __construct(private int &$externalCount) {}
+
+        public function prompt(string $message, array $options = []): object
+        {
+            $this->callCount++;
+            $this->externalCount = $this->callCount;
+
+            // Always return a tool call to create infinite loop
+            return (object) [
+                'content' => 'Using recursive tool',
+                'tool_calls' => [
+                    ['id' => 'call_'.$this->callCount, 'name' => 'recursive_tool', 'arguments' => []],
+                ],
+                'model' => 'mock',
+                'tokens' => 10,
+                'provider' => 'mock',
+            ];
+        }
+    };
+
+    $agent = new Agent('test-agent');
+    $agent->provider($mock);
+    $agent->tool('recursive_tool', 'A tool that triggers itself', fn () => ['result' => 'done']);
+
+    // Should throw after maximum depth exceeded (suggested: 10 iterations)
+    expect(fn () => $agent->prompt('start'))
+        ->toThrow(RuntimeException::class, 'Maximum tool call depth exceeded');
+})->skip('Requires implementing MAX_TOOL_CALL_DEPTH constant and loop protection in Agent::prompt()');
+
+test('it handles tool removal during execution gracefully', function (): void {
+    $callCount = 0;
+    $mock = new class($callCount) implements \Pagent\Contracts\Provider
+    {
+        private int $callCount = 0;
+
+        public function __construct(private int &$externalCount) {}
+
+        public function prompt(string $message, array $options = []): object
+        {
+            $this->callCount++;
+            $this->externalCount = $this->callCount;
+
+            if ($this->callCount === 1) {
+                // First call: request a tool that will be removed
+                return (object) [
+                    'content' => 'I will use the calculator',
+                    'tool_calls' => [
+                        ['id' => 'call_1', 'name' => 'calculate', 'arguments' => ['a' => 5, 'b' => 3]],
+                    ],
+                    'model' => 'mock',
+                    'tokens' => 10,
+                    'provider' => 'mock',
+                ];
+            }
+
+            return (object) ['content' => 'Final response', 'model' => 'mock', 'tokens' => 5, 'provider' => 'mock'];
+        }
+    };
+
+    $agent = new Agent('test-agent');
+    $agent->provider($mock);
+    $agent->tool('calculate', 'Do math', fn ($a, $b) => $a + $b);
+
+    // Simulate tool removal before execution (race condition)
+    // This could happen if tools are dynamically managed
+    $agent->clearTools();
+
+    // Should throw with clear error message about missing tool
+    expect(fn () => $agent->prompt('test'))
+        ->toThrow(RuntimeException::class, "Tool 'calculate' not found");
+}); // This test PASSES - current implementation already handles this correctly!
+
+test('it detects circular tool call chains', function (): void {
+    $calls = [];
+    $mock = new class($calls) implements \Pagent\Contracts\Provider
+    {
+        private int $callCount = 0;
+
+        public function __construct(private array &$externalCalls) {}
+
+        public function prompt(string $message, array $options = []): object
+        {
+            $this->callCount++;
+
+            // Simulate circular chain: tool_a → tool_b → tool_a → tool_b ...
+            if ($this->callCount % 2 === 1) {
+                $this->externalCalls[] = 'tool_a';
+
+                return (object) [
+                    'content' => 'Calling tool_a',
+                    'tool_calls' => [['id' => 'call_'.$this->callCount, 'name' => 'tool_a', 'arguments' => []]],
+                    'model' => 'mock',
+                    'tokens' => 10,
+                    'provider' => 'mock',
+                ];
+            } else {
+                $this->externalCalls[] = 'tool_b';
+
+                return (object) [
+                    'content' => 'Calling tool_b',
+                    'tool_calls' => [['id' => 'call_'.$this->callCount, 'name' => 'tool_b', 'arguments' => []]],
+                    'model' => 'mock',
+                    'tokens' => 10,
+                    'provider' => 'mock',
+                ];
+            }
+        }
+    };
+
+    $agent = new Agent('test-agent');
+    $agent->provider($mock);
+    $agent->tool('tool_a', 'Tool A', fn () => 'result_a');
+    $agent->tool('tool_b', 'Tool B', fn () => 'result_b');
+
+    // Should detect circular chain and throw before resource exhaustion
+    expect(fn () => $agent->prompt('start'))
+        ->toThrow(RuntimeException::class, 'Maximum tool call depth exceeded');
+
+    // Should have stopped before excessive calls
+    expect(count($calls))->toBeLessThan(20);
+})->skip('Requires implementing circular chain detection or MAX_TOOL_CALL_DEPTH limit');

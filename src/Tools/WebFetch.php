@@ -75,11 +75,13 @@ final class WebFetch extends Tool
             ],
         ]);
 
-        // Fetch content
-        $content = @file_get_contents($url, false, $context);
+        // Fetch content - suppress all errors including SSL/network warnings
+        set_error_handler(function () {});
+        $content = file_get_contents($url, false, $context);
+        $error = error_get_last();
+        restore_error_handler();
 
         if ($content === false) {
-            $error = error_get_last();
             throw new RuntimeException('Failed to fetch URL: '.($error['message'] ?? 'Unknown error'));
         }
 

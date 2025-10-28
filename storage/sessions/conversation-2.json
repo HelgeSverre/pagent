@@ -1,0 +1,46 @@
+{
+    "session_id": "conversation-2",
+    "messages": [
+        {
+            "role": "user",
+            "content": "First message about computers"
+        },
+        {
+            "role": "assistant",
+            "content": "Mock response to: First message about computers"
+        },
+        {
+            "role": "user",
+            "content": "Second message about programming"
+        },
+        {
+            "role": "assistant",
+            "content": "Mock response to: Second message about programming"
+        },
+        {
+            "role": "user",
+            "content": "Third message about databases"
+        },
+        {
+            "role": "assistant",
+            "content": "Mock response to: Third message about databases"
+        },
+        {
+            "role": "user",
+            "content": "Fourth message about web development"
+        },
+        {
+            "role": "assistant",
+            "content": "Mock response to: Fourth message about web development"
+        },
+        {
+            "role": "user",
+            "content": "Fifth message about testing"
+        },
+        {
+            "role": "assistant",
+            "content": "Mock response to: Fifth message about testing"
+        }
+    ],
+    "updated_at": "2025-10-28T20:36:26+00:00"
+}

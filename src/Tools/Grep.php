@@ -153,9 +153,17 @@ final class Grep extends Tool
             $found = false;
 
             if ($isRegex) {
-                if (@preg_match($pattern, $line) === 1) {
+                // Suppress errors for invalid regex patterns
+                $previousErrorHandler = set_error_handler(function () {});
+                $matchResult = preg_match($pattern, $line);
+                restore_error_handler();
+
+                // Only consider it a match if preg_match returns exactly 1
+                // Returns false on error, 0 on no match, 1 on match
+                if ($matchResult === 1) {
                     $found = true;
                 }
+                // If matchResult is false (invalid regex), silently skip - no match
             } else {
                 if (str_contains($line, $pattern)) {
                     $found = true;

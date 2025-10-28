@@ -1,5 +1,7 @@
 # Security Policy
+
 gm
+
 ## Supported Versions
 
 We actively support the following versions of Pagent with security updates:
@@ -23,6 +25,7 @@ Please **do not** create a public GitHub issue for security vulnerabilities. Pub
 Send your vulnerability report to: **helge.sverre@gmail.com**
 
 Include the following information:
+
 - Description of the vulnerability
 - Steps to reproduce the issue
 - Potential impact
@@ -85,11 +88,11 @@ agent('assistant')
         // Validate path is within allowed directory
         $realPath = realpath($path);
         $baseDir = realpath('/allowed/directory');
-        
+
         if (!str_starts_with($realPath, $baseDir)) {
             throw new SecurityException('Path traversal detected');
         }
-        
+
         return file_get_contents($realPath);
     });
 ```
@@ -139,6 +142,7 @@ Large conversations can exceed token limits. Implement conversation pruning to p
 ## Security Updates
 
 Security updates will be released as patch versions (e.g., 0.5.1) and announced via:
+
 - GitHub Security Advisories
 - Release notes
 - CHANGELOG.md

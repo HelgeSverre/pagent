@@ -34,3 +34,106 @@ test('data extract throws for invalid schema', function () {
         'schema' => ['invalid' => 'schema'],
     ]))->toThrow(RuntimeException::class, 'Schema must have');
 });
+
+// ========================================
+// COMPREHENSIVE SCHEMA VALIDATION TESTS
+// ========================================
+
+test('it accepts schema with nested properties', function () {
+    $tool = new DataExtract;
+    $schema = [
+        'type' => 'object',
+        'properties' => [
+            'user' => [
+                'type' => 'object',
+                'properties' => [
+                    'name' => ['type' => 'string'],
+                    'age' => ['type' => 'integer'],
+                ],
+            ],
+        ],
+    ];
+
+    // Schema validation should pass (execution will fail without real API key)
+    try {
+        $tool->execute([
+            'text' => 'John Doe is 30 years old',
+            'schema' => $schema,
+        ]);
+    } catch (RuntimeException $e) {
+        // Expected to fail on OpenAI call, not schema validation
+        expect($e->getMessage())->not->toContain('Schema must have');
+    }
+});
+
+test('it rejects schema missing type field', function () {
+    $tool = new DataExtract;
+
+    expect(fn () => $tool->execute([
+        'text' => 'test',
+        'schema' => ['properties' => ['name' => ['type' => 'string']]],
+    ]))->toThrow(RuntimeException::class, 'Schema must have');
+});
+
+test('it rejects schema missing properties field', function () {
+    $tool = new DataExtract;
+
+    expect(fn () => $tool->execute([
+        'text' => 'test',
+        'schema' => ['type' => 'object'],
+    ]))->toThrow(RuntimeException::class, 'Schema must have');
+});
+
+test('it uses default instructions when not provided', function () {
+    $tool = new DataExtract;
+
+    // Should use default instructions without throwing
+    try {
+        $tool->execute([
+            'text' => 'Test content',
+            'schema' => ['type' => 'object', 'properties' => ['data' => ['type' => 'string']]],
+        ]);
+    } catch (RuntimeException $e) {
+        // Expected to fail on OpenAI call, not on missing instructions
+        expect($e->getMessage())->not->toContain('instructions');
+    }
+});
+
+test('it accepts custom instructions parameter', function () {
+    $tool = new DataExtract;
+
+    // Should accept instructions without throwing
+    try {
+        $tool->execute([
+            'text' => 'Test content',
+            'schema' => ['type' => 'object', 'properties' => ['data' => ['type' => 'string']]],
+            'instructions' => 'Extract only phone numbers',
+        ]);
+    } catch (RuntimeException $e) {
+        // Expected to fail on OpenAI call, not parameter validation
+        expect($e->getMessage())->not->toContain('parameter');
+    }
+});
+
+test('it has configurable model', function () {
+    $tool = new DataExtract(model: 'gpt-4o');
+
+    // Verify constructor accepts model parameter
+    expect($tool)->toBeInstanceOf(DataExtract::class);
+});
+
+// ========================================
+// JSON PARSING & PROVIDER INTEGRATION (DOCUMENTED)
+// ========================================
+
+test('it handles malformed JSON responses', function () {
+    // Mock provider to return invalid JSON
+    // Expected: Should throw RuntimeException with 'Failed to parse extracted data'
+    expect(true)->toBeTrue();
+})->skip('Requires provider mocking to inject malformed JSON');
+
+test('it returns parsed data on valid JSON', function () {
+    // Mock provider to return valid JSON response
+    // Expected: Should return ['data' => parsed, 'schema' => schema]
+    expect(true)->toBeTrue();
+})->skip('Requires provider mocking to inject valid JSON response');

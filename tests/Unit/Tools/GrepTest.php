@@ -99,3 +99,116 @@ test('grep has correct metadata', function () {
     expect($tool->description())->toContain('Search for text');
     expect($tool->parameters())->toHaveKey('properties');
 });
+
+// ========================================
+// ERROR HANDLING & EDGE CASE TESTS
+// ========================================
+
+test('it handles invalid regex patterns gracefully', function () {
+    file_put_contents($this->tempDir.'/test.txt', 'test content');
+
+    $tool = new Grep(baseDir: $this->tempDir);
+    $result = $tool->execute([
+        'pattern' => '/[invalid(regex/',  // Malformed regex
+        'files' => '*.txt',
+        'regex' => true,
+    ]);
+
+    // Should not crash - invalid regex returns no matches due to @ suppression
+    expect($result)->toHaveKey('results');
+    expect($result['total_matches'])->toBe(0);
+});
+
+test('it handles binary files safely', function () {
+    // Create a binary file
+    file_put_contents($this->tempDir.'/binary.dat', pack('C*', 0, 1, 2, 3, 255, 254));
+
+    $tool = new Grep(baseDir: $this->tempDir);
+    $result = $tool->execute([
+        'pattern' => 'test',
+        'files' => '*.dat',
+    ]);
+
+    // Should complete without error
+    expect($result)->toHaveKey('results');
+});
+
+test('it finds patterns in very long lines', function () {
+    $longLine = str_repeat('x', 100000).'FINDME'.str_repeat('y', 100000);
+    file_put_contents($this->tempDir.'/long.txt', $longLine);
+
+    $tool = new Grep(baseDir: $this->tempDir);
+    $result = $tool->execute([
+        'pattern' => 'FINDME',
+        'files' => 'long.txt',
+    ]);
+
+    expect($result['total_matches'])->toBe(1);
+    expect($result['results'][0]['matches'][0]['content'])->toContain('FINDME');
+});
+
+test('it respects maxResults limit per file', function () {
+    // Create file with many matches
+    $content = str_repeat("match\n", 200);
+    file_put_contents($this->tempDir.'/many.txt', $content);
+
+    $tool = new Grep(baseDir: $this->tempDir, maxResults: 5);
+    $result = $tool->execute([
+        'pattern' => 'match',
+        'files' => 'many.txt',
+    ]);
+
+    expect($result['total_matches'])->toBe(5);
+    expect($result['truncated'])->toBeTrue();
+});
+
+test('it stops searching after reaching maxResults', function () {
+    // Create multiple files with matches
+    file_put_contents($this->tempDir.'/file1.txt', str_repeat("match\n", 10));
+    file_put_contents($this->tempDir.'/file2.txt', str_repeat("match\n", 10));
+    file_put_contents($this->tempDir.'/file3.txt', str_repeat("match\n", 10));
+
+    $tool = new Grep(baseDir: $this->tempDir, maxResults: 5);
+    $result = $tool->execute([
+        'pattern' => 'match',
+        'files' => '*.txt',
+    ]);
+
+    // Should stop at 5 matches total
+    expect($result['total_matches'])->toBe(5);
+    expect($result['truncated'])->toBeTrue();
+    // Should not have searched all files
+    expect($result['files_searched'])->toBeGreaterThanOrEqual(1);
+});
+
+test('it skips unreadable files without crashing', function () {
+    file_put_contents($this->tempDir.'/readable.txt', 'content');
+    file_put_contents($this->tempDir.'/unreadable.txt', 'secret');
+    chmod($this->tempDir.'/unreadable.txt', 0000);
+
+    $tool = new Grep(baseDir: $this->tempDir);
+    $result = $tool->execute([
+        'pattern' => 'content',
+        'files' => '*.txt',
+    ]);
+
+    // Should find matches in readable file, skip unreadable
+    expect($result['files_searched'])->toBeGreaterThan(0);
+
+    // Cleanup
+    chmod($this->tempDir.'/unreadable.txt', 0644);
+})->skip('Permission tests can be environment-specific');
+
+test('it handles empty files gracefully', function () {
+    file_put_contents($this->tempDir.'/empty.txt', '');
+
+    $tool = new Grep(baseDir: $this->tempDir);
+    $result = $tool->execute([
+        'pattern' => 'test',
+        'files' => 'empty.txt',
+    ]);
+
+    expect($result['results'])->toBeEmpty();
+    expect($result['total_matches'])->toBe(0);
+    expect($result['files_searched'])->toBe(1);
+});

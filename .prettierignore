@@ -1,0 +1,18 @@
+# Dependencies
+vendor/
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Cache and generated files
+.phpunit.cache/
+coverage/
+
+# Archives
+archive/
+
+# Lock files (shouldn't be reformatted)
+composer.lock
+package-lock.json

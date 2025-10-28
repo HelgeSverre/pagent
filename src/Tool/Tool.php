@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Pagent\Tool;
 
 use Closure;
+use Pagent\Contracts\ToolInterface;
 use ReflectionFunction;
 use ReflectionNamedType;
 
-final readonly class Tool
+final readonly class Tool implements ToolInterface
 {
     /**
      * @param  ToolArgument[]  $arguments
@@ -43,6 +44,16 @@ final readonly class Tool
         }
 
         return new self($name, $description, $closure, $arguments);
+    }
+
+    public function name(): string
+    {
+        return $this->name;
+    }
+
+    public function description(): string
+    {
+        return $this->description;
     }
 
     public function execute(array $arguments): mixed

@@ -49,11 +49,11 @@ $workflow = workflow()
     ->node('classifier', agent('classifier'))
     ->node('tech', agent('tech-support'))
     ->node('billing', agent('billing-support'))
-    
+
     ->edge('intake', 'classifier')
     ->edge('classifier', 'tech', when: fn($r) => $r->category === 'technical')
     ->edge('classifier', 'billing', when: fn($r) => $r->category === 'billing')
-    
+
     ->start('intake')
     ->run('User input');
 ```
@@ -87,7 +87,7 @@ agent('supervisor')
 
 // With explicit handoff
 agent('triage')
-    ->onComplete(fn($result) => 
+    ->onComplete(fn($result) =>
         agent($result->nextAgent)->prompt($result->handoffMessage)
     )
     ->prompt('Customer inquiry');
@@ -186,6 +186,7 @@ $summary = agent('summarizer')->prompt(
 ```
 
 **Note:** PHP doesn't have true async, so "parallel" means:
+
 - Multi-process (pcntl_fork) - Linux/Mac only
 - Or sequential with parallel API for future async support
 - Document limitation clearly
@@ -203,13 +204,13 @@ $workflow = Graph::create()
     ->node('tech', agent('tech-support'))
     ->node('billing', agent('billing'))
     ->node('end', agent('summarizer'))
-    
+
     ->connect('start', 'classify')
     ->connect('classify', 'tech', when: fn($r) => $r->type === 'technical')
     ->connect('classify', 'billing', when: fn($r) => $r->type === 'billing')
     ->connect('tech', 'end')
     ->connect('billing', 'end')
-    
+
     ->execute('start', 'User question');
 ```
 
@@ -227,7 +228,7 @@ Document current pattern:
 ```php
 // examples/delegation.php
 agent('coordinator')
-    ->tool('delegate_research', 'Ask researcher', fn($q) => 
+    ->tool('delegate_research', 'Ask researcher', fn($q) =>
         agent('researcher')->prompt($q)->content
     )
     ->prompt('Find and summarize PHP agent libraries');
@@ -243,6 +244,7 @@ agent('coordinator')
 ```
 
 **Features:**
+
 - Sequential step execution
 - Named steps with intermediate results
 - Transform steps (pure functions)
@@ -251,12 +253,14 @@ agent('coordinator')
 ### v0.7.0 - Conditional + Parallel (6-8 hours)
 
 **Conditional:**
+
 ```php
 ->branch(fn($result) => ...)
 ->branchIf(condition: fn($r) => ..., then: ..., else: ...)
 ```
 
 **Parallel:**
+
 ```php
 Parallel::run([...]) // Sequential fallback
 Parallel::runAsync([...]) // Requires amphp/parallel or ReactPHP
@@ -276,29 +280,29 @@ namespace Pagent\Workflow;
 class Pipeline
 {
     protected array $steps = [];
-    
+
     public static function create(): self
     {
         return new self();
     }
-    
+
     public function step(string $name, Agent|callable $handler): self
     {
         $this->steps[] = ['name' => $name, 'handler' => $handler, 'type' => 'agent'];
         return $this;
     }
-    
+
     public function transform(string $name, callable $fn): self
     {
         $this->steps[] = ['name' => $name, 'handler' => $fn, 'type' => 'transform'];
         return $this;
     }
-    
+
     public function run(string $input): PipelineResult
     {
         $results = [];
         $current = $input;
-        
+
         foreach ($this->steps as $step) {
             if ($step['type'] === 'agent') {
                 $response = $step['handler']->prompt($current);
@@ -306,10 +310,10 @@ class Pipeline
             } else {
                 $current = $step['handler']($current);
             }
-            
+
             $results[$step['name']] = $current;
         }
-        
+
         return new PipelineResult($results, $current);
     }
 }
@@ -320,7 +324,7 @@ class PipelineResult
         protected array $steps,
         public mixed $final
     ) {}
-    
+
     public function step(string $name): mixed
     {
         return $this->steps[$name] ?? null;
@@ -428,10 +432,10 @@ Pipeline::create()
 // Step 1: 'intake' step
 $intakeAgent = agent('intake'); // Get registered agent
 $intakeResponse = $intakeAgent->prompt('Customer message: My invoice is wrong');
-$step1Output = $intakeResponse->content; 
+$step1Output = $intakeResponse->content;
 // e.g., "User has billing issue regarding invoice accuracy"
 
-// Step 2: 'classify' step  
+// Step 2: 'classify' step
 $classifierAgent = agent('classifier'); // Get registered agent
 $classifyResponse = $classifierAgent->prompt($step1Output); // Uses previous output!
 $step2Output = $classifyResponse->content;
@@ -469,8 +473,8 @@ agent('tech-support')
 Pipeline::create()
     ->step('intake', agent('intake'))        // Uses pre-configured agent
     ->step('classify', agent('classifier'))  // Uses pre-configured agent
-    ->branch(fn($r) => json_decode($r)->category === 'tech' 
-        ? agent('tech-support') 
+    ->branch(fn($r) => json_decode($r)->category === 'tech'
+        ? agent('tech-support')
         : agent('general')
     )
     ->run('My app crashes on startup');
@@ -513,7 +517,7 @@ $emailWorkflow = Pipeline::create()
 
 **No, by default.** Step names are metadata for you, not the AI.
 
-But you *could* inject context:
+But you _could_ inject context:
 
 ```php
 // Option A: Pipeline injects step context (future feature)
@@ -738,7 +742,7 @@ $result = Pipeline::create()
     ->step('ocr', agent('ocr'))
     ->step('parse', agent('invoice_parser'))
     ->step('validate', agent('validator'))
-    ->branch(fn($r) => json_decode($r)->valid 
+    ->branch(fn($r) => json_decode($r)->valid
         ? Pipeline::create()
             ->step('categorize', agent('categorizer'))
             ->step('approve', agent('approver'))
@@ -767,19 +771,19 @@ class PipelineResult
     public readonly mixed $final;           // Final output
     public readonly array $steps;           // All step outputs
     public readonly PipelineMetadata $meta; // Execution metadata
-    
+
     // Access by step name
     public function step(string $name): StepResult;
-    
+
     // Get all outputs as array
     public function toArray(): array;
-    
+
     // Get specific field from final output (if JSON)
     public function get(string $key, mixed $default = null): mixed;
-    
+
     // Check if step exists
     public function has(string $step): bool;
-    
+
     // Export for debugging
     public function export(): array;
 }
@@ -791,10 +795,10 @@ class StepResult
     public readonly mixed $input;
     public readonly string $agent;
     public readonly StepMetadata $meta;
-    
+
     // Parse JSON output
     public function json(): array;
-    
+
     // Get specific field (if JSON)
     public function get(string $key, mixed $default = null): mixed;
 }
@@ -855,7 +859,7 @@ class WorkflowResult {
 
 // Different facades, same engine
 Chain::create()      → ChainExecutor → WorkflowResult
-Pipeline::create()   → PipelineExecutor → WorkflowResult  
+Pipeline::create()   → PipelineExecutor → WorkflowResult
 Workflow::create()   → WorkflowExecutor → WorkflowResult
 Graph::create()      → GraphExecutor → WorkflowResult
 ```
@@ -953,13 +957,13 @@ $workflow = Graph::create()
     ->node('tech', agent('tech'))
     ->node('billing', agent('billing'))
     ->node('merge', agent('merger'))
-    
+
     ->edge('start', 'classify')
     ->edge('classify', 'tech', when: fn($r) => $r->type === 'tech')
     ->edge('classify', 'billing', when: fn($r) => $r->type === 'billing')
     ->edge('tech', 'merge')
     ->edge('billing', 'merge')
-    
+
     ->run('start', $input);
 
 // Visualize
@@ -1067,35 +1071,37 @@ Graph::create()
     ->node('tech', agent('tech-specialist'))
     ->node('billing', agent('billing-specialist'))
     ->node('respond', agent('responder'))
-    
+
     ->edge('intake', 'classify')
     ->edge('classify', 'tech', when: fn($r) => $r->category === 'tech')
     ->edge('classify', 'billing', when: fn($r) => $r->category === 'billing')
     ->edge('tech', 'respond')
     ->edge('billing', 'respond')
-    
+
     ->run('intake', $inquiry);
 ```
 
 ### When to Use Each Pattern
 
-| Pattern | Use When | Complexity | Flexibility |
-|---------|----------|------------|-------------|
-| **Chain** | Simple A→B→C flow | ⭐ Low | ⭐ Low |
-| **Pipeline** | Need intermediate results | ⭐⭐ Medium | ⭐⭐ Medium |
-| **Workflow** | Conditional branching | ⭐⭐⭐ Medium | ⭐⭐⭐ High |
-| **Graph** | Complex DAGs, cycles, viz | ⭐⭐⭐⭐ High | ⭐⭐⭐⭐ Very High |
-| **Parallel** | Independent tasks | ⭐⭐ Medium | ⭐⭐⭐ High |
+| Pattern      | Use When                  | Complexity    | Flexibility        |
+| ------------ | ------------------------- | ------------- | ------------------ |
+| **Chain**    | Simple A→B→C flow         | ⭐ Low        | ⭐ Low             |
+| **Pipeline** | Need intermediate results | ⭐⭐ Medium   | ⭐⭐ Medium        |
+| **Workflow** | Conditional branching     | ⭐⭐⭐ Medium | ⭐⭐⭐ High        |
+| **Graph**    | Complex DAGs, cycles, viz | ⭐⭐⭐⭐ High | ⭐⭐⭐⭐ Very High |
+| **Parallel** | Independent tasks         | ⭐⭐ Medium   | ⭐⭐⭐ High        |
 
 ### Development Plan
 
 **Week 1: Foundation (v0.5.1)**
+
 - [ ] Shared abstractions (WorkflowResult, StepResult, Metadata)
 - [ ] Chain implementation
 - [ ] Unit tests
 - [ ] Example + docs
 
 **Week 2: Core Patterns (v0.6.0)**
+
 - [ ] Pipeline implementation
 - [ ] Workflow implementation (with branching)
 - [ ] Transform steps
@@ -1103,6 +1109,7 @@ Graph::create()
 - [ ] Examples + docs
 
 **Week 3: Advanced (v0.7.0)**
+
 - [ ] Graph implementation
 - [ ] Parallel execution (sequential fallback)
 - [ ] GraphVisualizer (Mermaid export)
@@ -1121,28 +1128,28 @@ namespace Pagent\Workflow;
 class Chain
 {
     protected array $steps = [];
-    
+
     public static function create(): self
     {
         return new self();
     }
-    
+
     public function add(Agent $agent): self
     {
         $this->steps[] = $agent;
         return $this;
     }
-    
+
     public function run(mixed $input): WorkflowResult
     {
         $current = $input;
         $stepResults = [];
-        
+
         foreach ($this->steps as $index => $agent) {
             $startTime = microtime(true);
             $response = $agent->prompt($current);
             $duration = microtime(true) - $startTime;
-            
+
             $stepResults[] = new StepResult(
                 name: "step_{$index}",
                 output: $response->content,
@@ -1153,10 +1160,10 @@ class Chain
                     duration: $duration
                 )
             );
-            
+
             $current = $response->content;
         }
-        
+
         return new WorkflowResult(
             final: $current,
             steps: $stepResults,

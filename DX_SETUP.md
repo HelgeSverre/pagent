@@ -39,7 +39,7 @@ make help
 
 - **Preset:** PER (PHP Evolving Recommendation)
 - **Config:** `pint.json`
-- **Run:** `make fix` or `composer fix`
+- **Run:** `make fix` or `composer format`
 
 #### 2. PHPStan (Static Analysis)
 

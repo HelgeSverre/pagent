@@ -38,20 +38,22 @@ test:
 [group('test')]
 [doc('Run tests with coverage report')]
 test-coverage:
-    @echo "Running tests with coverage..."
-    herd coverage  test:coverage
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if command -v herd &> /dev/null; then
+        echo "Running tests with coverage using Herd..."
+        herd coverage vendor/bin/pest --coverage --min=80
+    else
+        echo "Running tests with coverage using composer..."
+        echo "Note: Requires Xdebug or PCOV to be installed"
+        composer test:coverage
+    fi
 
 [group('test')]
 [doc('Run only unit tests')]
 test-unit:
     @echo "Running unit tests..."
     composer test:unit
-
-[group('test')]
-[doc('Run only feature tests')]
-test-feature:
-    @echo "Running feature tests..."
-    composer test:feature
 
 [group('test')]
 [doc('Run only integration tests')]
@@ -86,7 +88,7 @@ baseline:
 [doc('Auto-fix code style issues (PHP + Markdown)')]
 fix:
     @echo "Fixing PHP code style..."
-    composer fix
+    composer format
     @echo "Formatting markdown files..."
     @just _format-markdown write
 
@@ -171,6 +173,7 @@ insights-fix:
 
 # === Cleanup ===
 
+[group('workflow')]
 [doc('Clean cache and generated files')]
 clean:
     @echo "Cleaning cache files..."

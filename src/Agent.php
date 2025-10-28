@@ -6,10 +6,12 @@ namespace Pagent;
 
 use Closure;
 use Pagent\Contracts\Guard;
+use Pagent\Contracts\Memory;
 use Pagent\Contracts\Middleware;
 use Pagent\Contracts\Provider;
 use Pagent\Contracts\ToolInterface;
 use Pagent\Exceptions\GuardException;
+use Pagent\Memory\ContextManager;
 use Pagent\Streaming\StreamResponse;
 use Pagent\Tool\Tool;
 use RuntimeException;
@@ -52,6 +54,12 @@ final class Agent
     private array $middleware = [];
 
     private ?Closure $fallback = null;
+
+    private ?Memory $memory = null;
+
+    private ?string $sessionId = null;
+
+    private ?ContextManager $contextManager = null;
 
     public function __construct(
         private readonly string $name,
@@ -99,10 +107,49 @@ final class Agent
         return $this;
     }
 
+    public function memory(string|Memory $adapter, array $config = []): self
+    {
+        if ($adapter instanceof Memory) {
+            $this->memory = $adapter;
+
+            return $this;
+        }
+
+        // Resolve string to adapter class
+        $adapterClass = "Pagent\\Memory\\Adapters\\{$adapter}Adapter";
+
+        if (! class_exists($adapterClass)) {
+            throw new RuntimeException("Memory adapter class '{$adapterClass}' not found");
+        }
+
+        $this->memory = new $adapterClass($config);
+
+        return $this;
+    }
+
+    public function sessionId(string $id): self
+    {
+        $this->sessionId = $id;
+
+        return $this;
+    }
+
+    public function contextWindow(int $maxTokens, string $strategy = 'oldest'): self
+    {
+        $this->contextManager = new ContextManager($maxTokens, $strategy);
+
+        return $this;
+    }
+
     public function prompt(string $message, array $options = []): object
     {
         if (! $this->provider) {
             throw new RuntimeException("No provider set for agent '{$this->name}'");
+        }
+
+        // Auto-load from memory if configured and messages are empty
+        if ($this->memory && $this->sessionId && empty($this->messages)) {
+            $this->messages = $this->memory->load($this->sessionId);
         }
 
         // Add to message history
@@ -111,9 +158,15 @@ final class Agent
         // Merge agent config with prompt options
         $mergedOptions = array_merge($this->config, $options);
 
+        // Apply context pruning if configured
+        $messagesToSend = $this->messages;
+        if ($this->contextManager) {
+            $messagesToSend = $this->contextManager->prune($this->messages);
+        }
+
         // If we have message history, pass it along
-        if (! empty($this->messages)) {
-            $mergedOptions['messages'] = $this->messages;
+        if (! empty($messagesToSend)) {
+            $mergedOptions['messages'] = $messagesToSend;
         }
 
         // Add tool schemas if we have tools
@@ -163,6 +216,11 @@ final class Agent
         // Add final response to history
         if (isset($response->content) && ! empty($response->content)) {
             $this->messages[] = ['role' => 'assistant', 'content' => $response->content];
+        }
+
+        // Auto-save to memory if configured
+        if ($this->memory && $this->sessionId) {
+            $this->memory->save($this->sessionId, $this->messages);
         }
 
         return $response;
@@ -217,6 +275,11 @@ final class Agent
      */
     public function streamTo(string $message, callable $callback, array $options = []): string
     {
+        // Auto-load from memory if configured and messages are empty
+        if ($this->memory && $this->sessionId && empty($this->messages)) {
+            $this->messages = $this->memory->load($this->sessionId);
+        }
+
         $streamResponse = $this->stream($message, $options);
 
         // Stream to callback and collect full content
@@ -242,6 +305,11 @@ final class Agent
 
                 throw $e;
             }
+        }
+
+        // Auto-save to memory if configured
+        if ($this->memory && $this->sessionId) {
+            $this->memory->save($this->sessionId, $this->messages);
         }
 
         return $fullContent;
@@ -448,6 +516,9 @@ final class Agent
         $this->guards = [];
         $this->middleware = [];
         $this->fallback = null;
+        $this->memory = null;
+        $this->sessionId = null;
+        $this->contextManager = null;
 
         return $this;
     }
@@ -464,7 +535,9 @@ final class Agent
         $clone->guards = $this->guards;
         $clone->middleware = $this->middleware;
         $clone->fallback = $this->fallback;
-        // Don't copy messages - fresh conversation
+        $clone->memory = $this->memory;
+        $clone->contextManager = $this->contextManager;
+        // Don't copy messages or sessionId - fresh conversation
 
         return $clone;
     }

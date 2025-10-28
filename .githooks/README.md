@@ -10,10 +10,10 @@ Run the setup script to configure git to use these hooks:
 bash .githooks/setup.sh
 ```
 
-Or use the Makefile:
+Or use the Justfile:
 
 ```bash
-make hooks
+just hooks
 ```
 
 This configures git's `core.hooksPath` to point to this directory.
@@ -62,7 +62,7 @@ bash .githooks/setup.sh
 2. If it's a legitimate issue, fix it
 3. If it's accepted technical debt, add to baseline:
    ```bash
-   make baseline
+   just baseline
    ```
 
 ### Code style keeps changing

@@ -29,14 +29,16 @@
     }
   ],
   "require": {
-    "php": "^8.4",
-    "laravel/pint": "^1.24",
+    "php": "^8.3",
+    "ext-curl": "*",
     "psr/http-client": "^1.0",
     "psr/http-factory": "^1.0",
-    "psr/log": "^3.0"
+    "psr/log": "^3.0",
+    "symfony/process": "^7.3"
   },
   "require-dev": {
     "friendsofphp/php-cs-fixer": "^3.0",
+    "laravel/pint": "^1.24",
     "nunomaduro/phpinsights": "^2.13",
     "pestphp/pest": "^4.0",
     "phpstan/phpstan": "^1.10",
@@ -57,15 +59,13 @@
     }
   },
   "scripts": {
-    "test": "pest",
-    "test:coverage": "pest --coverage --min=80",
-    "test:unit": "pest --testsuite=Unit",
-    "test:integration": "pest --testsuite=Integration",
+    "test": "vendor/bin/pest",
+    "test:coverage": "vendor/bin/pest --coverage --min=80",
+    "test:unit": "vendor/bin/pest --testsuite=Unit",
+    "test:integration": "vendor/bin/pest --testsuite=Integration",
     "analyse": "phpstan analyse --memory-limit=1G",
     "analyse:baseline": "phpstan analyse --memory-limit=1G --generate-baseline",
     "analyse:clear": "phpstan clear-result-cache",
-    "fix": "pint",
-    "fix:dry": "pint --test",
     "format": "pint",
     "format:check": "pint --test",
     "quality": [
@@ -74,7 +74,7 @@
       "@test"
     ],
     "quality:fix": [
-      "@fix",
+      "@format",
       "@analyse",
       "@test"
     ],
@@ -83,9 +83,6 @@
     "check": [
       "@format:check",
       "@analyse"
-    ],
-    "post-autoload-dump": [
-      "@php vendor/bin/pest --init"
     ]
   },
   "config": {

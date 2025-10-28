@@ -7,7 +7,7 @@
 - **Test unit only** (no API calls): `./vendor/bin/pest --exclude-group=api`
 - **Test API integration** (requires API keys): `./vendor/bin/pest --group=api`
 - **Type check**: `./vendor/bin/phpstan analyse` or `composer analyse`
-- **Format code**: `./vendor/bin/pint` or `composer fix`
+- **Format code**: `./vendor/bin/pint` or `composer format`
 
 ## Architecture
 

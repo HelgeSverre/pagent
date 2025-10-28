@@ -3,7 +3,7 @@
 ## Initial Setup (30 seconds)
 
 ```bash
-make setup
+just setup
 ```
 
 That's it! This will:
@@ -15,28 +15,28 @@ That's it! This will:
 
 ### During Development
 ```bash
-make dev          # Fix code style + run tests
-make fix          # Auto-fix code style only
-make test         # Run tests only
+just dev          # Fix code style + run tests
+just fix          # Auto-fix code style only
+just test         # Run tests only
 ```
 
 ### Before Committing
 ```bash
-make check        # Run format check + static analysis
-make quick        # Same as check (faster name)
+just check        # Run format check + static analysis
+just quick        # Same as check (faster name)
 ```
 
 ### Before Creating PR
 ```bash
-make pr           # Run full quality suite
-make test-coverage # Verify 80%+ coverage
+just pr           # Run full quality suite
+just test-coverage # Verify 80%+ coverage
 ```
 
 ### Troubleshooting
 ```bash
-make clean        # Clear all caches
-make analyse      # Run PHPStan analysis
-make baseline     # Regenerate PHPStan baseline
+just clean        # Clear all caches
+just analyse      # Run PHPStan analysis
+just baseline     # Regenerate PHPStan baseline
 ```
 
 ## Workflow Example
@@ -46,14 +46,14 @@ make baseline     # Regenerate PHPStan baseline
 git checkout -b feature/awesome-feature
 
 # 2. Make changes, run frequently:
-make dev
+just dev
 
 # 3. Ready to commit:
-make check
+just check
 git commit -m "feat: add awesome feature"
 
 # 4. Before creating PR:
-make pr
+just pr
 
 # 5. Create PR
 git push -u origin feature/awesome-feature
@@ -61,10 +61,10 @@ git push -u origin feature/awesome-feature
 
 ## All Available Commands
 
-Run `make help` to see all commands:
+Run `just help` to see all commands:
 
 ```bash
-make help
+just help
 ```
 
 ## Pre-commit Hooks
@@ -95,7 +95,7 @@ git commit --no-verify
 ## Need Help?
 
 ```bash
-make help         # Show all commands
+just help         # Show all commands
 composer --help   # Show composer scripts
 ```
 
@@ -103,4 +103,4 @@ composer --help   # Show composer scripts
 
 You're ready to contribute to Pagent! 🚀
 
-**Remember:** `make dev` is your friend during development.
+**Remember:** `just dev` is your friend during development.
