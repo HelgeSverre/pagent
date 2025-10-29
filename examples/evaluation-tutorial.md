@@ -27,6 +27,7 @@ Think of it like unit testing for AI. Just as you wouldn't deploy code without t
 ## Tutorial Structure
 
 We'll progress through three levels:
+
 1. **Beginner**: Get your first evaluation running
 2. **Intermediate**: Build sophisticated test suites
 3. **Advanced**: Production-ready evaluation systems
@@ -66,6 +67,7 @@ echo "Score: " . $result->getAverageScore('keywords') * 100 . "%\n";
 ```
 
 **What's happening here?**
+
 - We created one test case asking about PHP
 - We check if the response mentions "PHP" and "programming"
 - The score tells us how well the agent performed (0-100%)
@@ -93,6 +95,7 @@ $result = evaluate('support-bot')
 ### Example 3: Understanding Scores
 
 Metrics return scores between 0.0 and 1.0:
+
 - **1.0 (100%)**: Perfect score
 - **0.5 (50%)**: Partially meeting criteria
 - **0.0 (0%)**: Not meeting criteria at all
@@ -108,6 +111,7 @@ Metrics return scores between 0.0 and 1.0:
 ### Try It Yourself!
 
 Run the example with:
+
 ```bash
 php examples/08-evaluation-progressive.php
 ```
@@ -141,6 +145,7 @@ $dataset = Dataset::fromJson(__DIR__ . '/datasets/faq_tests.json');
 ```
 
 **Why use files?**
+
 - Version control your test data
 - Share datasets across teams
 - Organize tests by category
@@ -194,6 +199,7 @@ $report->save(__DIR__ . '/reports/evaluation.json');
 ```
 
 The HTML report includes:
+
 - Visual metrics summary with scores
 - Detailed test case results
 - Professional styling for presentations
@@ -352,7 +358,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: "8.2"
 
       - name: Install dependencies
         run: composer install
@@ -558,6 +564,7 @@ new Report(EvaluationResult $result)
 ## Final Thoughts
 
 Remember: evaluation isn't about getting perfect scores. It's about:
+
 - Understanding your agent's strengths and weaknesses
 - Making informed decisions about improvements
 - Building confidence in your AI systems
