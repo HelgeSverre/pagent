@@ -138,6 +138,24 @@ echo $response->content;
 - The agent automatically decides when to call tools
 - Tools receive type-validated arguments from the LLM
 
+### Bonus: Adding Multiple Class-Based Tools
+
+When using class-based tools from `Pagent\Tools`, you can add multiple at once:
+
+```php
+use Pagent\Tools\{FileRead, FileWrite, Glob, Grep};
+
+agent('file-assistant')
+    ->provider(anthropic())
+    ->tools([
+        new FileRead(baseDir: '/project'),
+        new FileWrite(baseDir: '/project'),
+        new Glob(baseDir: '/project'),
+        new Grep(baseDir: '/project'),
+    ])
+    ->prompt('Find all PHP files and show me the config');
+```
+
 ---
 
 ## Recipe 3: Protect Against PII Leaks

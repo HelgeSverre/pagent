@@ -315,23 +315,55 @@ echo $response->content;
 
 ---
 
-#### `tool(string $name, callable $callable): self`
+#### `tool(string|ToolInterface $nameOrTool, ?string $description = null, ?Closure $callable = null): self`
 
 Register a tool (function) the agent can call.
 
 **Parameters:**
 
-- `$name` (string) - Tool identifier
-- `$callable` (callable) - Function to execute
+- `$nameOrTool` (string|ToolInterface) - Tool name or ToolInterface instance
+- `$description` (string|null) - Tool description (required for closure-based tools)
+- `$callable` (Closure|null) - Function to execute (required for closure-based tools)
 
 **Returns:** `self`
 
 **Example:**
 
 ```php
-agent('calc')->tool('add', function (int $a, int $b): int {
+// Closure-based tool
+agent('calc')->tool('add', 'Add two numbers', function (int $a, int $b): int {
     return $a + $b;
 });
+
+// Class-based tool
+agent('assistant')->tool(new FileRead(baseDir: '/project'));
+```
+
+---
+
+#### `tools(array $tools): self`
+
+Add multiple tools at once for convenience.
+
+**Parameters:**
+
+- `$tools` (ToolInterface[]) - Array of tool instances implementing ToolInterface
+
+**Returns:** `self`
+
+**Example:**
+
+```php
+use Pagent\Tools\{FileRead, FileWrite, Glob, Grep};
+
+agent('file-assistant')
+    ->tools([
+        new FileRead(baseDir: '/project'),
+        new FileWrite(baseDir: '/project'),
+        new Glob(baseDir: '/project'),
+        new Grep(baseDir: '/project'),
+    ])
+    ->prompt('List all PHP files');
 ```
 
 ---

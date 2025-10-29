@@ -68,6 +68,7 @@ $agent = agent('bot')
 ```
 
 **Features:**
+
 - ACID transactions
 - WAL mode for concurrency
 - Automatic schema creation
@@ -121,11 +122,13 @@ $tokens = $agent->getContextTokenCount();
 ### Pruning Strategies
 
 **Oldest First:**
+
 ```php
 $agent->contextWindow(100000, 'oldest'); // Remove oldest messages
 ```
 
 **Sliding Window:**
+
 ```php
 $agent->contextWindow(100000, 'sliding'); // Keep most recent
 ```
@@ -181,7 +184,7 @@ class ChatManager
             ->memory('sqlite', ['path' => 'storage/chats.db'])
             ->sessionId('user-' . $userId)
             ->contextWindow(50000);
-        
+
         return $agent->prompt($message)->content;
     }
 }
@@ -218,12 +221,14 @@ $db->exec("DELETE FROM sessions WHERE updated_at < '{$cutoff}'");
 ## Best Practices
 
 **DO:**
+
 - Use descriptive session IDs
 - Set appropriate context limits
 - Clean up old sessions periodically
 - Use SQLite for production
 
 **DON'T:**
+
 - Use same session ID for multiple users
 - Exceed provider token limits
 - Store sensitive data in session IDs
@@ -231,21 +236,23 @@ $db->exec("DELETE FROM sessions WHERE updated_at < '{$cutoff}'");
 
 ## Provider Compatibility
 
-| Provider | Max Tokens | Recommended Limit |
-|----------|------------|-------------------|
-| Claude 4 Sonnet | 200k | 180k |
-| GPT-4 Turbo | 128k | 120k |
-| GPT-4 | 8k | 7k |
+| Provider        | Max Tokens | Recommended Limit |
+| --------------- | ---------- | ----------------- |
+| Claude 4 Sonnet | 200k       | 180k              |
+| GPT-4 Turbo     | 128k       | 120k              |
+| GPT-4           | 8k         | 7k                |
 
 ## Troubleshooting
 
 **"Session ID required"**
+
 ```php
 // Add sessionId
 $agent->sessionId('user-123');
 ```
 
 **"Cannot write to storage"**
+
 ```bash
 # Fix permissions
 chmod 755 storage/
@@ -253,6 +260,7 @@ chmod 755 storage/sessions/
 ```
 
 **"Context window exceeded"**
+
 ```php
 // Reduce limit or use pruning
 $agent->contextWindow(100000, 'sliding');
@@ -267,6 +275,7 @@ $agent->contextWindow(100000, 'sliding');
 ---
 
 For complete examples, see:
+
 - `examples/11-memory-sqlite.php`
 - `examples/11-memory-file.php`
 - `examples/11-memory-multi-session.php`
