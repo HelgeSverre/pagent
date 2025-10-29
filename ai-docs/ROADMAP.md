@@ -99,7 +99,7 @@ This roadmap provides a chronological view of Pagent's feature development, orga
 ## 🚧 v0.7.0 - Observability & Usage Tracking (In Planning)
 
 **Status:** Planning
-**Effort:** 18-25 hours
+**Effort:** 24-33 hours
 **Timeline:** Month 2-3
 **Plan:** See `ai-docs/plans/`
 
@@ -107,7 +107,7 @@ This roadmap provides a chronological view of Pagent's feature development, orga
 
 #### 1. OpenTelemetry Observability
 
-**Effort:** 10-15 hours | **Plan:** `ai-docs/plans/opentelemetry-observability-plan.md`
+**Effort:** 10-15 hours | **Plan:** [`ai-docs/plans/opentelemetry-observability-plan.md`](plans/opentelemetry-observability-plan.md)
 
 - [ ] OpenTelemetry SDK integration
 - [ ] Automatic span creation for:
@@ -147,7 +147,7 @@ agent('bot')->logEvent('user-feedback', [
 
 #### 2. Cost & Token Usage Tracking
 
-**Effort:** 4-6 hours | **Plan:** `ai-docs/plans/cost-token-tracking-plan.md`
+**Effort:** 4-6 hours | **Plan:** [`ai-docs/plans/cost-token-tracking-plan.md`](plans/cost-token-tracking-plan.md)
 
 - [ ] Track token usage (input, output, cached, total)
 - [ ] Calculate costs based on provider pricing
@@ -279,9 +279,9 @@ agent('bot')
 ## 📋 v0.8.0 - Advanced Workflows & Patterns (Planned)
 
 **Status:** Planned
-**Effort:** 20-28 hours
+**Effort:** 26-36 hours
 **Timeline:** Month 3-4
-**Plan:** See `ai-docs/plans/workflow-orchestration-plan.md`
+**Plan:** See [`ai-docs/plans/workflow-orchestration-plan.md`](plans/workflow-orchestration-plan.md)
 
 ### Features
 
@@ -377,6 +377,50 @@ agent('math')->chainOfThought()
     ->step('Combine results')
     ->validate(fn($output) => /* check */);
 ```
+
+#### 5. Events/Hooks System
+
+**Effort:** 6-8 hours | **Plan:** [`ai-docs/plans/events-hooks-system-plan.md`](plans/events-hooks-system-plan.md)
+
+- [ ] Event-driven architecture for observability
+- [ ] Replace manual TelemetryManager span creation with events
+- [ ] Typed event classes for all Agent lifecycle points
+- [ ] EventDispatcher with priority system
+- [ ] Hybrid interface + closure pattern (like Guards)
+- [ ] Global and per-agent event scopes
+- [ ] TelemetryEventBridge for automatic span creation
+- [ ] Propagation control and listener management
+
+**API Preview:**
+
+```php
+// Per-agent event listeners
+agent('bot')
+    ->on('llm.response', fn(AfterLLMResponseEvent $e) =>
+        Log::info('LLM Response', ['tokens' => $e->tokens])
+    )
+    ->prompt('Hello');
+
+// Class-based listener
+agent('bot')->listen(new CustomEventListener());
+
+// Global events
+EventManager::instance()
+    ->on('tool.executed', fn(ToolExecutedEvent $e) =>
+        metrics()->record('tool_usage', $e->toolName)
+    );
+
+// Priority and control
+agent('bot')
+    ->on('guard.violated', $handler, priority: 100)
+    ->once('agent.prompt', fn($e) => /* one-time listener */)
+    ->off('llm.response', $oldHandler);
+
+// Event-driven telemetry (replaces manual spans)
+EventManager::instance()->listen(new TelemetryEventBridge());
+```
+
+**Breaking Change:** This refactors observability from manual `TelemetryManager::startSpan()` calls to event-driven span creation. Migration guide provided in plan.
 
 ---
 
@@ -588,6 +632,10 @@ router()
 - [ ] 70-95 workflow tests passing
 - [ ] Advanced reasoning patterns (ReAct, CoT)
 - [ ] Graph visualization working
+- [ ] Events/hooks system fully functional
+- [ ] 30-40 event system tests passing
+- [ ] Event-driven telemetry replacing manual spans
+- [ ] Migration guide for breaking changes
 
 ### v1.0.0 Goals
 
@@ -607,6 +655,7 @@ router()
 1. OpenTelemetry Observability (10-15 hours)
 2. Cost & Token Tracking (4-6 hours)
 3. MCP Server Support (6-8 hours)
+4. TOON Integration (3-4 hours)
 
 **Next Milestone:** v0.8.0 - Advanced Workflows & Patterns
 **Timeline:** 2-3 months to v1.0.0

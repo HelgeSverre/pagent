@@ -1,286 +1,717 @@
-# Cost & Token Usage Tracking/Monitoring Implementation Plan
+# Cost and Token Tracking Implementation Plan
 
-**Feature**: Comprehensive cost and token usage tracking for LLM interactions
-**Version**: v0.7.0
-**Estimated Effort**: 4-6 hours
-**Priority**: HIGH - Production monitoring and cost control
-**Status**: 📋 Planned
-
----
-
-## Executive Summary
-
-Implement a comprehensive cost and token usage tracking system that enables developers to monitor their LLM API costs in real-time, enforce budgets, and analyze usage patterns. The system will be Pagent-focused (convenient in-library tracking) while remaining compatible with future OpenTelemetry observability integration.
-
-### Key Goals
-
-1. Track token usage per request, per session, per agent
-2. Calculate costs based on provider-specific pricing
-3. Enforce budget limits (soft warnings + hard limits)
-4. Provide usage statistics and reporting
-5. Export data for analysis
-6. Prepare for OpenTelemetry integration
-
-### Value Proposition
-
-- **Cost Control**: Prevent unexpected API bills with budget enforcement
-- **Visibility**: Real-time insight into token usage and costs
-- **Optimization**: Identify expensive operations and optimize prompts
-- **Debugging**: Track token consumption across multi-agent workflows
-- **Production Ready**: Essential for commercial deployments
+**Created:** 2025-10-29
+**Target Version:** v0.7.0
+**Estimated Effort:** 18-24 hours
+**Priority:** High
+**Status:** Planned
 
 ---
 
-## Architecture
+## Goal
 
-### Core Components
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                     Agent Layer                         │
-│  - Agent::trackUsage()                                  │
-│  - Agent::sessionBudget()                               │
-│  - Agent::getUsage()                                    │
-└─────────────────────────────────┬───────────────────────┘
-                                  │
-                    ┌─────────────▼────────────────┐
-                    │   UsageTracker (Singleton)   │
-                    │  - Track per request         │
-                    │  - Track per session         │
-                    │  - Track per agent           │
-                    │  - Aggregate statistics      │
-                    └──────────┬──────────┬────────┘
-                               │          │
-              ┌────────────────▼──┐    ┌─▼────────────────┐
-              │  CostCalculator   │    │  BudgetEnforcer  │
-              │  - Provider rates │    │  - Soft warnings │
-              │  - Model pricing  │    │  - Hard limits   │
-              │  - Tier detection │    │  - Callbacks     │
-              └───────────────────┘    └──────────────────┘
-                               │
-                    ┌──────────▼──────────────┐
-                    │  Storage Adapters       │
-                    │  - Memory (default)     │
-                    │  - SQLite               │
-                    │  - File (JSON/CSV)      │
-                    │  - OpenTelemetry hook   │
-                    └─────────────────────────┘
-```
-
-### Data Flow
-
-```
-1. Agent makes LLM call
-   ↓
-2. Provider returns response with usage metadata
-   ↓
-3. UsageTracker records:
-   - input_tokens, output_tokens, total_tokens
-   - timestamp, model, provider
-   - session_id, agent_name
-   ↓
-4. CostCalculator computes cost based on provider pricing
-   ↓
-5. BudgetEnforcer checks limits:
-   - Warn at 80% (configurable)
-   - Block at 100%
-   ↓
-6. Usage stored in adapter (memory/SQLite/file)
-   ↓
-7. Statistics available via UsageTracker API
-```
+Implement comprehensive cost and token usage tracking for Pagent agents, enabling developers to monitor, analyze, and control LLM costs across single conversations, sessions, and entire applications. This feature will provide real-time visibility into token consumption and associated costs, support budget enforcement, and enable detailed usage analytics.
 
 ---
 
-## Provider Pricing Configuration
+## Background
 
-### Pricing Structure
+LLM API costs can accumulate quickly, especially in production applications with high traffic. Developers need visibility into:
+
+- Token usage (input tokens, output tokens, cached tokens)
+- Real-time cost calculations based on provider pricing
+- Budget limits and warnings to prevent cost overruns
+- Historical tracking for analytics and optimization
+- Per-agent, per-session, and application-wide usage metrics
+
+Currently, Pagent returns basic token counts in response objects but lacks:
+- Cost calculation capabilities
+- Usage aggregation and persistence
+- Budget enforcement mechanisms
+- Historical tracking and reporting
+- Support for provider-specific pricing models (e.g., Anthropic's prompt caching)
+
+This feature will integrate seamlessly with Pagent's existing architecture while remaining optional for users who don't need cost tracking.
+
+---
+
+## Scope
+
+### In Scope
+
+- **Token Tracking**: Input, output, cached (Anthropic), and total token counts
+- **Cost Calculation**: Provider-specific pricing models with configurable rates
+- **Budget Enforcement**: Soft warnings and hard limits (throw exceptions)
+- **Usage Aggregation**: Per-conversation, per-session, per-agent, and global
+- **Persistence**: In-memory, SQLite, File, and custom storage adapters
+- **Fluent API**: Chainable methods for easy configuration
+- **Provider Support**: Anthropic, OpenAI, Ollama (free), Mock (test)
+- **Caching Attribution**: Detect and cost Anthropic prompt cache hits
+- **Export Capabilities**: JSON, CSV, and SQLite formats
+- **Historical Tracking**: Time-series data for analytics
+- **Callbacks/Events**: User-defined handlers for budget warnings
+
+### Out of Scope
+
+- Real-time cost notifications via external services (email, SMS, webhooks)
+- Advanced analytics dashboards (users can build their own)
+- Automatic cost optimization recommendations
+- Multi-currency support (USD only)
+- Integration with billing systems
+- Historical data retention policies (user's responsibility)
+- OpenTelemetry integration (separate feature in v0.7.0)
+
+---
+
+## Implementation Phases
+
+### Phase 1: Core Tracking System (Estimated: 6-8 hours)
+
+- [ ] Create `UsageData` DTO with token and cost fields
+- [ ] Create `UsageTracker` class for aggregation
+- [ ] Create `PricingModel` interface and implementations
+- [ ] Implement provider-specific pricing models
+- [ ] Add usage tracking to `Agent::prompt()` method
+- [ ] Add usage tracking to `Agent::streamTo()` method
+- [ ] Create basic in-memory storage
+
+**Deliverables:**
+
+- `src/Usage/UsageData.php` - Token/cost data structure
+- `src/Usage/UsageTracker.php` - Core tracking logic
+- `src/Contracts/PricingModel.php` - Pricing interface
+- `src/Usage/Pricing/AnthropicPricing.php` - Claude pricing
+- `src/Usage/Pricing/OpenAIPricing.php` - GPT pricing
+- `src/Usage/Pricing/OllamaPricing.php` - Local (free)
+- `src/Usage/Pricing/MockPricing.php` - Testing
+
+### Phase 2: Budget Enforcement & Callbacks (Estimated: 4-5 hours)
+
+- [ ] Implement `BudgetLimits` configuration class
+- [ ] Add budget checking to `UsageTracker`
+- [ ] Create `BudgetExceededException` for hard limits
+- [ ] Implement warning callbacks at configurable thresholds
+- [ ] Add budget methods to `Agent` fluent API
+- [ ] Support conversation-level and session-level budgets
+- [ ] Add tests for budget enforcement scenarios
+
+**Deliverables:**
+
+- `src/Usage/BudgetLimits.php` - Budget configuration
+- `src/Exceptions/BudgetExceededException.php` - Exception
+- `Agent::trackUsage()` - Enable tracking with config
+- `Agent::onBudgetWarning()` - Callback registration
+- Unit tests for budget scenarios
+
+### Phase 3: Persistence & Storage (Estimated: 3-4 hours)
+
+- [ ] Create `UsageStorage` interface
+- [ ] Implement `InMemoryUsageStorage` (default)
+- [ ] Implement `SqliteUsageStorage` (production)
+- [ ] Implement `FileUsageStorage` (development)
+- [ ] Add custom storage support
+- [ ] Implement automatic persistence on usage update
+- [ ] Add migration support for SQLite schema
+
+**Deliverables:**
+
+- `src/Contracts/UsageStorage.php` - Storage interface
+- `src/Usage/Storage/InMemoryUsageStorage.php` - Default
+- `src/Usage/Storage/SqliteUsageStorage.php` - Production
+- `src/Usage/Storage/FileUsageStorage.php` - Development
+- Migration scripts for SQLite tables
+
+### Phase 4: Querying & Reporting (Estimated: 3-4 hours)
+
+- [ ] Implement usage query API for retrieving historical data
+- [ ] Add aggregation methods (by agent, by session, by date)
+- [ ] Create `UsageReport` class for formatted output
+- [ ] Implement export to JSON, CSV, SQLite
+- [ ] Add statistical methods (average, min, max, total)
+- [ ] Create usage summary methods
+- [ ] Add time-range filtering
+
+**Deliverables:**
+
+- `src/Usage/UsageQuery.php` - Query builder
+- `src/Usage/UsageReport.php` - Report generation
+- `UsageTracker::summary()` - Quick stats
+- `UsageTracker::byAgent()` - Agent breakdown
+- `UsageTracker::bySession()` - Session breakdown
+- `UsageTracker::exportJson()` - JSON export
+- `UsageTracker::exportCsv()` - CSV export
+
+### Phase 5: Testing & Documentation (Estimated: 2-3 hours)
+
+- [ ] Unit tests for all core components (90%+ coverage)
+- [ ] Integration tests with real provider responses
+- [ ] Budget enforcement edge case tests
+- [ ] Pricing calculation accuracy tests
+- [ ] Storage persistence tests
+- [ ] Create usage tracking documentation
+- [ ] Add code examples to docs
+- [ ] Update README with feature overview
+
+**Deliverables:**
+
+- `tests/Unit/Usage/*Test.php` - Unit tests
+- `tests/Integration/UsageTrackingTest.php` - Integration tests
+- `docs/usage-tracking.md` - Complete guide
+- `examples/13-cost-tracking.php` - Working example
+- `examples/14-budget-limits.php` - Budget example
+- Updated README.md with feature section
+
+---
+
+## Technical Approach
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         Agent                                │
+│  - trackUsage(config)                                        │
+│  - getUsage() → UsageData                                    │
+│  - onBudgetWarning(callback)                                 │
+└─────────────────┬───────────────────────────────────────────┘
+                  │
+                  ↓
+         ┌────────────────┐
+         │ UsageTracker   │ ← tracks all agents
+         │                │
+         │ - track()      │
+         │ - getUsage()   │
+         │ - checkBudget()│
+         └────┬───────────┘
+              │
+      ┌───────┴───────┬─────────────┐
+      ↓               ↓             ↓
+┌──────────┐   ┌─────────────┐  ┌──────────────┐
+│ UsageData│   │PricingModel │  │UsageStorage  │
+│          │   │             │  │              │
+│- tokens  │   │- calculate()│  │- save()      │
+│- cost    │   │             │  │- load()      │
+│- metadata│   │             │  │- query()     │
+└──────────┘   └─────────────┘  └──────────────┘
+                     ↑                  ↑
+          ┌──────────┼──────────┐      │
+          │          │          │      │
+    ┌─────┴─┐  ┌────┴───┐  ┌───┴──┐  ├─────┬─────┐
+    │Anthropic OpenAI  │Ollama │   │SQLite│File │Memory│
+    │Pricing │ Pricing │Pricing│   └──────┴─────┴──────┘
+    └────────┘ └────────┘└───────┘
+```
+
+### Key Components
+
+1. **UsageData** - Immutable DTO holding usage information
+   - Input tokens, output tokens, cached tokens
+   - Calculated cost (in USD)
+   - Provider name, model name
+   - Timestamp, agent name, session ID
+   - Metadata (stop reason, finish reason, etc.)
+
+2. **UsageTracker** - Central tracking and aggregation
+   - Singleton pattern for global tracking
+   - Per-agent instance tracking
+   - Budget checking and warnings
+   - Storage coordination
+   - Query interface
+
+3. **PricingModel** - Provider-specific cost calculation
+   - Interface for extensibility
+   - Concrete implementations per provider
+   - Support for tiered pricing (e.g., GPT-4 vs GPT-3.5)
+   - Caching cost detection (Anthropic)
+   - Custom pricing override support
+
+4. **UsageStorage** - Persistence layer
+   - Interface for custom implementations
+   - In-memory (default, no persistence)
+   - SQLite (production-ready)
+   - File-based (JSON, development)
+   - Query capabilities
+
+5. **BudgetLimits** - Budget enforcement
+   - Soft limits (warnings via callbacks)
+   - Hard limits (exceptions)
+   - Per-conversation, per-session, global
+   - Percentage-based warnings (e.g., 80%)
+
+---
+
+## API Design
+
+### Basic Usage Tracking
 
 ```php
-// src/Usage/ProviderPricing.php
-class ProviderPricing
+use Pagent\Usage\UsageTracker;
+
+// Enable tracking for an agent
+$response = agent('support-bot')
+    ->trackUsage()  // Enable with defaults
+    ->prompt('Hello, how can I help?');
+
+// Access usage data
+$usage = agent('support-bot')->getUsage();
+echo "Tokens: {$usage->totalTokens}, Cost: \${$usage->cost}";
+
+// Global usage across all agents
+$totalCost = UsageTracker::global()->getTotalCost();
+$totalTokens = UsageTracker::global()->getTotalTokens();
+```
+
+### Budget Limits
+
+```php
+use Pagent\Usage\BudgetLimits;
+use Pagent\Exceptions\BudgetExceededException;
+
+// Conversation-level budget (single agent instance)
+agent('assistant')
+    ->trackUsage([
+        'budget' => 5.00,        // $5 max
+        'warn_at' => 0.8,        // Warn at 80%
+    ])
+    ->onBudgetWarning(function ($usage) {
+        Log::warning("Budget at {$usage->percentUsed}%");
+    })
+    ->prompt('Hello');
+
+// Session-level budget (across multiple conversations)
+agent('assistant')
+    ->sessionId('user-123')
+    ->sessionBudget(10.00)
+    ->trackUsage()
+    ->prompt('First message');
+
+// This continues the session budget
+agent('assistant')
+    ->sessionId('user-123')
+    ->trackUsage()
+    ->prompt('Second message');  // Accumulates against same $10 budget
+
+// Hard limit throws exception
+try {
+    agent('assistant')
+        ->trackUsage(['budget' => 1.00])
+        ->prompt('Very long prompt...');  // Exceeds budget
+} catch (BudgetExceededException $e) {
+    echo "Budget exceeded: {$e->getMessage()}";
+    echo "Current cost: {$e->currentCost}";
+    echo "Budget limit: {$e->budgetLimit}";
+}
+```
+
+### Custom Pricing
+
+```php
+use Pagent\Usage\Pricing\CustomPricing;
+
+// Override default pricing
+agent('assistant')
+    ->trackUsage([
+        'pricing' => new CustomPricing([
+            'input_per_mtok' => 3.00,   // $3 per million input tokens
+            'output_per_mtok' => 15.00, // $15 per million output tokens
+        ])
+    ])
+    ->prompt('Hello');
+
+// Model-specific pricing
+agent('assistant')
+    ->model('gpt-4-turbo')
+    ->trackUsage([
+        'pricing' => [
+            'gpt-4-turbo' => ['input' => 10.00, 'output' => 30.00],
+            'gpt-4' => ['input' => 30.00, 'output' => 60.00],
+        ]
+    ])
+    ->prompt('Hello');
+```
+
+### Persistence
+
+```php
+use Pagent\Usage\Storage\SqliteUsageStorage;
+use Pagent\Usage\Storage\FileUsageStorage;
+
+// SQLite storage (production)
+agent('assistant')
+    ->trackUsage([
+        'storage' => new SqliteUsageStorage([
+            'database' => '/path/to/usage.db',
+        ])
+    ])
+    ->prompt('Hello');
+
+// File storage (development)
+agent('assistant')
+    ->trackUsage([
+        'storage' => new FileUsageStorage([
+            'path' => storage_path('usage/'),
+        ])
+    ])
+    ->prompt('Hello');
+
+// Custom storage
+class RedisUsageStorage implements UsageStorage {
+    public function save(UsageData $usage): void { /* ... */ }
+    public function load(string $agentName): array { /* ... */ }
+    public function query(): UsageQuery { /* ... */ }
+}
+
+agent('assistant')
+    ->trackUsage(['storage' => new RedisUsageStorage()])
+    ->prompt('Hello');
+```
+
+### Querying and Reporting
+
+```php
+use Pagent\Usage\UsageTracker;
+use Carbon\Carbon;
+
+// Get usage summary
+$summary = UsageTracker::global()->summary();
+// [
+//     'total_requests' => 1523,
+//     'total_tokens' => 1_234_567,
+//     'total_cost' => 45.67,
+//     'avg_cost_per_request' => 0.03,
+//     'agents' => ['assistant', 'translator', 'analyzer'],
+// ]
+
+// Query by agent
+$agentUsage = UsageTracker::global()
+    ->byAgent('assistant')
+    ->last(24, 'hours')
+    ->get();
+
+foreach ($agentUsage as $usage) {
+    echo "{$usage->timestamp}: {$usage->cost} USD\n";
+}
+
+// Query by session
+$sessionUsage = UsageTracker::global()
+    ->bySession('user-123')
+    ->between(Carbon::yesterday(), Carbon::now())
+    ->get();
+
+// Query by date range
+$monthlyUsage = UsageTracker::global()
+    ->between(
+        Carbon::now()->startOfMonth(),
+        Carbon::now()->endOfMonth()
+    )
+    ->groupBy('day')
+    ->get();
+
+// Export to JSON
+$json = UsageTracker::global()
+    ->byAgent('assistant')
+    ->last(7, 'days')
+    ->exportJson();
+
+file_put_contents('usage-report.json', $json);
+
+// Export to CSV
+$csv = UsageTracker::global()
+    ->last(30, 'days')
+    ->exportCsv();
+
+file_put_contents('usage-report.csv', $csv);
+
+// Generate HTML report
+$report = UsageTracker::global()
+    ->last(7, 'days')
+    ->report()
+    ->toHtml();
+
+echo $report; // Formatted HTML with charts
+```
+
+### Integration with Streaming
+
+```php
+// Streaming automatically tracks usage when enabled
+$content = agent('assistant')
+    ->trackUsage()
+    ->streamTo('Translate to Spanish', function ($chunk) {
+        echo $chunk->content;
+    });
+
+// Usage available after stream completes
+$usage = agent('assistant')->getUsage();
+echo "Stream cost: \${$usage->cost}";
+```
+
+### Global Configuration
+
+```php
+use Pagent\Usage\UsageTracker;
+
+// Enable tracking globally for all agents
+UsageTracker::enableGlobal([
+    'storage' => new SqliteUsageStorage(['database' => 'usage.db']),
+    'default_budget' => 100.00,
+    'warn_at' => 0.85,
+]);
+
+// Now all agents track automatically
+agent('bot1')->prompt('Hello');
+agent('bot2')->prompt('World');
+
+// Access global stats
+$stats = UsageTracker::global()->summary();
+```
+
+---
+
+## Provider-Specific Details
+
+### Anthropic Claude
+
+**Pricing (as of 2025-10-29):**
+
+| Model                  | Input (per 1M tokens) | Output (per 1M tokens) | Cache Write | Cache Read |
+| ---------------------- | --------------------- | ---------------------- | ----------- | ---------- |
+| claude-sonnet-4        | $3.00                 | $15.00                 | $3.75       | $0.30      |
+| claude-opus-4          | $15.00                | $75.00                 | $18.75      | $1.50      |
+| claude-3.5-sonnet      | $3.00                 | $15.00                 | $3.75       | $0.30      |
+| claude-3.5-haiku       | $1.00                 | $5.00                  | $1.25       | $0.10      |
+
+**Token Usage Fields:**
+
+```php
+// Anthropic response includes:
+$data['usage'] = [
+    'input_tokens' => 150,
+    'output_tokens' => 200,
+    'cache_creation_input_tokens' => 1000, // Writing to cache
+    'cache_read_input_tokens' => 500,      // Reading from cache
+];
+```
+
+**Cost Calculation:**
+
+```php
+class AnthropicPricing implements PricingModel
 {
     private const PRICING = [
-        'anthropic' => [
-            'claude-3-5-sonnet-20241022' => [
-                'input' => 0.003,   // $3 per million tokens
-                'output' => 0.015,  // $15 per million tokens
-            ],
-            'claude-3-5-haiku-20241022' => [
-                'input' => 0.0008,
-                'output' => 0.004,
-            ],
-            'claude-3-opus-20240229' => [
-                'input' => 0.015,
-                'output' => 0.075,
-            ],
-            'claude-sonnet-4-20250514' => [
-                'input' => 0.003,
-                'output' => 0.015,
-            ],
+        'claude-sonnet-4-20250514' => [
+            'input' => 3.00,
+            'output' => 15.00,
+            'cache_write' => 3.75,
+            'cache_read' => 0.30,
         ],
-        'openai' => [
-            'gpt-4-turbo' => [
-                'input' => 0.01,
-                'output' => 0.03,
-            ],
-            'gpt-4' => [
-                'input' => 0.03,
-                'output' => 0.06,
-            ],
-            'gpt-3.5-turbo' => [
-                'input' => 0.0005,
-                'output' => 0.0015,
-            ],
-            'gpt-4o' => [
-                'input' => 0.0025,
-                'output' => 0.010,
-            ],
-            'gpt-4o-mini' => [
-                'input' => 0.00015,
-                'output' => 0.0006,
-            ],
-        ],
-        'ollama' => [
-            '*' => [
-                'input' => 0.0,   // Local models are free
-                'output' => 0.0,
-            ],
-        ],
+        // ... more models
     ];
 
-    public static function calculate(
-        string $provider,
-        string $model,
-        int $inputTokens,
-        int $outputTokens
-    ): float {
-        $pricing = self::getPricing($provider, $model);
-
-        $inputCost = ($inputTokens / 1_000_000) * $pricing['input'];
-        $outputCost = ($outputTokens / 1_000_000) * $pricing['output'];
-
-        return round($inputCost + $outputCost, 6);
-    }
-
-    public static function getPricing(string $provider, string $model): array
+    public function calculate(array $usage, string $model): float
     {
-        // Check exact match first
-        if (isset(self::PRICING[$provider][$model])) {
-            return self::PRICING[$provider][$model];
-        }
+        $pricing = self::PRICING[$model] ?? self::PRICING['claude-sonnet-4-20250514'];
 
-        // Fallback to wildcard (for Ollama)
-        if (isset(self::PRICING[$provider]['*'])) {
-            return self::PRICING[$provider]['*'];
-        }
+        $inputTokens = $usage['input_tokens'] ?? 0;
+        $outputTokens = $usage['output_tokens'] ?? 0;
+        $cacheWrite = $usage['cache_creation_input_tokens'] ?? 0;
+        $cacheRead = $usage['cache_read_input_tokens'] ?? 0;
 
-        // Unknown model - estimate conservatively
-        return match($provider) {
-            'anthropic' => ['input' => 0.003, 'output' => 0.015],
-            'openai' => ['input' => 0.01, 'output' => 0.03],
-            default => ['input' => 0.0, 'output' => 0.0],
-        };
+        // Subtract cache tokens from regular input
+        $regularInput = $inputTokens - $cacheWrite - $cacheRead;
+
+        $cost = 0;
+        $cost += ($regularInput / 1_000_000) * $pricing['input'];
+        $cost += ($outputTokens / 1_000_000) * $pricing['output'];
+        $cost += ($cacheWrite / 1_000_000) * $pricing['cache_write'];
+        $cost += ($cacheRead / 1_000_000) * $pricing['cache_read'];
+
+        return round($cost, 6); // 6 decimal places for accuracy
+    }
+}
+```
+
+### OpenAI GPT
+
+**Pricing (as of 2025-10-29):**
+
+| Model           | Input (per 1M tokens) | Output (per 1M tokens) |
+| --------------- | --------------------- | ---------------------- |
+| gpt-4-turbo     | $10.00                | $30.00                 |
+| gpt-4           | $30.00                | $60.00                 |
+| gpt-3.5-turbo   | $0.50                 | $1.50                  |
+| gpt-4o          | $5.00                 | $15.00                 |
+| gpt-4o-mini     | $0.15                 | $0.60                  |
+
+**Token Usage Fields:**
+
+```php
+// OpenAI response includes:
+$data['usage'] = [
+    'prompt_tokens' => 150,
+    'completion_tokens' => 200,
+    'total_tokens' => 350,
+];
+```
+
+**Cost Calculation:**
+
+```php
+class OpenAIPricing implements PricingModel
+{
+    private const PRICING = [
+        'gpt-4-turbo' => ['input' => 10.00, 'output' => 30.00],
+        'gpt-4' => ['input' => 30.00, 'output' => 60.00],
+        'gpt-3.5-turbo' => ['input' => 0.50, 'output' => 1.50],
+        'gpt-4o' => ['input' => 5.00, 'output' => 15.00],
+        'gpt-4o-mini' => ['input' => 0.15, 'output' => 0.60],
+    ];
+
+    public function calculate(array $usage, string $model): float
+    {
+        // Extract base model name (remove dates, versions)
+        $baseModel = $this->normalizeModelName($model);
+        $pricing = self::PRICING[$baseModel] ?? self::PRICING['gpt-3.5-turbo'];
+
+        $inputTokens = $usage['prompt_tokens'] ?? 0;
+        $outputTokens = $usage['completion_tokens'] ?? 0;
+
+        $cost = 0;
+        $cost += ($inputTokens / 1_000_000) * $pricing['input'];
+        $cost += ($outputTokens / 1_000_000) * $pricing['output'];
+
+        return round($cost, 6);
     }
 
-    public static function addCustomPricing(
-        string $provider,
-        string $model,
-        float $inputPrice,
-        float $outputPrice
-    ): void {
-        // Allow users to add custom pricing for new models
-        self::PRICING[$provider][$model] = [
-            'input' => $inputPrice,
-            'output' => $outputPrice,
-        ];
+    private function normalizeModelName(string $model): string
+    {
+        // 'gpt-4-turbo-2024-04-09' -> 'gpt-4-turbo'
+        if (preg_match('/^(gpt-[^-]+-[^-]+)/', $model, $matches)) {
+            return $matches[1];
+        }
+        return $model;
+    }
+}
+```
+
+### Ollama (Local LLMs)
+
+**Pricing:** Free (running locally)
+
+**Token Usage Fields:**
+
+```php
+// Ollama response includes:
+$data['prompt_eval_count'] = 150;    // Input tokens
+$data['eval_count'] = 200;           // Output tokens
+```
+
+**Cost Calculation:**
+
+```php
+class OllamaPricing implements PricingModel
+{
+    public function calculate(array $usage, string $model): float
+    {
+        // Ollama is free (local execution)
+        return 0.0;
+    }
+}
+```
+
+**Note:** While Ollama is free in terms of API costs, users may want to track token usage for:
+- Comparing local vs. cloud costs
+- Monitoring resource usage
+- Testing applications before deploying to paid providers
+
+### Mock Provider
+
+**Pricing:** Configurable for testing
+
+**Cost Calculation:**
+
+```php
+class MockPricing implements PricingModel
+{
+    private float $costPerToken;
+
+    public function __construct(float $costPerToken = 0.001)
+    {
+        $this->costPerToken = $costPerToken;
+    }
+
+    public function calculate(array $usage, string $model): float
+    {
+        $totalTokens = $usage['total_tokens'] ?? 0;
+        return $totalTokens * $this->costPerToken;
     }
 }
 ```
 
 ---
 
-## Core Classes
+## Data Models
 
-### 1. UsageRecord (Value Object)
+### UsageData DTO
 
 ```php
-// src/Usage/UsageRecord.php
-class UsageRecord
+namespace Pagent\Usage;
+
+final readonly class UsageData
 {
     public function __construct(
-        public readonly string $id,
-        public readonly string $timestamp,
-        public readonly string $provider,
-        public readonly string $model,
-        public readonly int $inputTokens,
-        public readonly int $outputTokens,
-        public readonly int $totalTokens,
-        public readonly float $cost,
-        public readonly ?string $agentName = null,
-        public readonly ?string $sessionId = null,
-        public readonly ?array $metadata = null,
+        public string $agentName,
+        public string $provider,
+        public string $model,
+        public int $inputTokens,
+        public int $outputTokens,
+        public int $cachedTokens,      // Anthropic only
+        public int $totalTokens,
+        public float $cost,              // USD
+        public float $timestamp,
+        public ?string $sessionId,
+        public array $metadata,          // Additional context
     ) {}
 
     public static function fromResponse(
-        object $response,
         string $agentName,
+        object $response,
+        float $cost,
         ?string $sessionId = null
     ): self {
-        $provider = $response->provider ?? 'unknown';
-        $model = $response->model ?? 'unknown';
-
-        // Extract token counts (provider-specific)
-        $inputTokens = match($provider) {
-            'anthropic' => $response->usage['input_tokens'] ?? 0,
-            'openai' => $response->usage['prompt_tokens'] ?? 0,
-            'ollama' => $response->usage['prompt_tokens'] ?? 0,
-            default => 0,
-        };
-
-        $outputTokens = match($provider) {
-            'anthropic' => $response->usage['output_tokens'] ?? 0,
-            'openai' => $response->usage['completion_tokens'] ?? 0,
-            'ollama' => $response->usage['completion_tokens'] ?? 0,
-            default => 0,
-        };
-
-        $totalTokens = $inputTokens + $outputTokens;
-
-        // Calculate cost
-        $cost = ProviderPricing::calculate(
-            $provider,
-            $model,
-            $inputTokens,
-            $outputTokens
-        );
+        $usage = $response->usage ?? [];
 
         return new self(
-            id: uniqid('usage_', true),
-            timestamp: date('c'),
-            provider: $provider,
-            model: $model,
-            inputTokens: $inputTokens,
-            outputTokens: $outputTokens,
-            totalTokens: $totalTokens,
-            cost: $cost,
             agentName: $agentName,
+            provider: $response->provider,
+            model: $response->model,
+            inputTokens: $usage['input_tokens'] ?? $usage['prompt_tokens'] ?? 0,
+            outputTokens: $usage['output_tokens'] ?? $usage['completion_tokens'] ?? 0,
+            cachedTokens: ($usage['cache_creation_input_tokens'] ?? 0)
+                        + ($usage['cache_read_input_tokens'] ?? 0),
+            totalTokens: $response->tokens ?? 0,
+            cost: $cost,
+            timestamp: microtime(true),
             sessionId: $sessionId,
+            metadata: [
+                'stop_reason' => $response->stop_reason ?? $response->finish_reason ?? null,
+                'has_tool_calls' => !empty($response->tool_calls ?? []),
+            ],
         );
     }
 
     public function toArray(): array
     {
         return [
-            'id' => $this->id,
-            'timestamp' => $this->timestamp,
+            'agent_name' => $this->agentName,
             'provider' => $this->provider,
             'model' => $this->model,
             'input_tokens' => $this->inputTokens,
             'output_tokens' => $this->outputTokens,
+            'cached_tokens' => $this->cachedTokens,
             'total_tokens' => $this->totalTokens,
             'cost' => $this->cost,
-            'agent_name' => $this->agentName,
+            'timestamp' => $this->timestamp,
             'session_id' => $this->sessionId,
             'metadata' => $this->metadata,
         ];
@@ -288,1512 +719,804 @@ class UsageRecord
 }
 ```
 
-### 2. UsageTracker (Core Service)
+### BudgetLimits Configuration
 
 ```php
-// src/Usage/UsageTracker.php
-class UsageTracker
+namespace Pagent\Usage;
+
+final readonly class BudgetLimits
 {
-    private static ?self $instance = null;
+    public function __construct(
+        public ?float $maxCost = null,           // Hard limit (exception)
+        public ?float $warningThreshold = 0.8,   // Soft limit (callback)
+        public ?int $maxTokens = null,           // Token-based limit
+        public bool $enabled = true,
+    ) {}
 
-    private array $records = [];
-    private array $budgets = [];
-    private array $callbacks = [];
-    private ?UsageStorageInterface $storage = null;
-
-    private function __construct() {}
-
-    public static function instance(): self
+    public function shouldWarn(float $currentCost, float $budget): bool
     {
-        if (self::$instance === null) {
-            self::$instance = new self();
-        }
-        return self::$instance;
-    }
-
-    public function track(UsageRecord $record): void
-    {
-        $this->records[] = $record;
-
-        // Store in adapter if configured
-        $this->storage?->store($record);
-
-        // Check budgets
-        $this->checkBudgets($record);
-
-        // Trigger callbacks
-        $this->triggerCallbacks($record);
-    }
-
-    public function setBudget(
-        string $scope,
-        string $identifier,
-        float $limit,
-        float $warnAt = 0.8
-    ): void {
-        $this->budgets[$scope][$identifier] = [
-            'limit' => $limit,
-            'warn_at' => $warnAt,
-            'spent' => 0.0,
-            'warned' => false,
-        ];
-    }
-
-    public function getUsage(?string $agentName = null, ?string $sessionId = null): array
-    {
-        $filtered = array_filter($this->records, function($record) use ($agentName, $sessionId) {
-            if ($agentName && $record->agentName !== $agentName) {
-                return false;
-            }
-            if ($sessionId && $record->sessionId !== $sessionId) {
-                return false;
-            }
-            return true;
-        });
-
-        return [
-            'total_requests' => count($filtered),
-            'input_tokens' => array_sum(array_map(fn($r) => $r->inputTokens, $filtered)),
-            'output_tokens' => array_sum(array_map(fn($r) => $r->outputTokens, $filtered)),
-            'total_tokens' => array_sum(array_map(fn($r) => $r->totalTokens, $filtered)),
-            'total_cost' => array_sum(array_map(fn($r) => $r->cost, $filtered)),
-            'records' => $filtered,
-        ];
-    }
-
-    public function summary(): array
-    {
-        return [
-            'global' => $this->getUsage(),
-            'by_agent' => $this->byAgent(),
-            'by_session' => $this->bySession(),
-            'by_provider' => $this->byProvider(),
-            'by_model' => $this->byModel(),
-        ];
-    }
-
-    public function byAgent(): array
-    {
-        $groups = [];
-        foreach ($this->records as $record) {
-            $agent = $record->agentName ?? 'unknown';
-            if (!isset($groups[$agent])) {
-                $groups[$agent] = [];
-            }
-            $groups[$agent][] = $record;
+        if ($this->warningThreshold === null) {
+            return false;
         }
 
-        return array_map(fn($records) => $this->aggregateRecords($records), $groups);
+        $percentUsed = $currentCost / $budget;
+        return $percentUsed >= $this->warningThreshold;
     }
 
-    public function bySession(): array
+    public function shouldBlock(float $currentCost, float $budget): bool
     {
-        $groups = [];
-        foreach ($this->records as $record) {
-            $session = $record->sessionId ?? 'unknown';
-            if (!isset($groups[$session])) {
-                $groups[$session] = [];
-            }
-            $groups[$session][] = $record;
+        if ($this->maxCost === null) {
+            return false;
         }
 
-        return array_map(fn($records) => $this->aggregateRecords($records), $groups);
-    }
-
-    public function byProvider(): array
-    {
-        $groups = [];
-        foreach ($this->records as $record) {
-            if (!isset($groups[$record->provider])) {
-                $groups[$record->provider] = [];
-            }
-            $groups[$record->provider][] = $record;
-        }
-
-        return array_map(fn($records) => $this->aggregateRecords($records), $groups);
-    }
-
-    public function byModel(): array
-    {
-        $groups = [];
-        foreach ($this->records as $record) {
-            $key = "{$record->provider}/{$record->model}";
-            if (!isset($groups[$key])) {
-                $groups[$key] = [];
-            }
-            $groups[$key][] = $record;
-        }
-
-        return array_map(fn($records) => $this->aggregateRecords($records), $groups);
-    }
-
-    private function aggregateRecords(array $records): array
-    {
-        return [
-            'requests' => count($records),
-            'input_tokens' => array_sum(array_map(fn($r) => $r->inputTokens, $records)),
-            'output_tokens' => array_sum(array_map(fn($r) => $r->outputTokens, $records)),
-            'total_tokens' => array_sum(array_map(fn($r) => $r->totalTokens, $records)),
-            'total_cost' => array_sum(array_map(fn($r) => $r->cost, $records)),
-        ];
-    }
-
-    private function checkBudgets(UsageRecord $record): void
-    {
-        // Check agent budget
-        if (isset($this->budgets['agent'][$record->agentName])) {
-            $this->checkBudget('agent', $record->agentName, $record->cost);
-        }
-
-        // Check session budget
-        if ($record->sessionId && isset($this->budgets['session'][$record->sessionId])) {
-            $this->checkBudget('session', $record->sessionId, $record->cost);
-        }
-
-        // Check global budget
-        if (isset($this->budgets['global']['*'])) {
-            $this->checkBudget('global', '*', $record->cost);
-        }
-    }
-
-    private function checkBudget(string $scope, string $identifier, float $cost): void
-    {
-        $budget = &$this->budgets[$scope][$identifier];
-        $budget['spent'] += $cost;
-
-        $percentage = $budget['spent'] / $budget['limit'];
-
-        // Soft warning
-        if ($percentage >= $budget['warn_at'] && !$budget['warned']) {
-            $budget['warned'] = true;
-            $this->triggerWarning($scope, $identifier, $percentage);
-        }
-
-        // Hard limit
-        if ($percentage >= 1.0) {
-            throw new BudgetExceededException(
-                "Budget exceeded for {$scope} '{$identifier}': " .
-                "\${$budget['spent']} / \${$budget['limit']}"
-            );
-        }
-    }
-
-    public function onWarning(callable $callback): void
-    {
-        $this->callbacks['warning'][] = $callback;
-    }
-
-    public function onRecord(callable $callback): void
-    {
-        $this->callbacks['record'][] = $callback;
-    }
-
-    private function triggerWarning(string $scope, string $identifier, float $percentage): void
-    {
-        foreach ($this->callbacks['warning'] ?? [] as $callback) {
-            $callback($scope, $identifier, $percentage);
-        }
-    }
-
-    private function triggerCallbacks(UsageRecord $record): void
-    {
-        foreach ($this->callbacks['record'] ?? [] as $callback) {
-            $callback($record);
-        }
-    }
-
-    public function setStorage(UsageStorageInterface $storage): void
-    {
-        $this->storage = $storage;
-    }
-
-    public function export(string $format, string $path): void
-    {
-        $exporter = match($format) {
-            'json' => new JsonExporter(),
-            'csv' => new CsvExporter(),
-            'sqlite' => new SqliteExporter(),
-            default => throw new InvalidArgumentException("Unsupported format: {$format}"),
-        };
-
-        $exporter->export($this->records, $path);
-    }
-
-    public function reset(): void
-    {
-        $this->records = [];
-        $this->budgets = [];
-    }
-}
-```
-
-### 3. Agent Integration
-
-```php
-// src/Agent.php - Add these methods
-
-/**
- * Enable usage tracking for this agent
- */
-public function trackUsage(array $config = []): self
-{
-    $this->usageTracking = [
-        'enabled' => true,
-        'budget' => $config['budget'] ?? null,
-        'warn_at' => $config['warn_at'] ?? 0.8,
-    ];
-
-    // Set agent-level budget if provided
-    if (isset($config['budget'])) {
-        UsageTracker::instance()->setBudget(
-            'agent',
-            $this->name,
-            $config['budget'],
-            $config['warn_at']
-        );
-    }
-
-    return $this;
-}
-
-/**
- * Set session-level budget
- */
-public function sessionBudget(float $limit, float $warnAt = 0.8): self
-{
-    if (!$this->sessionId) {
-        throw new RuntimeException('Session ID must be set before setting session budget');
-    }
-
-    UsageTracker::instance()->setBudget(
-        'session',
-        $this->sessionId,
-        $limit,
-        $warnAt
-    );
-
-    return $this;
-}
-
-/**
- * Get usage statistics for this agent
- */
-public function getUsage(): array
-{
-    return UsageTracker::instance()->getUsage($this->name, $this->sessionId);
-}
-
-/**
- * Track usage after provider response
- */
-private function trackProviderUsage(object $response): void
-{
-    if (!($this->usageTracking['enabled'] ?? false)) {
-        return;
-    }
-
-    $record = UsageRecord::fromResponse($response, $this->name, $this->sessionId);
-    UsageTracker::instance()->track($record);
-}
-
-// Modify existing prompt() method to track usage
-public function prompt(string $message, array $options = []): object
-{
-    // ... existing code ...
-
-    $response = $this->provider->prompt($message, $mergedOptions);
-
-    // Track usage
-    $this->trackProviderUsage($response);
-
-    // ... rest of existing code ...
-
-    return $response;
-}
-
-// Also track in streamTo() method
-public function streamTo(string $message, callable $callback, array $options = []): string
-{
-    // ... existing code ...
-
-    $streamResponse = $this->stream($message, $options);
-    $streamResponse->streamTo($callback);
-    $fullContent = $streamResponse->getFullContent();
-
-    // Track usage from streaming response
-    if ($this->usageTracking['enabled'] ?? false) {
-        $metadata = $streamResponse->getMetadata();
-        if (isset($metadata['usage'])) {
-            $record = new UsageRecord(
-                id: uniqid('usage_', true),
-                timestamp: date('c'),
-                provider: $metadata['provider'] ?? 'unknown',
-                model: $metadata['model'] ?? 'unknown',
-                inputTokens: $metadata['usage']['input_tokens'] ?? 0,
-                outputTokens: $metadata['usage']['output_tokens'] ?? 0,
-                totalTokens: ($metadata['usage']['input_tokens'] ?? 0) + ($metadata['usage']['output_tokens'] ?? 0),
-                cost: ProviderPricing::calculate(
-                    $metadata['provider'] ?? 'unknown',
-                    $metadata['model'] ?? 'unknown',
-                    $metadata['usage']['input_tokens'] ?? 0,
-                    $metadata['usage']['output_tokens'] ?? 0
-                ),
-                agentName: $this->name,
-                sessionId: $this->sessionId,
-            );
-            UsageTracker::instance()->track($record);
-        }
-    }
-
-    // ... rest of existing code ...
-}
-```
-
----
-
-## Storage Adapters
-
-### Interface
-
-```php
-// src/Usage/Contracts/UsageStorageInterface.php
-interface UsageStorageInterface
-{
-    public function store(UsageRecord $record): void;
-
-    public function query(array $filters = []): array;
-
-    public function aggregate(string $groupBy): array;
-
-    public function clear(?string $scope = null): void;
-}
-```
-
-### Memory Adapter (Default)
-
-```php
-// src/Usage/Storage/MemoryStorage.php
-class MemoryStorage implements UsageStorageInterface
-{
-    private array $records = [];
-
-    public function store(UsageRecord $record): void
-    {
-        $this->records[] = $record;
-    }
-
-    public function query(array $filters = []): array
-    {
-        return array_filter($this->records, function($record) use ($filters) {
-            foreach ($filters as $key => $value) {
-                if ($record->{$key} !== $value) {
-                    return false;
-                }
-            }
-            return true;
-        });
-    }
-
-    public function aggregate(string $groupBy): array
-    {
-        // Implementation
-    }
-
-    public function clear(?string $scope = null): void
-    {
-        $this->records = [];
-    }
-}
-```
-
-### SQLite Adapter
-
-```php
-// src/Usage/Storage/SqliteStorage.php
-class SqliteStorage implements UsageStorageInterface
-{
-    private PDO $db;
-
-    public function __construct(string $path)
-    {
-        $this->db = new PDO("sqlite:{$path}");
-        $this->createTables();
-    }
-
-    private function createTables(): void
-    {
-        $this->db->exec("
-            CREATE TABLE IF NOT EXISTS usage_records (
-                id TEXT PRIMARY KEY,
-                timestamp TEXT NOT NULL,
-                provider TEXT NOT NULL,
-                model TEXT NOT NULL,
-                input_tokens INTEGER NOT NULL,
-                output_tokens INTEGER NOT NULL,
-                total_tokens INTEGER NOT NULL,
-                cost REAL NOT NULL,
-                agent_name TEXT,
-                session_id TEXT,
-                metadata TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ");
-
-        $this->db->exec("CREATE INDEX IF NOT EXISTS idx_agent ON usage_records(agent_name)");
-        $this->db->exec("CREATE INDEX IF NOT EXISTS idx_session ON usage_records(session_id)");
-        $this->db->exec("CREATE INDEX IF NOT EXISTS idx_timestamp ON usage_records(timestamp)");
-    }
-
-    public function store(UsageRecord $record): void
-    {
-        $stmt = $this->db->prepare("
-            INSERT INTO usage_records (
-                id, timestamp, provider, model,
-                input_tokens, output_tokens, total_tokens, cost,
-                agent_name, session_id, metadata
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-
-        $stmt->execute([
-            $record->id,
-            $record->timestamp,
-            $record->provider,
-            $record->model,
-            $record->inputTokens,
-            $record->outputTokens,
-            $record->totalTokens,
-            $record->cost,
-            $record->agentName,
-            $record->sessionId,
-            json_encode($record->metadata),
-        ]);
-    }
-
-    public function query(array $filters = []): array
-    {
-        // Build dynamic WHERE clause
-        $where = [];
-        $params = [];
-
-        foreach ($filters as $key => $value) {
-            $where[] = "{$key} = ?";
-            $params[] = $value;
-        }
-
-        $sql = "SELECT * FROM usage_records";
-        if (!empty($where)) {
-            $sql .= " WHERE " . implode(' AND ', $where);
-        }
-        $sql .= " ORDER BY timestamp DESC";
-
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-
-        return array_map(fn($row) => $this->rowToRecord($row), $stmt->fetchAll(PDO::FETCH_ASSOC));
-    }
-
-    public function aggregate(string $groupBy): array
-    {
-        $sql = "
-            SELECT
-                {$groupBy},
-                COUNT(*) as requests,
-                SUM(input_tokens) as input_tokens,
-                SUM(output_tokens) as output_tokens,
-                SUM(total_tokens) as total_tokens,
-                SUM(cost) as total_cost
-            FROM usage_records
-            GROUP BY {$groupBy}
-        ";
-
-        $stmt = $this->db->query($sql);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    public function clear(?string $scope = null): void
-    {
-        if ($scope === null) {
-            $this->db->exec("DELETE FROM usage_records");
-        } else {
-            $stmt = $this->db->prepare("DELETE FROM usage_records WHERE {$scope} = ?");
-            $stmt->execute([$scope]);
-        }
-    }
-
-    private function rowToRecord(array $row): UsageRecord
-    {
-        return new UsageRecord(
-            id: $row['id'],
-            timestamp: $row['timestamp'],
-            provider: $row['provider'],
-            model: $row['model'],
-            inputTokens: (int)$row['input_tokens'],
-            outputTokens: (int)$row['output_tokens'],
-            totalTokens: (int)$row['total_tokens'],
-            cost: (float)$row['cost'],
-            agentName: $row['agent_name'],
-            sessionId: $row['session_id'],
-            metadata: json_decode($row['metadata'], true),
-        );
+        return $currentCost >= $budget;
     }
 }
 ```
 
 ---
 
-## Export Capabilities
-
-### JSON Exporter
-
-```php
-// src/Usage/Export/JsonExporter.php
-class JsonExporter
-{
-    public function export(array $records, string $path): void
-    {
-        $data = [
-            'exported_at' => date('c'),
-            'total_records' => count($records),
-            'records' => array_map(fn($r) => $r->toArray(), $records),
-        ];
-
-        file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT));
-    }
-}
-```
-
-### CSV Exporter
-
-```php
-// src/Usage/Export/CsvExporter.php
-class CsvExporter
-{
-    public function export(array $records, string $path): void
-    {
-        $fp = fopen($path, 'w');
-
-        // Header
-        fputcsv($fp, [
-            'timestamp', 'provider', 'model', 'agent', 'session',
-            'input_tokens', 'output_tokens', 'total_tokens', 'cost'
-        ]);
-
-        // Data
-        foreach ($records as $record) {
-            fputcsv($fp, [
-                $record->timestamp,
-                $record->provider,
-                $record->model,
-                $record->agentName,
-                $record->sessionId,
-                $record->inputTokens,
-                $record->outputTokens,
-                $record->totalTokens,
-                $record->cost,
-            ]);
-        }
-
-        fclose($fp);
-    }
-}
-```
-
----
-
-## Integration with OpenTelemetry
-
-### Observability Hook
-
-```php
-// src/Usage/Observability/OpenTelemetryHook.php
-class OpenTelemetryHook implements UsageStorageInterface
-{
-    private $tracer;
-
-    public function __construct($tracer)
-    {
-        $this->tracer = $tracer;
-    }
-
-    public function store(UsageRecord $record): void
-    {
-        $span = $this->tracer->startSpan('llm.request');
-
-        $span->setAttribute('llm.provider', $record->provider);
-        $span->setAttribute('llm.model', $record->model);
-        $span->setAttribute('llm.input_tokens', $record->inputTokens);
-        $span->setAttribute('llm.output_tokens', $record->outputTokens);
-        $span->setAttribute('llm.total_tokens', $record->totalTokens);
-        $span->setAttribute('llm.cost', $record->cost);
-        $span->setAttribute('agent.name', $record->agentName);
-        $span->setAttribute('session.id', $record->sessionId);
-
-        $span->end();
-    }
-
-    // Other methods...
-}
-```
-
----
-
-## API Examples
-
-### Basic Usage Tracking
-
-```php
-// Enable tracking for an agent
-agent('assistant')
-    ->trackUsage([
-        'budget' => 10.00,  // $10 max
-        'warn_at' => 0.8,   // Warn at 80%
-    ])
-    ->prompt('Hello');
-
-// Get usage statistics
-$usage = agent('assistant')->getUsage();
-// [
-//     'total_requests' => 1,
-//     'input_tokens' => 45,
-//     'output_tokens' => 120,
-//     'total_tokens' => 165,
-//     'total_cost' => 0.002475,
-//     'records' => [...]
-// ]
-```
-
-### Session-Level Budget
-
-```php
-agent('support')
-    ->sessionId('user-123')
-    ->trackUsage()
-    ->sessionBudget(5.00)  // $5 per session
-    ->prompt('Help me with my order');
-
-// Multiple interactions in same session
-for ($i = 0; $i < 10; $i++) {
-    try {
-        agent('support')->prompt("Question $i");
-    } catch (BudgetExceededException $e) {
-        echo "Budget exhausted: {$e->getMessage()}";
-        break;
-    }
-}
-```
-
-### Global Statistics
-
-```php
-// Summary of all usage
-$summary = UsageTracker::instance()->summary();
-// [
-//     'global' => ['total_cost' => 15.50, ...],
-//     'by_agent' => [
-//         'assistant' => ['total_cost' => 5.20, ...],
-//         'support' => ['total_cost' => 10.30, ...],
-//     ],
-//     'by_session' => [...],
-//     'by_provider' => [...],
-//     'by_model' => [...]
-// ]
-
-// Agent-specific stats
-$agentStats = UsageTracker::instance()->byAgent();
-print_r($agentStats['assistant']);
-
-// Session-specific stats
-$sessionStats = UsageTracker::instance()->bySession();
-print_r($sessionStats['user-123']);
-```
-
-### Real-Time Monitoring
-
-```php
-// Set up callbacks
-UsageTracker::instance()->onWarning(function($scope, $id, $percentage) {
-    Log::warning("Budget warning: {$scope}/{$id} at " . ($percentage * 100) . "%");
-});
-
-UsageTracker::instance()->onRecord(function($record) {
-    echo "Request cost: \${$record->cost}\n";
-});
-
-// Use agents as normal - callbacks fire automatically
-agent('assistant')->prompt('Analyze this data');
-```
-
-### Export Usage Data
-
-```php
-// Export to JSON
-UsageTracker::instance()->export('json', 'reports/usage-2025-01.json');
-
-// Export to CSV for Excel
-UsageTracker::instance()->export('csv', 'reports/usage-2025-01.csv');
-
-// Export to SQLite database
-UsageTracker::instance()->export('sqlite', 'reports/usage.db');
-```
-
-### Persistent Storage
-
-```php
-// Configure SQLite storage
-UsageTracker::instance()->setStorage(
-    new SqliteStorage('storage/usage.db')
-);
-
-// Now all usage is persisted to database
-agent('assistant')->trackUsage()->prompt('Hello');
-
-// Query historical data
-$storage = new SqliteStorage('storage/usage.db');
-$lastWeek = $storage->query([
-    'timestamp' => '> ' . date('c', strtotime('-7 days'))
-]);
-
-// Aggregate by model
-$byModel = $storage->aggregate('model');
-```
-
-### Custom Pricing
-
-```php
-// Add pricing for a new model
-ProviderPricing::addCustomPricing(
-    'anthropic',
-    'claude-4-opus',
-    inputPrice: 0.025,
-    outputPrice: 0.125
-);
-
-// Now cost calculation works for the new model
-agent('bot')
-    ->model('claude-4-opus')
-    ->trackUsage()
-    ->prompt('Hello');
-```
-
-### Integration with Workflows
-
-```php
-// Track usage across multi-agent workflows
-agent('researcher')->trackUsage(['budget' => 2.00]);
-agent('writer')->trackUsage(['budget' => 3.00]);
-agent('editor')->trackUsage(['budget' => 1.00]);
-
-$result = pipeline('content-creation')
-    ->agent(agent('researcher'))
-    ->agent(agent('writer'))
-    ->agent(agent('editor'))
-    ->run('Create article about PHP agents');
-
-// Get per-agent breakdown
-echo "Researcher cost: $" . agent('researcher')->getUsage()['total_cost'];
-echo "Writer cost: $" . agent('writer')->getUsage()['total_cost'];
-echo "Editor cost: $" . agent('editor')->getUsage()['total_cost'];
-
-// Total workflow cost
-$workflowCost = UsageTracker::instance()->byAgent();
-$totalCost = array_sum(array_column($workflowCost, 'total_cost'));
-echo "Total workflow cost: \${$totalCost}";
-```
-
----
-
-## Testing Strategy
+## Test Strategy
 
 ### Unit Tests
 
-```php
-// tests/Unit/Usage/ProviderPricingTest.php
-it('calculates Anthropic costs correctly', function() {
-    $cost = ProviderPricing::calculate(
-        'anthropic',
-        'claude-3-5-sonnet-20241022',
-        inputTokens: 1000,
-        outputTokens: 2000
-    );
+1. **UsageData Creation and Serialization**
+   - Test DTO construction
+   - Test `fromResponse()` factory method
+   - Test `toArray()` serialization
+   - Test with different provider response formats
 
-    expect($cost)->toBe(0.000003 * 1000 + 0.000015 * 2000); // $0.033
-});
+2. **PricingModel Calculations**
+   - Test each provider's pricing calculation
+   - Test with real pricing examples (verify exact costs)
+   - Test cache token cost attribution (Anthropic)
+   - Test model name normalization (OpenAI)
+   - Test edge cases (zero tokens, negative values)
 
-it('handles unknown models conservatively', function() {
-    $cost = ProviderPricing::calculate(
-        'anthropic',
-        'claude-unknown-model',
-        inputTokens: 1000,
-        outputTokens: 1000
-    );
+3. **UsageTracker Aggregation**
+   - Test tracking single conversation
+   - Test tracking multiple conversations
+   - Test per-agent aggregation
+   - Test per-session aggregation
+   - Test global aggregation
 
-    expect($cost)->toBeGreaterThan(0);
-});
+4. **Budget Enforcement**
+   - Test soft limits (warnings)
+   - Test hard limits (exceptions)
+   - Test warning thresholds (80%, 90%, etc.)
+   - Test budget checking at different stages
+   - Test callback invocation
 
-it('returns zero for Ollama models', function() {
-    $cost = ProviderPricing::calculate(
-        'ollama',
-        'llama2',
-        inputTokens: 1000,
-        outputTokens: 1000
-    );
+5. **Storage Implementations**
+   - Test in-memory storage (default)
+   - Test SQLite storage (CRUD operations)
+   - Test file storage (JSON persistence)
+   - Test custom storage interface
 
-    expect($cost)->toBe(0.0);
-});
-
-// tests/Unit/Usage/UsageTrackerTest.php
-it('tracks usage records', function() {
-    $tracker = UsageTracker::instance();
-    $tracker->reset();
-
-    $record = new UsageRecord(
-        id: 'test-1',
-        timestamp: date('c'),
-        provider: 'anthropic',
-        model: 'claude-3-5-sonnet-20241022',
-        inputTokens: 100,
-        outputTokens: 200,
-        totalTokens: 300,
-        cost: 0.0036,
-        agentName: 'test',
-    );
-
-    $tracker->track($record);
-
-    $usage = $tracker->getUsage('test');
-    expect($usage['total_cost'])->toBe(0.0036);
-    expect($usage['total_tokens'])->toBe(300);
-});
-
-it('enforces budget limits', function() {
-    $tracker = UsageTracker::instance();
-    $tracker->reset();
-    $tracker->setBudget('agent', 'test', limit: 0.01, warnAt: 0.8);
-
-    // Track $0.005 - should be OK
-    $tracker->track(new UsageRecord(
-        id: 'test-1',
-        timestamp: date('c'),
-        provider: 'anthropic',
-        model: 'claude-3-5-sonnet-20241022',
-        inputTokens: 100,
-        outputTokens: 100,
-        totalTokens: 200,
-        cost: 0.005,
-        agentName: 'test',
-    ));
-
-    // Track another $0.006 - should throw
-    expect(fn() => $tracker->track(new UsageRecord(
-        id: 'test-2',
-        timestamp: date('c'),
-        provider: 'anthropic',
-        model: 'claude-3-5-sonnet-20241022',
-        inputTokens: 200,
-        outputTokens: 100,
-        totalTokens: 300,
-        cost: 0.006,
-        agentName: 'test',
-    )))->toThrow(BudgetExceededException::class);
-});
-
-it('aggregates by agent', function() {
-    $tracker = UsageTracker::instance();
-    $tracker->reset();
-
-    $tracker->track(new UsageRecord(
-        id: 'test-1',
-        timestamp: date('c'),
-        provider: 'anthropic',
-        model: 'claude-3-5-sonnet-20241022',
-        inputTokens: 100,
-        outputTokens: 100,
-        totalTokens: 200,
-        cost: 0.002,
-        agentName: 'agent1',
-    ));
-
-    $tracker->track(new UsageRecord(
-        id: 'test-2',
-        timestamp: date('c'),
-        provider: 'openai',
-        model: 'gpt-4',
-        inputTokens: 200,
-        outputTokens: 200,
-        totalTokens: 400,
-        cost: 0.018,
-        agentName: 'agent2',
-    ));
-
-    $byAgent = $tracker->byAgent();
-
-    expect($byAgent['agent1']['total_cost'])->toBe(0.002);
-    expect($byAgent['agent2']['total_cost'])->toBe(0.018);
-});
-```
+6. **Query and Reporting**
+   - Test date range queries
+   - Test agent filtering
+   - Test session filtering
+   - Test aggregation methods
+   - Test export formats (JSON, CSV)
 
 ### Integration Tests
 
-```php
-// tests/Integration/UsageTrackingTest.php
-it('tracks usage from real agent interactions', function() {
-    $mock = mock(['Hello' => 'Hi there!']);
+1. **End-to-End with Real Provider Responses**
+   ```php
+   it('tracks cost for real Anthropic API call', function (): void {
+       $agent = agent('test')
+           ->provider('anthropic', ['api_key' => env('ANTHROPIC_API_KEY')])
+           ->trackUsage()
+           ->model('claude-sonnet-4-20250514')
+           ->prompt('Say hello');
 
-    UsageTracker::instance()->reset();
+       $usage = $agent->getUsage();
+
+       expect($usage->provider)->toBe('anthropic');
+       expect($usage->inputTokens)->toBeGreaterThan(0);
+       expect($usage->outputTokens)->toBeGreaterThan(0);
+       expect($usage->cost)->toBeGreaterThan(0);
+
+       // Verify cost calculation is accurate within 0.01 cents
+       $expectedCost = ($usage->inputTokens / 1_000_000) * 3.00
+                     + ($usage->outputTokens / 1_000_000) * 15.00;
+       expect($usage->cost)->toBeCloseTo($expectedCost, 5);
+   })->group('api');
+   ```
+
+2. **Budget Enforcement in Real Scenarios**
+   ```php
+   it('throws exception when budget exceeded', function (): void {
+       expect(fn () => agent('test')
+           ->provider('anthropic', ['api_key' => env('ANTHROPIC_API_KEY')])
+           ->trackUsage(['budget' => 0.0001]) // Very low budget
+           ->prompt('Write a long essay about PHP')
+       )->toThrow(BudgetExceededException::class);
+   })->group('api');
+   ```
+
+3. **Session Budget Across Multiple Calls**
+   ```php
+   it('accumulates session budget across calls', function (): void {
+       $sessionId = 'test-session-' . uniqid();
+
+       // First call
+       agent('test')
+           ->provider('mock')
+           ->sessionId($sessionId)
+           ->trackUsage(['storage' => new InMemoryUsageStorage()])
+           ->prompt('Hello');
+
+       $usage1 = UsageTracker::global()->bySession($sessionId)->total();
+
+       // Second call
+       agent('test')
+           ->provider('mock')
+           ->sessionId($sessionId)
+           ->trackUsage(['storage' => new InMemoryUsageStorage()])
+           ->prompt('World');
+
+       $usage2 = UsageTracker::global()->bySession($sessionId)->total();
+
+       expect($usage2->totalTokens)->toBeGreaterThan($usage1->totalTokens);
+       expect($usage2->cost)->toBeGreaterThan($usage1->cost);
+   });
+   ```
+
+4. **Persistent Storage with SQLite**
+   ```php
+   it('persists usage to SQLite database', function (): void {
+       $dbPath = sys_get_temp_dir() . '/pagent-test-' . uniqid() . '.db';
+       $storage = new SqliteUsageStorage(['database' => $dbPath]);
+
+       agent('test')
+           ->provider('mock')
+           ->trackUsage(['storage' => $storage])
+           ->prompt('Hello');
+
+       // Verify data was saved
+       $query = $storage->query()->byAgent('test')->get();
+
+       expect($query)->toHaveCount(1);
+       expect($query[0]->agentName)->toBe('test');
+
+       unlink($dbPath);
+   });
+   ```
+
+### Example Test Cases with Specific Pricing Scenarios
+
+```php
+// Anthropic with cache hit
+it('calculates Anthropic cost with cache read correctly', function (): void {
+    $usage = [
+        'input_tokens' => 1000,
+        'output_tokens' => 500,
+        'cache_creation_input_tokens' => 0,
+        'cache_read_input_tokens' => 800, // 800 from cache
+    ];
+
+    $pricing = new AnthropicPricing();
+    $cost = $pricing->calculate($usage, 'claude-sonnet-4-20250514');
+
+    // Regular input: 1000 - 800 = 200 tokens @ $3/M = $0.0006
+    // Cache read: 800 tokens @ $0.30/M = $0.00024
+    // Output: 500 tokens @ $15/M = $0.0075
+    // Total: $0.00834
+
+    expect($cost)->toBeCloseTo(0.00834, 5);
+});
+
+// OpenAI model name normalization
+it('normalizes OpenAI model names for pricing', function (): void {
+    $usage = ['prompt_tokens' => 1000, 'completion_tokens' => 500];
+
+    $pricing = new OpenAIPricing();
+
+    // Different model name formats should use same pricing
+    $cost1 = $pricing->calculate($usage, 'gpt-4-turbo');
+    $cost2 = $pricing->calculate($usage, 'gpt-4-turbo-2024-04-09');
+    $cost3 = $pricing->calculate($usage, 'gpt-4-turbo-preview');
+
+    expect($cost1)->toBe($cost2);
+    expect($cost1)->toBe($cost3);
+});
+
+// Budget warning at 80%
+it('triggers warning callback at 80% budget', function (): void {
+    $warningTriggered = false;
 
     agent('test')
-        ->provider($mock)
-        ->trackUsage(['budget' => 100.00])
-        ->prompt('Hello');
+        ->provider('mock')
+        ->trackUsage(['budget' => 1.00, 'warn_at' => 0.8])
+        ->onBudgetWarning(function ($usage) use (&$warningTriggered) {
+            $warningTriggered = true;
+        })
+        ->prompt('Expensive operation'); // Costs $0.85
 
-    $usage = agent('test')->getUsage();
-
-    expect($usage['total_requests'])->toBe(1);
-    expect($usage['total_tokens'])->toBeGreaterThan(0);
-});
-
-it('tracks usage across multiple prompts', function() {
-    $mock = mock([
-        'First' => 'Response 1',
-        'Second' => 'Response 2',
-        'Third' => 'Response 3',
-    ]);
-
-    UsageTracker::instance()->reset();
-
-    $agent = agent('test')
-        ->provider($mock)
-        ->trackUsage();
-
-    $agent->prompt('First');
-    $agent->prompt('Second');
-    $agent->prompt('Third');
-
-    $usage = $agent->getUsage();
-    expect($usage['total_requests'])->toBe(3);
-});
-
-it('tracks session-level usage', function() {
-    $mock = mock(['Test' => 'Response']);
-
-    UsageTracker::instance()->reset();
-
-    agent('session-test')
-        ->provider($mock)
-        ->sessionId('session-123')
-        ->trackUsage()
-        ->sessionBudget(50.00)
-        ->prompt('Test');
-
-    $usage = agent('session-test')->getUsage();
-
-    expect($usage['total_requests'])->toBe(1);
-
-    $bySession = UsageTracker::instance()->bySession();
-    expect($bySession['session-123'])->toBeArray();
-});
-
-it('throws when budget is exceeded', function() {
-    $mock = mock(['Test' => 'Response']);
-
-    // Mock response to have high token usage
-    $mock->setCustomResponse((object)[
-        'content' => 'Response',
-        'model' => 'claude-3-5-sonnet-20241022',
-        'tokens' => 1000000,
-        'provider' => 'anthropic',
-        'usage' => [
-            'input_tokens' => 500000,
-            'output_tokens' => 500000,
-        ],
-    ]);
-
-    UsageTracker::instance()->reset();
-
-    $agent = agent('budget-test')
-        ->provider($mock)
-        ->trackUsage(['budget' => 0.01]);  // Very low budget
-
-    expect(fn() => $agent->prompt('Test'))
-        ->toThrow(BudgetExceededException::class);
-});
-```
-
-### Storage Tests
-
-```php
-// tests/Unit/Usage/Storage/SqliteStorageTest.php
-it('stores and retrieves usage records', function() {
-    $storage = new SqliteStorage(':memory:');
-
-    $record = new UsageRecord(
-        id: 'test-1',
-        timestamp: date('c'),
-        provider: 'anthropic',
-        model: 'claude-3-5-sonnet-20241022',
-        inputTokens: 100,
-        outputTokens: 200,
-        totalTokens: 300,
-        cost: 0.0036,
-        agentName: 'test',
-    );
-
-    $storage->store($record);
-
-    $records = $storage->query(['agent_name' => 'test']);
-
-    expect($records)->toHaveCount(1);
-    expect($records[0]->cost)->toBe(0.0036);
-});
-
-it('aggregates by provider', function() {
-    $storage = new SqliteStorage(':memory:');
-
-    $storage->store(new UsageRecord(
-        id: 'test-1',
-        timestamp: date('c'),
-        provider: 'anthropic',
-        model: 'claude-3-5-sonnet-20241022',
-        inputTokens: 100,
-        outputTokens: 100,
-        totalTokens: 200,
-        cost: 0.002,
-    ));
-
-    $storage->store(new UsageRecord(
-        id: 'test-2',
-        timestamp: date('c'),
-        provider: 'openai',
-        model: 'gpt-4',
-        inputTokens: 100,
-        outputTokens: 100,
-        totalTokens: 200,
-        cost: 0.009,
-    ));
-
-    $byProvider = $storage->aggregate('provider');
-
-    expect($byProvider)->toHaveCount(2);
-    expect($byProvider[0]['provider'])->toBeIn(['anthropic', 'openai']);
+    expect($warningTriggered)->toBeTrue();
 });
 ```
 
 ---
 
-## Documentation
-
-### User Guide
-
-````markdown
-# Cost & Token Usage Tracking
-
-Track and control your LLM API costs with built-in usage monitoring.
-
-## Quick Start
-
-Enable tracking for an agent:
-
-```php
-agent('assistant')
-    ->trackUsage([
-        'budget' => 10.00,  // $10 max
-        'warn_at' => 0.8,   // Warn at 80%
-    ])
-    ->prompt('Hello');
-```
-````
-
-Get usage statistics:
-
-```php
-$usage = agent('assistant')->getUsage();
-echo "Cost: \${$usage['total_cost']}";
-echo "Tokens: {$usage['total_tokens']}";
-```
-
-## Features
-
-- **Real-time cost tracking** - Know exactly what each request costs
-- **Budget enforcement** - Set limits to prevent overspending
-- **Multi-level tracking** - Per-agent, per-session, and global budgets
-- **Usage analytics** - Aggregate by agent, session, provider, or model
-- **Export capabilities** - JSON, CSV, SQLite for analysis
-- **OpenTelemetry ready** - Integrates with observability platforms
-
-## Budget Enforcement
-
-### Agent-Level Budget
-
-```php
-agent('chatbot')
-    ->trackUsage(['budget' => 50.00])
-    ->prompt('Hello');
-```
-
-### Session-Level Budget
-
-```php
-agent('support')
-    ->sessionId('user-123')
-    ->trackUsage()
-    ->sessionBudget(5.00)  // $5 per user session
-    ->prompt('Help me');
-```
-
-### Global Budget
-
-```php
-UsageTracker::instance()->setBudget('global', '*', 1000.00);
-
-// All agents now share this budget
-```
-
-## Warning Callbacks
-
-Get notified when approaching budget limits:
-
-```php
-UsageTracker::instance()->onWarning(function($scope, $id, $percentage) {
-    Log::warning("Budget at " . ($percentage * 100) . "%");
-
-    // Send email notification
-    Mail::to('admin@example.com')
-        ->send(new BudgetWarningMail($scope, $id, $percentage));
-});
-```
-
-## Usage Analytics
-
-```php
-// Global summary
-$summary = UsageTracker::instance()->summary();
-
-// By agent
-$byAgent = UsageTracker::instance()->byAgent();
-print_r($byAgent['assistant']);
-
-// By session
-$bySession = UsageTracker::instance()->bySession();
-print_r($bySession['user-123']);
-
-// By provider
-$byProvider = UsageTracker::instance()->byProvider();
-print_r($byProvider['anthropic']);
-
-// By model
-$byModel = UsageTracker::instance()->byModel();
-print_r($byModel['anthropic/claude-3-5-sonnet-20241022']);
-```
-
-## Persistent Storage
-
-Store usage data in SQLite:
-
-```php
-UsageTracker::instance()->setStorage(
-    new SqliteStorage('storage/usage.db')
-);
-
-// All usage is now persisted
-```
-
-Query historical data:
-
-```php
-$storage = new SqliteStorage('storage/usage.db');
-
-// Last 7 days
-$recent = $storage->query([
-    'timestamp' => '> ' . date('c', strtotime('-7 days'))
-]);
-
-// Specific agent
-$agentUsage = $storage->query(['agent_name' => 'assistant']);
-
-// Aggregate by model
-$byModel = $storage->aggregate('model');
-```
-
-## Export Data
-
-```php
-// Export to JSON
-UsageTracker::instance()->export('json', 'reports/usage.json');
-
-// Export to CSV
-UsageTracker::instance()->export('csv', 'reports/usage.csv');
-
-// Export to SQLite
-UsageTracker::instance()->export('sqlite', 'reports/usage.db');
-```
-
-## Custom Pricing
-
-Add pricing for new models:
-
-```php
-ProviderPricing::addCustomPricing(
-    'anthropic',
-    'claude-4-opus',
-    inputPrice: 0.025,   // $25 per million input tokens
-    outputPrice: 0.125   // $125 per million output tokens
-);
-```
-
-## Multi-Agent Workflows
-
-Track costs across workflows:
-
-```php
-agent('researcher')->trackUsage(['budget' => 2.00]);
-agent('writer')->trackUsage(['budget' => 3.00]);
-agent('editor')->trackUsage(['budget' => 1.00]);
-
-$result = pipeline('content')
-    ->agent(agent('researcher'))
-    ->agent(agent('writer'))
-    ->agent(agent('editor'))
-    ->run('Create article');
-
-// Get breakdown
-echo "Researcher: $" . agent('researcher')->getUsage()['total_cost'];
-echo "Writer: $" . agent('writer')->getUsage()['total_cost'];
-echo "Editor: $" . agent('editor')->getUsage()['total_cost'];
-```
-
-```
-
-### API Reference
-
-Create comprehensive API documentation for all classes and methods.
-
----
-
-## Implementation Timeline
-
-### Phase 1: Foundation (2 hours)
-
-**Goal**: Core tracking infrastructure
-
-- [ ] Create `UsageRecord` value object
-- [ ] Implement `UsageTracker` singleton
-- [ ] Add `ProviderPricing` with static pricing table
-- [ ] Add `Agent::trackUsage()` and `Agent::getUsage()`
-- [ ] Modify `Agent::prompt()` to track usage
-- [ ] Write 10 unit tests
-
-**Deliverable**: Basic usage tracking working
-
-### Phase 2: Budget Enforcement (1 hour)
-
-**Goal**: Budget limits and warnings
-
-- [ ] Implement `BudgetEnforcer` logic in `UsageTracker`
-- [ ] Add warning callbacks
-- [ ] Add hard limit exceptions
-- [ ] Add `Agent::sessionBudget()`
-- [ ] Write 5 budget tests
-
-**Deliverable**: Budget enforcement working
-
-### Phase 3: Storage & Export (1.5 hours)
-
-**Goal**: Persistent storage and data export
-
-- [ ] Create `UsageStorageInterface`
-- [ ] Implement `MemoryStorage` (default)
-- [ ] Implement `SqliteStorage`
-- [ ] Implement `JsonExporter` and `CsvExporter`
-- [ ] Add `UsageTracker::export()`
-- [ ] Write 8 storage tests
-
-**Deliverable**: Data persistence working
-
-### Phase 4: Analytics & Reporting (1 hour)
-
-**Goal**: Usage analytics and aggregation
-
-- [ ] Implement `UsageTracker::byAgent()`
-- [ ] Implement `UsageTracker::bySession()`
-- [ ] Implement `UsageTracker::byProvider()`
-- [ ] Implement `UsageTracker::byModel()`
-- [ ] Implement `UsageTracker::summary()`
-- [ ] Write 5 analytics tests
-
-**Deliverable**: Complete analytics API
-
-### Phase 5: Documentation & Examples (0.5 hours)
-
-**Goal**: User-facing documentation
-
-- [ ] Write user guide (docs/usage-tracking.md)
-- [ ] Create 3 examples:
-  - Basic tracking
-  - Budget enforcement
-  - Multi-agent workflows
-- [ ] Update README with usage tracking section
-
-**Deliverable**: Complete documentation
-
----
-
-## Success Criteria
-
-### Functionality
-- [ ] Track token usage from all providers (Anthropic, OpenAI, Ollama)
-- [ ] Calculate costs accurately based on pricing table
-- [ ] Enforce agent-level budgets
-- [ ] Enforce session-level budgets
-- [ ] Support global budgets
-- [ ] Warning callbacks at configurable thresholds
-- [ ] Exception thrown when budget exceeded
-- [ ] Aggregate statistics (by agent, session, provider, model)
-- [ ] Export to JSON, CSV, SQLite
-- [ ] Persistent storage with SQLite
-- [ ] Query historical usage data
-
-### Code Quality
-- [ ] 30+ unit tests passing
-- [ ] 5+ integration tests passing
-- [ ] PHPStan level 9 compliance
-- [ ] All public APIs documented
-- [ ] Type hints on all methods
-- [ ] No deprecation warnings
-
-### Documentation
-- [ ] User guide written
-- [ ] 3+ working examples
-- [ ] API reference complete
-- [ ] README updated
-
-### Performance
-- [ ] Minimal overhead (<5ms per tracked request)
-- [ ] SQLite storage handles 10,000+ records
-- [ ] Export completes in <1 second for 1,000 records
-
----
-
-## Future Enhancements
-
-### v0.8.0 - Advanced Features
-- [ ] Semantic caching based on usage patterns
-- [ ] Cost optimization suggestions
-- [ ] Token usage forecasting
-- [ ] Anomaly detection (unusual spending)
-- [ ] Batch export to S3/Cloud Storage
-- [ ] Dashboard UI (HTML report with charts)
-
-### v0.9.0 - OpenTelemetry Integration
-- [ ] Full OpenTelemetry span attributes
-- [ ] Langfuse integration
-- [ ] Langsmith integration
-- [ ] Phoenix integration
-- [ ] Custom OTLP exporters
-
-### v1.0.0 - Enterprise Features
-- [ ] Multi-tenancy cost tracking
-- [ ] Chargeback/billing integration
-- [ ] SLA monitoring (cost per SLA tier)
-- [ ] Cost allocation tags
-- [ ] Budget alerts via webhooks
-- [ ] Automatic budget scaling
+## Migration Path
+
+This feature is designed to be **100% backward compatible** and **opt-in**:
+
+1. **No Breaking Changes**
+   - Existing code continues to work unchanged
+   - Usage tracking is disabled by default
+   - No changes to response objects or agent behavior
+
+2. **Gradual Adoption**
+   ```php
+   // Step 1: Enable tracking without any enforcement
+   agent('bot')->trackUsage()->prompt('Hello');
+
+   // Step 2: Add budget monitoring
+   agent('bot')->trackUsage(['warn_at' => 0.9])->prompt('Hello');
+
+   // Step 3: Add hard limits
+   agent('bot')->trackUsage(['budget' => 10.00])->prompt('Hello');
+
+   // Step 4: Add persistence
+   agent('bot')->trackUsage([
+       'budget' => 10.00,
+       'storage' => new SqliteUsageStorage(['database' => 'usage.db']),
+   ])->prompt('Hello');
+   ```
+
+3. **Global Configuration (Optional)**
+   ```php
+   // Enable for all agents in bootstrap/config
+   UsageTracker::enableGlobal([
+       'storage' => new SqliteUsageStorage(['database' => 'usage.db']),
+       'default_budget' => 100.00,
+   ]);
+
+   // Individual agents can opt-out
+   agent('bot')->trackUsage(false)->prompt('Hello');
+   ```
+
+4. **Testing Applications**
+   - Mock provider returns zero cost by default
+   - Test applications won't be affected
+   - Integration tests can use real providers with tracking
 
 ---
 
 ## Dependencies
 
-### Required
-- PHP 8.3+
-- PDO SQLite extension (for SqliteStorage)
-- JSON extension (for export)
+### Existing Dependencies (No New Packages Required)
 
-### Optional
-- OpenTelemetry SDK (for observability integration)
-- Laravel (for framework integration)
+- `ext-json` - JSON encoding/decoding (already required)
+- `ext-sqlite3` or `ext-pdo_sqlite` - SQLite storage (optional)
+- `swaggest/json-schema` - Already in use for tool validation
 
-### No New Dependencies
-All functionality uses PHP built-ins and existing Pagent infrastructure.
+### Optional Dependencies (User's Choice)
 
----
+- `league/csv` - Better CSV export (user can add)
+- `carbon` - Better date handling (user can add)
+- `monolog/monolog` - Logging warnings (user can add)
 
-## Breaking Changes
-
-**None**. This is a new feature that is:
-- Opt-in (must call `trackUsage()`)
-- Backward compatible
-- Non-invasive
+**Decision:** No new required dependencies. Keep the library lightweight.
 
 ---
 
-## Risks & Mitigations
+## Data Persistence
 
-### Risk: Performance overhead
-**Mitigation**:
-- Lazy initialization of UsageTracker
-- Minimal memory footprint (single record ~200 bytes)
-- Optional persistent storage
+### Storage Options
 
-### Risk: Pricing inaccuracies
-**Mitigation**:
-- Conservative estimates for unknown models
-- Allow custom pricing override
-- Document pricing update schedule
+#### 1. In-Memory (Default)
 
-### Risk: Budget enforcement false positives
-**Mitigation**:
-- Configurable warning thresholds
-- Soft warnings before hard limits
-- Callback system for custom logic
+```php
+class InMemoryUsageStorage implements UsageStorage
+{
+    private array $data = [];
 
-### Risk: SQLite storage bottlenecks
-**Mitigation**:
-- Use Write-Ahead Logging (WAL)
-- Batch inserts (future)
-- Alternative storage adapters
+    public function save(UsageData $usage): void
+    {
+        $key = $usage->agentName . ':' . $usage->timestamp;
+        $this->data[$key] = $usage;
+    }
 
----
+    public function load(string $agentName): array
+    {
+        return array_filter(
+            $this->data,
+            fn($u) => $u->agentName === $agentName
+        );
+    }
 
-## Open Questions
-
-1. **Should we track tool execution costs separately?**
-   - Tool calls consume tokens but aren't billed separately
-   - Current plan: Include in request cost (correct)
-
-2. **How to handle streaming token counts?**
-   - Streaming responses may have incomplete usage metadata
-   - Current plan: Track final usage in `streamTo()` method
-
-3. **Should we support budget pools?**
-   - Share budget across multiple agents
-   - Current plan: Defer to v0.8.0
-
-4. **What about rate limits (not cost)?**
-   - Some providers have requests-per-minute limits
-   - Current plan: Out of scope, use RateLimitMiddleware
-
----
-
-## Appendix
-
-### Pricing Sources (as of 2025-01-29)
-
-- **Anthropic**: https://www.anthropic.com/pricing
-- **OpenAI**: https://openai.com/pricing
-- **Ollama**: Free (local)
-
-### Related Features
-
-- Middleware (for pre/post request hooks)
-- Memory adapters (similar storage pattern)
-- Evaluation metrics (similar aggregation logic)
-
-### References
-
-- [Mistral AI Observability](https://docs.mistral.ai/guides/observability/)
-- [OpenTelemetry Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/)
-- [Langfuse Token Tracking](https://langfuse.com/docs/tracing/token-tracking)
-
----
-
-**End of Plan**
+    public function query(): UsageQuery
+    {
+        return new UsageQuery($this->data);
+    }
+}
 ```
+
+**Pros:**
+- Fast, no I/O
+- No setup required
+- Perfect for short-lived scripts
+
+**Cons:**
+- Data lost when process ends
+- No persistence across requests
+- Memory usage grows unbounded
+
+#### 2. SQLite (Production)
+
+```php
+class SqliteUsageStorage implements UsageStorage
+{
+    private PDO $db;
+
+    public function __construct(array $config)
+    {
+        $this->db = new PDO('sqlite:' . $config['database']);
+        $this->migrate();
+    }
+
+    private function migrate(): void
+    {
+        $this->db->exec('
+            CREATE TABLE IF NOT EXISTS pagent_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                agent_name TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                model TEXT NOT NULL,
+                input_tokens INTEGER NOT NULL,
+                output_tokens INTEGER NOT NULL,
+                cached_tokens INTEGER NOT NULL,
+                total_tokens INTEGER NOT NULL,
+                cost REAL NOT NULL,
+                timestamp REAL NOT NULL,
+                session_id TEXT,
+                metadata TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_agent_name ON pagent_usage(agent_name);
+            CREATE INDEX IF NOT EXISTS idx_session_id ON pagent_usage(session_id);
+            CREATE INDEX IF NOT EXISTS idx_timestamp ON pagent_usage(timestamp);
+        ');
+    }
+
+    public function save(UsageData $usage): void
+    {
+        $stmt = $this->db->prepare('
+            INSERT INTO pagent_usage (
+                agent_name, provider, model, input_tokens, output_tokens,
+                cached_tokens, total_tokens, cost, timestamp, session_id, metadata
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ');
+
+        $stmt->execute([
+            $usage->agentName,
+            $usage->provider,
+            $usage->model,
+            $usage->inputTokens,
+            $usage->outputTokens,
+            $usage->cachedTokens,
+            $usage->totalTokens,
+            $usage->cost,
+            $usage->timestamp,
+            $usage->sessionId,
+            json_encode($usage->metadata),
+        ]);
+    }
+
+    public function query(): UsageQuery
+    {
+        return new SqliteUsageQuery($this->db);
+    }
+}
+```
+
+**Pros:**
+- Persistent across requests
+- Efficient queries and indexing
+- Production-ready
+- No external service required
+
+**Cons:**
+- Requires write permissions
+- Single-file locking (not for high concurrency)
+- Manual backup required
+
+#### 3. File Storage (Development)
+
+```php
+class FileUsageStorage implements UsageStorage
+{
+    private string $path;
+
+    public function __construct(array $config)
+    {
+        $this->path = rtrim($config['path'], '/');
+
+        if (!is_dir($this->path)) {
+            mkdir($this->path, 0755, true);
+        }
+    }
+
+    public function save(UsageData $usage): void
+    {
+        $filename = $this->path . '/' . date('Y-m-d') . '.json';
+
+        $existing = file_exists($filename)
+            ? json_decode(file_get_contents($filename), true)
+            : [];
+
+        $existing[] = $usage->toArray();
+
+        file_put_contents(
+            $filename,
+            json_encode($existing, JSON_PRETTY_PRINT)
+        );
+    }
+
+    public function query(): UsageQuery
+    {
+        $data = [];
+
+        foreach (glob($this->path . '/*.json') as $file) {
+            $fileData = json_decode(file_get_contents($file), true);
+            $data = array_merge($data, $fileData);
+        }
+
+        return new UsageQuery($data);
+    }
+}
+```
+
+**Pros:**
+- Human-readable JSON
+- Easy to inspect and debug
+- Simple backup (just copy files)
+
+**Cons:**
+- Slow for large datasets
+- No indexing or efficient queries
+- Concurrent writes can cause issues
+
+#### 4. Custom Storage
+
+Users can implement their own storage:
+
+```php
+interface UsageStorage
+{
+    public function save(UsageData $usage): void;
+    public function load(string $agentName): array;
+    public function query(): UsageQuery;
+}
+
+// Example: Redis
+class RedisUsageStorage implements UsageStorage
+{
+    public function __construct(private Redis $redis) {}
+
+    public function save(UsageData $usage): void
+    {
+        $key = "pagent:usage:{$usage->agentName}";
+        $this->redis->rPush($key, json_encode($usage->toArray()));
+        $this->redis->expire($key, 86400 * 30); // 30 days TTL
+    }
+
+    // ... implement other methods
+}
+
+// Example: MySQL
+class MySQLUsageStorage implements UsageStorage
+{
+    public function __construct(private PDO $db) {}
+
+    // Similar to SQLite but with MySQL-specific SQL
+}
+```
+
+---
+
+## Code Examples
+
+### Example 1: Basic Cost Tracking
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+use function Pagent\agent;
+
+// Enable cost tracking for an agent
+$agent = agent('translator')
+    ->provider('anthropic', ['api_key' => getenv('ANTHROPIC_API_KEY')])
+    ->model('claude-sonnet-4-20250514')
+    ->trackUsage(); // Enable tracking
+
+// Make a translation request
+$response = $agent->prompt('Translate "Hello, world!" to Spanish');
+
+// Access usage information
+$usage = $agent->getUsage();
+
+echo "Translation: {$response->content}\n";
+echo "Input tokens: {$usage->inputTokens}\n";
+echo "Output tokens: {$usage->outputTokens}\n";
+echo "Total tokens: {$usage->totalTokens}\n";
+echo "Cost: \${$usage->cost}\n";
+
+// Output:
+// Translation: ¡Hola, mundo!
+// Input tokens: 15
+// Output tokens: 8
+// Total tokens: 23
+// Cost: $0.000165
+```
+
+### Example 2: Budget Limits with Warnings
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+use function Pagent\agent;
+use Pagent\Exceptions\BudgetExceededException;
+
+// Create agent with budget limits
+$agent = agent('expensive-bot')
+    ->provider('anthropic', ['api_key' => getenv('ANTHROPIC_API_KEY')])
+    ->trackUsage([
+        'budget' => 5.00,        // $5 maximum
+        'warn_at' => 0.8,        // Warn at 80% ($4)
+    ])
+    ->onBudgetWarning(function ($usage) {
+        $percent = ($usage->cost / 5.00) * 100;
+        echo "⚠️  Budget warning: {$percent}% used (\${$usage->cost}/\$5.00)\n";
+    });
+
+try {
+    // Make multiple requests
+    for ($i = 1; $i <= 10; $i++) {
+        $response = $agent->prompt("Request #{$i}");
+        $usage = $agent->getUsage();
+        echo "Request #{$i}: \${$usage->cost}\n";
+    }
+} catch (BudgetExceededException $e) {
+    echo "❌ Budget exceeded!\n";
+    echo "Current cost: \${$e->currentCost}\n";
+    echo "Budget limit: \${$e->budgetLimit}\n";
+    echo "Last request would have cost: \${$e->attemptedCost}\n";
+}
+```
+
+### Example 3: Session-Level Budget Tracking
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+use function Pagent\agent;
+use Pagent\Usage\Storage\SqliteUsageStorage;
+
+// Configure storage
+$storage = new SqliteUsageStorage([
+    'database' => '/path/to/usage.db',
+]);
+
+// User starts a conversation
+$userId = 'user-12345';
+
+$agent = agent('support-bot')
+    ->provider('anthropic')
+    ->sessionId($userId)
+    ->trackUsage([
+        'storage' => $storage,
+        'budget' => 10.00, // $10 per user session
+    ])
+    ->onBudgetWarning(function ($usage) use ($userId) {
+        // Send notification to user
+        notifyUser($userId, "You've used \${$usage->cost} of your \$10 budget");
+    });
+
+// Handle user messages
+$messages = [
+    "Hello, I need help with my account",
+    "I can't reset my password",
+    "Can you send me a reset link?",
+];
+
+foreach ($messages as $message) {
+    $response = $agent->prompt($message);
+    echo "Bot: {$response->content}\n";
+
+    $usage = $agent->getUsage();
+    echo "Cost so far: \${$usage->cost}\n";
+}
+
+// Get session summary
+$sessionUsage = \Pagent\Usage\UsageTracker::global()
+    ->bySession($userId)
+    ->total();
+
+echo "Total session cost: \${$sessionUsage->cost}\n";
+echo "Total tokens: {$sessionUsage->totalTokens}\n";
+```
+
+### Example 4: Analytics and Reporting
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+use Pagent\Usage\UsageTracker;
+use Carbon\Carbon;
+
+// Get global usage statistics
+$tracker = UsageTracker::global();
+
+// Overall summary
+$summary = $tracker->summary();
+echo "Total requests: {$summary['total_requests']}\n";
+echo "Total tokens: {$summary['total_tokens']}\n";
+echo "Total cost: \${$summary['total_cost']}\n";
+echo "Average cost per request: \${$summary['avg_cost_per_request']}\n";
+
+// Usage by agent
+$agentStats = $tracker->byAgent('support-bot')->last(7, 'days')->get();
+
+echo "\nSupport Bot (Last 7 days):\n";
+foreach ($agentStats as $usage) {
+    $date = date('Y-m-d H:i', $usage->timestamp);
+    echo "  {$date}: {$usage->totalTokens} tokens, \${$usage->cost}\n";
+}
+
+// Export to CSV for further analysis
+$csv = $tracker
+    ->last(30, 'days')
+    ->exportCsv();
+
+file_put_contents('usage-report-' . date('Y-m-d') . '.csv', $csv);
+
+// Generate HTML report
+$report = $tracker
+    ->last(7, 'days')
+    ->report()
+    ->toHtml();
+
+file_put_contents('usage-report.html', $report);
+
+echo "\nReports generated successfully!\n";
+```
+
+### Example 5: Custom Pricing Override
+
+```php
+<?php
+
+require 'vendor/autoload.php';
+
+use function Pagent\agent;
+use Pagent\Usage\Pricing\CustomPricing;
+
+// Create custom pricing for special rates or private deployments
+$customPricing = new CustomPricing([
+    'input_per_mtok' => 2.50,   // $2.50 per million input tokens
+    'output_per_mtok' => 12.00, // $12 per million output tokens
+]);
+
+$agent = agent('custom-bot')
+    ->provider('anthropic')
+    ->trackUsage([
+        'pricing' => $customPricing,
+    ])
+    ->prompt('Hello');
+
+$usage = $agent->getUsage();
+echo "Cost with custom pricing: \${$usage->cost}\n";
+
+// Or use model-specific pricing
+$modelPricing = [
+    'gpt-4-turbo' => ['input' => 8.00, 'output' => 24.00],
+    'gpt-4o' => ['input' => 4.00, 'output' => 12.00],
+];
+
+$agent = agent('openai-bot')
+    ->provider('openai')
+    ->trackUsage([
+        'pricing' => $modelPricing,
+    ])
+    ->model('gpt-4-turbo')
+    ->prompt('Hello');
+```
+
+---
+
+## Risks & Mitigation
+
+| Risk                                               | Impact | Mitigation                                                                                   |
+| -------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------- |
+| Pricing data becomes outdated                      | High   | Document where to update pricing; Add comments with source URLs; Create GitHub issue alerts |
+| Performance overhead from tracking                 | Medium | Make tracking opt-in; Optimize storage writes; Use async writes where possible              |
+| Storage fills up disk space                        | Medium | Document retention policies; Provide cleanup utilities; Support TTL in storage adapters     |
+| Budget enforcement delays response                 | Medium | Check budget before API call; Cache budget checks; Make enforcement async where possible    |
+| Concurrent writes corrupt data                     | Low    | Use database transactions; Add file locking for file storage; Document concurrency limits   |
+| Token counting inaccuracies                        | Low    | Use provider-reported counts; Document known discrepancies; Add validation tests            |
+| Breaking changes in provider response formats      | Low    | Add comprehensive tests; Use defensive parsing; Monitor provider API changelog              |
+| Users expect real-time cost alerts (out of scope)  | Low    | Document callback patterns; Provide examples; Point to notification libraries               |
+| Complex queries impact performance (large datasets | Low    | Add query optimization tips; Recommend indexes; Document pagination patterns                |
+
+---
+
+## Success Criteria
+
+- [ ] All core components implemented and tested (90%+ code coverage)
+- [ ] Provider-specific pricing accurate within 0.01%
+- [ ] Budget enforcement works reliably (exceptions thrown at exact limit)
+- [ ] SQLite storage handles 10,000+ records efficiently
+- [ ] Query API returns results in < 100ms for typical datasets
+- [ ] Zero performance impact when tracking disabled
+- [ ] < 5ms overhead when tracking enabled
+- [ ] Documentation complete with working examples
+- [ ] Integration tests pass with real provider responses
+- [ ] Backward compatible (no breaking changes)
+- [ ] Can track costs across 1000+ agents without memory issues
+- [ ] Export capabilities work for datasets with 10,000+ entries
+
+---
+
+## Timeline
+
+| Phase                           | Duration | Target Date |
+| ------------------------------- | -------- | ----------- |
+| Phase 1: Core Tracking System   | 6-8 hrs  | Day 1-2     |
+| Phase 2: Budget Enforcement     | 4-5 hrs  | Day 2-3     |
+| Phase 3: Persistence & Storage  | 3-4 hrs  | Day 3-4     |
+| Phase 4: Querying & Reporting   | 3-4 hrs  | Day 4-5     |
+| Phase 5: Testing & Documentation| 2-3 hrs  | Day 5-6     |
+| **Total**                       | **18-24 hrs** | **1 week** |
+
+---
+
+## Related Work
+
+### OpenTelemetry Integration (Separate Feature)
+
+Cost and token tracking will provide a data source for OpenTelemetry observability (planned separately in v0.7.0). The integration will:
+
+- Export usage data as OTel metrics
+- Add token/cost attributes to spans
+- Support Langfuse, Langsmith, Phoenix platforms
+- Remain optional (can use cost tracking without OTel)
+
+**API Preview:**
+```php
+agent('bot')
+    ->trackUsage()
+    ->observability('langfuse', ['public_key' => env('LANGFUSE_KEY')])
+    ->prompt('Hello');
+
+// Usage automatically sent to Langfuse with cost metrics
+```
+
+### Future Enhancements (v0.8.0+)
+
+- Cost forecasting based on historical usage
+- Automatic budget allocation recommendations
+- Cost optimization suggestions (model selection)
+- Multi-currency support
+- Integration with billing systems
+- Real-time cost dashboards
+
+---
+
+**Created:** 2025-10-29
+**Last Updated:** 2025-10-29
+**Status:** Planned for v0.7.0
