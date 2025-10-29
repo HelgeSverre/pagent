@@ -62,19 +62,19 @@ echo "[Alice's Session - support-alice-001]\n";
 echo "Alice: I need help with my order\n";
 $alice1 = $alice->prompt('I need help with my order');
 echo "Agent: {$alice1->content}\n";
-echo "Messages: ".count($alice->messages)."\n\n";
+echo 'Messages: '.count($alice->messages)."\n\n";
 
 echo "[Bob's Session - support-bob-002]\n";
 echo "Bob: How do I configure the API settings?\n";
 $bob1 = $bob->prompt('How do I configure the API settings?');
 echo "Agent: {$bob1->content}\n";
-echo "Messages: ".count($bob->messages)."\n\n";
+echo 'Messages: '.count($bob->messages)."\n\n";
 
 echo "[Carol's Session - support-carol-003]\n";
 echo "Carol: What pricing plans do you offer?\n";
 $carol1 = $carol->prompt('What pricing plans do you offer?');
 echo "Agent: {$carol1->content}\n";
-echo "Messages: ".count($carol->messages)."\n\n";
+echo 'Messages: '.count($carol->messages)."\n\n";
 
 // Round 2: Follow-up messages
 echo "--- Round 2: Follow-up Questions ---\n\n";
@@ -83,19 +83,19 @@ echo "[Alice's Session]\n";
 echo "Alice: My order number is #12345\n";
 $alice2 = $alice->prompt('My order number is #12345');
 echo "Agent: {$alice2->content}\n";
-echo "Messages: ".count($alice->messages)."\n\n";
+echo 'Messages: '.count($alice->messages)."\n\n";
 
 echo "[Bob's Session]\n";
 echo "Bob: I'm getting a 401 authentication error\n";
 $bob2 = $bob->prompt("I'm getting a 401 authentication error");
 echo "Agent: {$bob2->content}\n";
-echo "Messages: ".count($bob->messages)."\n\n";
+echo 'Messages: '.count($bob->messages)."\n\n";
 
 echo "[Carol's Session]\n";
 echo "Carol: Do you offer enterprise solutions?\n";
 $carol2 = $carol->prompt('Do you offer enterprise solutions?');
 echo "Agent: {$carol2->content}\n";
-echo "Messages: ".count($carol->messages)."\n\n";
+echo 'Messages: '.count($carol->messages)."\n\n";
 
 // Round 3: More context
 echo "--- Round 3: Adding More Context ---\n\n";
@@ -104,19 +104,19 @@ echo "[Alice's Session]\n";
 echo "Alice: I ordered it 2 weeks ago\n";
 $alice3 = $alice->prompt('I ordered it 2 weeks ago');
 echo "Agent: {$alice3->content}\n";
-echo "Messages: ".count($alice->messages)."\n\n";
+echo 'Messages: '.count($alice->messages)."\n\n";
 
 echo "[Bob's Session]\n";
 echo "Bob: I'm using PHP with the cURL library\n";
 $bob3 = $bob->prompt("I'm using PHP with the cURL library");
 echo "Agent: {$bob3->content}\n";
-echo "Messages: ".count($bob->messages)."\n\n";
+echo 'Messages: '.count($bob->messages)."\n\n";
 
 echo "[Carol's Session]\n";
 echo "Carol: We have about 500 users\n";
 $carol3 = $carol->prompt('We have about 500 users');
 echo "Agent: {$carol3->content}\n";
-echo "Messages: ".count($carol->messages)."\n\n";
+echo 'Messages: '.count($carol->messages)."\n\n";
 
 /**
  * Example 3: Simulating System Restart
@@ -153,11 +153,11 @@ $bobReloaded = agent('reloaded-bob');
 $carolReloaded = agent('reloaded-carol');
 
 echo "Sessions Restored:\n";
-echo str_repeat("-", 70)."\n";
+echo str_repeat('-', 70)."\n";
 echo sprintf("Alice (support-alice-001): %d messages loaded\n", count($aliceReloaded->messages));
 echo sprintf("Bob (support-bob-002): %d messages loaded\n", count($bobReloaded->messages));
 echo sprintf("Carol (support-carol-003): %d messages loaded\n", count($carolReloaded->messages));
-echo str_repeat("-", 70)."\n\n";
+echo str_repeat('-', 70)."\n\n";
 
 /**
  * Example 4: Continuing Conversations
@@ -219,12 +219,12 @@ $sessions = [
 ];
 
 echo "Active Sessions Summary:\n";
-echo str_repeat("=", 70)."\n";
+echo str_repeat('=', 70)."\n";
 
 foreach ($sessions as $session) {
     echo "\nUser: {$session['user']}\n";
     echo "Session ID: {$session['id']}\n";
-    echo "Total Messages: ".count($session['agent']->messages)."\n";
+    echo 'Total Messages: '.count($session['agent']->messages)."\n";
     echo "Last Messages:\n";
 
     // Show last 3 messages
@@ -237,7 +237,7 @@ foreach ($sessions as $session) {
     }
 }
 
-echo "\n".str_repeat("=", 70)."\n\n";
+echo "\n".str_repeat('=', 70)."\n\n";
 
 /**
  * Example 7: Creating a New Session
@@ -258,7 +258,7 @@ echo "[Dave's Session - support-dave-004]\n";
 echo "Dave: I have a billing question\n";
 $dave1 = $dave->prompt('I have a billing question');
 echo "Agent: {$dave1->content}\n";
-echo "Messages: ".count($dave->messages)." (new session)\n\n";
+echo 'Messages: '.count($dave->messages)." (new session)\n\n";
 
 echo "New session created independently of existing ones!\n\n";
 
@@ -268,10 +268,10 @@ echo "New session created independently of existing ones!\n\n";
 echo "=== Example 8: Final Statistics ===\n\n";
 
 echo "Total Active Sessions: 4\n";
-echo "- Alice: ".count($aliceReloaded->messages)." messages\n";
-echo "- Bob: ".count($bobReloaded->messages)." messages\n";
-echo "- Carol: ".count($carolReloaded->messages)." messages\n";
-echo "- Dave: ".count($dave->messages)." messages\n\n";
+echo '- Alice: '.count($aliceReloaded->messages)." messages\n";
+echo '- Bob: '.count($bobReloaded->messages)." messages\n";
+echo '- Carol: '.count($carolReloaded->messages)." messages\n";
+echo '- Dave: '.count($dave->messages)." messages\n\n";
 
 $totalMessages = count($aliceReloaded->messages)
     + count($bobReloaded->messages)

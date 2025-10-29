@@ -423,10 +423,26 @@ agent('assistant')
 agent('bot')
     ->tool('api-call', 'Call API', fn() => /* ... */)
         ->onError(fn($e) => ['error' => $e->getMessage(), 'status' => 'failed']);
+
+// 7. Tool Registry/Toolkit Pattern (user-space, documented)
+// Create reusable tool collections
+class FileToolkit {
+    public static function all(?string $baseDir = null): array {
+        return [
+            new FileRead($baseDir),
+            new FileWrite($baseDir),
+            new Glob($baseDir),
+            new Grep($baseDir),
+        ];
+    }
+}
+
+agent('assistant')->tools(FileToolkit::all('/project'));
 ```
 
 #### Tasks:
 
+- [x] Bulk tool addition via `tools()` method (COMPLETED v0.6.0)
 - [ ] Tool timeout configuration (1-2 hours)
 - [ ] Retry logic with exponential backoff (2-3 hours)
 - [ ] Return type validation (1 hour)
@@ -434,6 +450,11 @@ agent('bot')
 - [ ] Built-in tool classes (2-3 hours)
   - FileReader, WebFetcher, Calculator, DateFormatter
 - [ ] Better error messages with suggestions (1 hour)
+- [ ] **Toolkit Pattern** (Future consideration, 3-4 hours)
+  - Evaluate if community adopts user-space pattern
+  - Consider built-in toolkits (FileToolkit, WebToolkit, MathToolkit)
+  - Add `allTools()` helper if demand emerges
+  - Currently documented in FEATURES.md for user experimentation
 - [ ] **Evaluate spiral/json-schema-generator** for automatic schema generation (2-3 hours)
   - https://github.com/spiral/json-schema-generator
   - Generate JSON schemas from PHP DTOs automatically
@@ -1143,6 +1164,7 @@ agent('weather')->tool('getWeather', WeatherRequest::class, fn(WeatherRequest $r
 - ✅ **3 Memory Examples** - SQLite, File, Multi-session demos
 - ✅ **Comprehensive Docs** - 820-line memory-persistence.md guide
 - ✅ **Test Coverage** - 265+ tests passing (all green!)
+- ✅ **Bulk Tool Addition** - `Agent::tools()` method, enables Toolkit pattern (5 new tests)
 
 **Completed Features:**
 - ✅ Streaming (SSE, WebSocket-ready)

@@ -60,6 +60,16 @@ if (! function_exists('openai')) {
     }
 }
 
+if (! function_exists('ollama')) {
+    /**
+     * Create an Ollama provider instance.
+     */
+    function ollama(array $config = []): Pagent\Providers\Ollama
+    {
+        return new Pagent\Providers\Ollama($config);
+    }
+}
+
 if (! function_exists('mock')) {
     /**
      * Create a mock provider instance.

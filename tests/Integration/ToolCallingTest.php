@@ -134,3 +134,134 @@ describe('Tool Schema Generation', function (): void {
             ->and($schema['function']['parameters']['required'])->toBe(['name', 'age']);
     });
 });
+
+describe('Class-Based Tools with OpenAI', function (): void {
+    beforeEach(function (): void {
+        if (empty($_ENV['OPENAI_API_KEY'] ?? getenv('OPENAI_API_KEY'))) {
+            $this->markTestSkipped('OPENAI_API_KEY not set');
+        }
+    });
+
+    it('can use FileRead class-based tool', function (): void {
+        // Create a temporary test file
+        $testFile = sys_get_temp_dir().'/pagent_test_'.uniqid().'.txt';
+        file_put_contents($testFile, 'Hello from class-based FileRead tool!');
+
+        agent('file-reader')
+            ->provider('openai')
+            ->system('You are a helpful assistant that reads files.')
+            ->tool(new \Pagent\Tools\FileRead);
+
+        $response = agent('file-reader')->prompt("Read the file at {$testFile} and tell me what it says.");
+
+        expect($response->content)
+            ->toContain('Hello')
+            ->or()->toContain('class-based');
+
+        // Clean up
+        @unlink($testFile);
+    });
+
+    it('can use FileWrite class-based tool', function (): void {
+        $testFile = sys_get_temp_dir().'/pagent_write_test_'.uniqid().'.txt';
+
+        agent('file-writer')
+            ->provider('openai')
+            ->model('gpt-4')
+            ->system('You are a helpful assistant that writes files.')
+            ->tool(new \Pagent\Tools\FileWrite);
+
+        $response = agent('file-writer')->prompt("Write 'Test content from OpenAI' to the file {$testFile}");
+
+        // Verify the file was created
+        expect(file_exists($testFile))->toBeTrue();
+
+        // Clean up
+        @unlink($testFile);
+    });
+
+    it('generates correct schemas for class-based tools', function (): void {
+        $fileRead = new \Pagent\Tools\FileRead;
+
+        $anthropicSchema = $fileRead->toAnthropicSchema();
+        expect($anthropicSchema)->toHaveKey('name')
+            ->and($anthropicSchema)->toHaveKey('description')
+            ->and($anthropicSchema)->toHaveKey('input_schema');
+
+        $openaiSchema = $fileRead->toOpenAISchema();
+        expect($openaiSchema)->toHaveKey('type')
+            ->and($openaiSchema['type'])->toBe('function')
+            ->and($openaiSchema)->toHaveKey('function')
+            ->and($openaiSchema['function'])->toHaveKey('name');
+    });
+});
+
+describe('Class-Based Tools with Anthropic', function (): void {
+    beforeEach(function (): void {
+        if (empty($_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY'))) {
+            $this->markTestSkipped('ANTHROPIC_API_KEY not set');
+        }
+    });
+
+    it('can use FileRead class-based tool', function (): void {
+        // Create a temporary test file
+        $testFile = sys_get_temp_dir().'/pagent_claude_test_'.uniqid().'.txt';
+        file_put_contents($testFile, 'Hello from Anthropic with FileRead!');
+
+        agent('claude-file-reader')
+            ->provider('anthropic')
+            ->system('You are a helpful assistant that reads files.')
+            ->tool(new \Pagent\Tools\FileRead);
+
+        $response = agent('claude-file-reader')->prompt("Read the file at {$testFile} and tell me what it says.");
+
+        expect($response->content)
+            ->toContain('Hello')
+            ->or()->toContain('Anthropic')
+            ->or()->toContain('FileRead');
+
+        // Clean up
+        @unlink($testFile);
+    });
+
+    it('can use FileWrite class-based tool', function (): void {
+        $testFile = sys_get_temp_dir().'/pagent_claude_write_'.uniqid().'.txt';
+
+        agent('claude-file-writer')
+            ->provider('anthropic')
+            ->model('claude-3-sonnet-20240229')
+            ->system('You are a helpful assistant that writes files.')
+            ->tool(new \Pagent\Tools\FileWrite);
+
+        $response = agent('claude-file-writer')->prompt("Write 'Test content from Claude' to the file {$testFile}");
+
+        // Verify the file was created
+        expect(file_exists($testFile))->toBeTrue();
+
+        // Clean up
+        @unlink($testFile);
+    });
+
+    it('can use multiple class-based tools together', function (): void {
+        $sourceFile = sys_get_temp_dir().'/pagent_source_'.uniqid().'.txt';
+        $destFile = sys_get_temp_dir().'/pagent_dest_'.uniqid().'.txt';
+
+        file_put_contents($sourceFile, 'Copy me to another file!');
+
+        agent('claude-multi-class-tools')
+            ->provider('anthropic')
+            ->system('You are a helpful assistant that can read and write files.')
+            ->tool(new \Pagent\Tools\FileRead)
+            ->tool(new \Pagent\Tools\FileWrite);
+
+        $response = agent('claude-multi-class-tools')
+            ->prompt("Read the file at {$sourceFile} and write its contents to {$destFile}");
+
+        // Verify both files exist and have the same content
+        expect(file_exists($destFile))->toBeTrue();
+
+        // Clean up
+        @unlink($sourceFile);
+        @unlink($destFile);
+    });
+});

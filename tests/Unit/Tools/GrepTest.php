@@ -197,7 +197,7 @@ test('it skips unreadable files without crashing', function () {
 
     // Cleanup
     chmod($this->tempDir.'/unreadable.txt', 0644);
-})->skip('Permission tests can be environment-specific');
+});
 
 test('it handles empty files gracefully', function () {
     file_put_contents($this->tempDir.'/empty.txt', '');

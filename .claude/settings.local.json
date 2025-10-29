@@ -36,7 +36,11 @@
       "Bash(/dev/null)",
       "Bash(timeout 30 ./vendor/bin/pest:*)",
       "Bash(pdftotext:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(test:*)",
+      "Bash(git mv:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:pestphp.com)"
     ],
     "deny": []
   }

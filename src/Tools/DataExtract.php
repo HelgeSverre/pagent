@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Pagent\Tools;
 
+use Pagent\Contracts\Provider;
 use Pagent\Providers\OpenAI;
 use RuntimeException;
 
 final class DataExtract extends Tool
 {
-    private OpenAI $provider;
+    private Provider $provider;
 
     public function __construct(
-        ?OpenAI $provider = null,
+        ?Provider $provider = null,
         private string $model = 'gpt-4o-mini',
     ) {
         $this->provider = $provider ?? new OpenAI;

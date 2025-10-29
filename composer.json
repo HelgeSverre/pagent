@@ -34,6 +34,7 @@
     "psr/http-client": "^1.0",
     "psr/http-factory": "^1.0",
     "psr/log": "^3.0",
+    "swaggest/json-schema": "^0.12.43",
     "symfony/process": "^7.3"
   },
   "require-dev": {

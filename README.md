@@ -18,7 +18,7 @@ Build intelligent agents with automatic tool calling, multi-provider support, sa
 - **🌊 Real-Time Streaming** - SSE streaming for ChatGPT-like experiences
 - **💾 Memory & Persistence** - SQLite, File, and custom storage adapters
 - **🔧 Automatic Tool Calling** - JSON schema generation from PHP functions
-- **🤖 Multi-Provider** - Anthropic Claude, OpenAI GPT, Mock (for testing)
+- **🤖 Multi-Provider** - Anthropic Claude, OpenAI GPT, Ollama (local), Mock (for testing)
 - **🛡️ Safety Guards** - PII detection, content filtering, prompt injection prevention
 - **📊 Evaluation Framework** - Test datasets with automated metrics and reports
 - **🔄 Multi-Agent Orchestration** - Pipeline, handoff, and delegation patterns
@@ -110,6 +110,34 @@ $response = $gpt->prompt('Hello!', [
 ]);
 ```
 
+### Ollama (Local LLMs)
+
+Run models locally with complete privacy and zero API costs:
+
+```bash
+# Install Ollama and pull models
+ollama pull qwen3:8b
+ollama pull gpt-oss:20b
+ollama serve
+```
+
+```php
+$ollama = ollama();
+$response = $ollama->prompt('Hello!', [
+    'model' => 'qwen3:8b',
+    'temperature' => 0.7
+]);
+```
+
+**Benefits:**
+- 🔒 Complete privacy - all data stays local
+- 💰 Zero API costs
+- ⚡ Low latency
+- 🛠️ Full tool calling support (qwen3, llama3.1, mistral)
+- 📡 NDJSON streaming
+
+**📖 Full Guide:** [Ollama Integration](docs/ollama-integration.md)
+
 ## Agent Pattern
 
 Agents provide a higher-level abstraction with conversation history:
@@ -132,6 +160,51 @@ foreach ($agent->messages as $message) {
     echo "[{$message['role']}]: {$message['content']}\n";
 }
 ```
+
+## Provider Configuration
+
+Pagent supports two ways to configure providers:
+
+### String-Based (Simple)
+
+Use provider names for quick setup with default configuration:
+
+```php
+agent('assistant')
+    ->provider('anthropic')  // String name
+    ->system('You are helpful');
+
+// With config options
+agent('custom')
+    ->provider('ollama', ['base_url' => 'http://custom:11434', 'timeout' => 180])
+    ->model('qwen3:8b');
+```
+
+### Instance-Based (Advanced)
+
+Use helper functions or direct instantiation for custom configuration:
+
+```php
+// Using helper functions
+agent('assistant')
+    ->provider(anthropic(['api_key' => 'custom-key']))
+    ->prompt('Hello');
+
+agent('local')
+    ->provider(ollama(['timeout' => 300, 'base_url' => 'http://10.0.0.5:11434']))
+    ->model('llama3.1');
+
+// Direct instantiation
+use Pagent\Providers\OpenAI;
+
+agent('custom')
+    ->provider(new OpenAI(['api_key' => getenv('CUSTOM_KEY')]))
+    ->prompt('Hello');
+```
+
+**When to use each:**
+- **String-based**: Quick setup, standard configuration
+- **Instance-based**: Custom config, multiple providers with same name, testing
 
 ## Provider-Specific Features
 
@@ -187,6 +260,67 @@ Type hints are automatically converted to JSON schema types:
 - `bool` → `"boolean"`
 - `array` → `"array"`
 
+### Class-Based Tools
+
+Pagent includes 8 production-ready class-based tools in the `Pagent\Tools` namespace:
+
+```php
+use Pagent\Tools\FileRead;
+use Pagent\Tools\FileWrite;
+use Pagent\Tools\WebFetch;
+use Pagent\Tools\Bash;
+use Pagent\Tools\Grep;
+use Pagent\Tools\Glob;
+use Pagent\Tools\PdfReader;
+use Pagent\Tools\DataExtract;
+
+// Use class-based tools with agents
+$agent = agent('assistant')
+    ->provider('anthropic')
+    ->tool(new FileRead())
+    ->tool(new WebFetch())
+    ->prompt('Read the file data.json and fetch https://api.example.com/data');
+
+// Create custom class-based tools
+use Pagent\Tools\Tool;
+
+class DatabaseQuery extends Tool
+{
+    public function name(): string
+    {
+        return 'query_database';
+    }
+
+    public function description(): string
+    {
+        return 'Execute a database query and return results';
+    }
+
+    public function parameters(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'query' => ['type' => 'string', 'description' => 'SQL query to execute'],
+                'limit' => ['type' => 'integer', 'description' => 'Maximum rows to return'],
+            ],
+            'required' => ['query'],
+        ];
+    }
+
+    public function execute(array $params): mixed
+    {
+        // Your implementation here
+        return ['results' => []];
+    }
+}
+
+// Use your custom tool
+agent('assistant')->tool(new DatabaseQuery());
+```
+
+Both closure-based and class-based tools implement `ToolInterface` and work seamlessly with all providers.
+
 ## Testing
 
 The library includes comprehensive test suites:
@@ -224,12 +358,20 @@ We've created **5 different guide styles** so you can learn in the way that work
 
 Learn how to integrate Pagent into your application:
 
-- **[Centralized Configuration Pattern](docs/centralized-configuration.md)** - Set up a global `agents.php` file (recommended)
+- **[Vanilla PHP](docs/vanilla-php.md)** - Pure PHP integration without frameworks
 - **[Slim Framework Integration](docs/slim-integration.md)** - Complete Slim 4.x setup with DI and middleware
-- **Laravel Integration** - Coming soon
-- **Symfony Integration** - Coming soon
+- **[Laravel Integration](docs/laravel-integration.md)** - Laravel setup with service providers and facades
+- **[Symfony Integration](docs/symfony-integration.md)** - Symfony bundle integration with DI container
 
-See the [docs/](docs/) folder for all integration guides.
+### Feature Guides
+
+Deep-dive into specific features:
+
+- **[Streaming Guide](docs/streaming.md)** - Real-time SSE streaming implementation
+- **[Memory & Persistence](docs/memory-persistence.md)** - SQLite, File, and custom storage adapters
+- **[Orchestration Workflows](docs/orchestration-workflows.md)** - Multi-agent patterns: pipelines, handoffs, delegation
+
+See the [docs/](docs/) folder for all guides.
 
 ---
 

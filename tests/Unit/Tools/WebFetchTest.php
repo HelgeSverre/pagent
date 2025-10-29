@@ -88,7 +88,10 @@ test('it blocks 127.0.0.0/8 loopback range', function () {
 });
 
 test('it allows SSRF protection to be disabled', function () {
-    $tool = new WebFetch(ssrfProtection: false);
+    $tool = new WebFetch(
+        ssrfProtection: false,
+        timeout: 1, // Short timeout to avoid long waits
+    );
 
     // Should not throw on private IPs when protection is disabled
     // (test will fail to fetch, but won't throw SSRF error)
@@ -157,6 +160,7 @@ test('it prevents header injection via newlines', function () {
     }
 });
 
+// TODO: implement or remove.
 test('it enforces max redirects', function () {
     // The tool is configured with max_redirects => 5
     // This test documents the configuration exists
@@ -165,3 +169,357 @@ test('it enforces max redirects', function () {
     expect($tool)->toBeInstanceOf(WebFetch::class);
     // Actual redirect testing would require a test server
 })->skip('Requires HTTP test server to properly test redirect limits');
+
+// ========================================
+// ALLOW LIST TESTS (WHITELIST MODE)
+// ========================================
+
+test('allow list permits exact domain match', function () {
+    $tool = new WebFetch(allowList: ['example.com']);
+
+    // Will fail to fetch but should pass allow list check
+    try {
+        $tool->execute(['url' => 'http://example.com/path']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+    }
+});
+
+test('allow list blocks non-matching domain', function () {
+    $tool = new WebFetch(allowList: ['example.com']);
+
+    expect(fn () => $tool->execute(['url' => 'http://other.com']))
+        ->toThrow(RuntimeException::class, 'URL not in allow list');
+});
+
+test('allow list supports wildcard subdomain matching', function () {
+    $tool = new WebFetch(allowList: ['*.example.com']);
+
+    // Should allow subdomains
+    try {
+        $tool->execute(['url' => 'http://api.example.com']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+    }
+
+    try {
+        $tool->execute(['url' => 'http://www.example.com']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+    }
+});
+
+test('allow list wildcard does not match parent domain', function () {
+    $tool = new WebFetch(allowList: ['*.example.com']);
+
+    // Should NOT allow the parent domain itself
+    expect(fn () => $tool->execute(['url' => 'http://example.com']))
+        ->toThrow(RuntimeException::class, 'URL not in allow list');
+});
+
+test('allow list supports URL path pattern matching', function () {
+    $tool = new WebFetch(allowList: ['api.github.com/repos/*']);
+
+    // Should allow matching paths
+    try {
+        $tool->execute(['url' => 'http://api.github.com/repos/user/repo']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+    }
+});
+
+test('allow list blocks non-matching URL paths', function () {
+    $tool = new WebFetch(allowList: ['api.github.com/repos/*']);
+
+    expect(fn () => $tool->execute(['url' => 'http://api.github.com/users/test']))
+        ->toThrow(RuntimeException::class, 'URL not in allow list');
+});
+
+test('allow list bypasses SSRF protection for localhost', function () {
+    $tool = new WebFetch(
+        ssrfProtection: true,
+        allowList: ['localhost', '127.0.0.1'],
+        timeout: 1
+    );
+
+    // Should pass SSRF check even though localhost is normally blocked
+    try {
+        $tool->execute(['url' => 'http://localhost:8080']);
+    } catch (RuntimeException $e) {
+        // Should fail on network, not SSRF
+        expect($e->getMessage())->not->toContain('SSRF protection');
+    }
+
+    try {
+        $tool->execute(['url' => 'http://127.0.0.1:8080']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('SSRF protection');
+    }
+});
+
+test('allow list bypasses SSRF protection for private IPs', function () {
+    $tool = new WebFetch(
+        ssrfProtection: true,
+        allowList: ['192.168.1.0/24'],
+        timeout: 1
+    );
+
+    // Should pass SSRF check for allowed private IP range
+    try {
+        $tool->execute(['url' => 'http://192.168.1.100']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('SSRF protection');
+    }
+});
+
+test('allow list is case-insensitive', function () {
+    $tool = new WebFetch(allowList: ['EXAMPLE.COM']);
+
+    try {
+        $tool->execute(['url' => 'http://example.com']);
+        // If we get here, test passes (no allow list rejection)
+        expect(true)->toBeTrue();
+    } catch (RuntimeException $e) {
+        // If it throws, assert it's NOT an allow list error
+        expect($e->getMessage())->not->toContain('not in allow list');
+    }
+
+    try {
+        $tool->execute(['url' => 'http://Example.Com']);
+        expect(true)->toBeTrue();
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+    }
+});
+
+test('allow list supports multiple patterns', function () {
+    $tool = new WebFetch(allowList: ['example.com', '*.github.com', 'api.twitter.com']);
+
+    try {
+        $tool->execute(['url' => 'http://example.com']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+    }
+
+    try {
+        $tool->execute(['url' => 'http://api.github.com']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+    }
+
+    try {
+        $tool->execute(['url' => 'http://api.twitter.com']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+    }
+});
+
+// ========================================
+// DISALLOW LIST TESTS (BLACKLIST MODE)
+// ========================================
+
+test('disallow list blocks exact domain match', function () {
+    $tool = new WebFetch(disallowList: ['blocked.com']);
+
+    expect(fn () => $tool->execute(['url' => 'http://blocked.com']))
+        ->toThrow(RuntimeException::class, 'URL is in disallow list');
+});
+
+test('disallow list allows non-matching domains', function () {
+    $tool = new WebFetch(disallowList: ['blocked.com'], ssrfProtection: false);
+
+    // Should allow domains not in disallow list
+    try {
+        $tool->execute(['url' => 'http://allowed.com']);
+        expect(true)->toBeTrue();
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('disallow list');
+    }
+});
+
+test('disallow list supports wildcard patterns', function () {
+    $tool = new WebFetch(disallowList: ['*.blocked.com']);
+
+    expect(fn () => $tool->execute(['url' => 'http://api.blocked.com']))
+        ->toThrow(RuntimeException::class, 'URL is in disallow list');
+
+    expect(fn () => $tool->execute(['url' => 'http://www.blocked.com']))
+        ->toThrow(RuntimeException::class, 'URL is in disallow list');
+});
+
+test('disallow list supports URL path patterns', function () {
+    $tool = new WebFetch(disallowList: ['example.com/admin/*']);
+
+    expect(fn () => $tool->execute(['url' => 'http://example.com/admin/users']))
+        ->toThrow(RuntimeException::class, 'URL is in disallow list');
+});
+
+test('disallow list allows non-matching paths', function () {
+    $tool = new WebFetch(
+        disallowList: ['example.com/admin/*'],
+        ssrfProtection: false
+    );
+
+    try {
+        $tool->execute(['url' => 'http://example.com/public/api']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('disallow list');
+    }
+});
+
+test('disallow list is case-insensitive', function () {
+    $tool = new WebFetch(disallowList: ['BLOCKED.COM']);
+
+    expect(fn () => $tool->execute(['url' => 'http://blocked.com']))
+        ->toThrow(RuntimeException::class, 'URL is in disallow list');
+
+    expect(fn () => $tool->execute(['url' => 'http://Blocked.Com']))
+        ->toThrow(RuntimeException::class, 'URL is in disallow list');
+});
+
+test('disallow list does not bypass SSRF protection', function () {
+    $tool = new WebFetch(
+        ssrfProtection: true,
+        disallowList: ['external-blocked.com']
+    );
+
+    // SSRF protection should still block private IPs
+    expect(fn () => $tool->execute(['url' => 'http://192.168.1.1']))
+        ->toThrow(RuntimeException::class, 'SSRF protection');
+
+    expect(fn () => $tool->execute(['url' => 'http://localhost']))
+        ->toThrow(RuntimeException::class, 'SSRF protection');
+});
+
+test('disallow list supports multiple patterns', function () {
+    $tool = new WebFetch(disallowList: ['spam.com', 'malware.net', '*.ads.com']);
+
+    expect(fn () => $tool->execute(['url' => 'http://spam.com']))
+        ->toThrow(RuntimeException::class, 'URL is in disallow list');
+
+    expect(fn () => $tool->execute(['url' => 'http://malware.net']))
+        ->toThrow(RuntimeException::class, 'URL is in disallow list');
+
+    expect(fn () => $tool->execute(['url' => 'http://tracker.ads.com']))
+        ->toThrow(RuntimeException::class, 'URL is in disallow list');
+});
+
+// ========================================
+// PRECEDENCE TESTS
+// ========================================
+
+test('allow list ignores disallow list when non-empty', function () {
+    $tool = new WebFetch(
+        allowList: ['example.com'],
+        disallowList: ['example.com'] // This should be ignored
+    );
+
+    // Should be allowed because allowList takes precedence
+    try {
+        $tool->execute(['url' => 'http://example.com']);
+        expect(true)->toBeTrue();
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+        expect($e->getMessage())->not->toContain('disallow list');
+    }
+});
+
+test('empty allow list uses disallow list', function () {
+    $tool = new WebFetch(
+        allowList: [], // Empty - should use disallow list
+        disallowList: ['blocked.com']
+    );
+
+    expect(fn () => $tool->execute(['url' => 'http://blocked.com']))
+        ->toThrow(RuntimeException::class, 'URL is in disallow list');
+});
+
+test('both empty allows all domains (default behavior)', function () {
+    $tool = new WebFetch(
+        ssrfProtection: false, // Disable SSRF to test only allow/disallow logic
+        allowList: [],
+        disallowList: []
+    );
+
+    // Should not throw any allow/disallow errors
+    $passed = false;
+    try {
+        $tool->execute(['url' => 'http://any-domain.com']);
+        $passed = true; // No restrictions applied
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('allow list');
+        expect($e->getMessage())->not->toContain('disallow list');
+        $passed = true;
+    }
+    expect($passed)->toBeTrue();
+});
+
+test('allow list with different domain blocks others', function () {
+    $tool = new WebFetch(
+        allowList: ['allowed.com'],
+        disallowList: ['other.com']
+    );
+
+    // Should block because not in allowList (disallowList is ignored)
+    expect(fn () => $tool->execute(['url' => 'http://other.com']))
+        ->toThrow(RuntimeException::class, 'URL not in allow list');
+});
+
+// ========================================
+// EDGE CASES
+// ========================================
+
+test('empty pattern in allow list is handled', function () {
+    $tool = new WebFetch(allowList: ['', 'example.com']);
+
+    // Empty pattern should not break matching
+    $passed = false;
+    try {
+        $tool->execute(['url' => 'http://example.com']);
+        $passed = true; // Successfully matched valid pattern
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+        $passed = true;
+    }
+    expect($passed)->toBeTrue();
+});
+
+test('wildcard in middle of domain pattern works', function () {
+    $tool = new WebFetch(allowList: ['api.*.example.com']);
+
+    try {
+        $tool->execute(['url' => 'http://api.staging.example.com']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+    }
+});
+
+test('multiple wildcards in pattern work', function () {
+    $tool = new WebFetch(allowList: ['*.api.*.com']);
+
+    try {
+        $tool->execute(['url' => 'http://v1.api.example.com']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+    }
+});
+
+test('URL with query parameters matches domain pattern', function () {
+    $tool = new WebFetch(allowList: ['example.com']);
+
+    try {
+        $tool->execute(['url' => 'http://example.com/path?foo=bar&baz=qux']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+    }
+});
+
+test('URL with port matches domain pattern', function () {
+    $tool = new WebFetch(allowList: ['localhost']);
+
+    try {
+        $tool->execute(['url' => 'http://localhost:8080/api']);
+    } catch (RuntimeException $e) {
+        expect($e->getMessage())->not->toContain('not in allow list');
+    }
+});

@@ -320,6 +320,20 @@ final class Agent
         return $this->name;
     }
 
+    /**
+     * Add multiple tools at once for convenience.
+     *
+     * @param  ToolInterface[]  $tools  Array of tool instances
+     */
+    public function tools(array $tools): self
+    {
+        foreach ($tools as $tool) {
+            $this->tool($tool);
+        }
+
+        return $this;
+    }
+
     public function tool(string|ToolInterface $nameOrTool, ?string $description = null, ?Closure $callable = null): self
     {
         if ($nameOrTool instanceof ToolInterface) {
@@ -627,6 +641,10 @@ final class Agent
             return array_map(fn ($tool) => $tool->toOpenAISchema(), $this->tools);
         }
 
+        if (str_contains($provider, 'Ollama')) {
+            return array_map(fn ($tool) => $tool->toOpenAISchema(), $this->tools);
+        }
+
         return [];
     }
 
@@ -639,13 +657,18 @@ final class Agent
         if (isset($response->raw_content)) {
             $assistantMessage['content'] = $response->raw_content;
         } elseif (! empty($response->tool_calls)) {
-            // For OpenAI, add tool_calls
+            // Check if provider is Ollama
+            $provider = get_class($this->provider);
+            $isOllama = str_contains($provider, 'Ollama');
+
+            // For OpenAI and Ollama, add tool_calls
             $assistantMessage['tool_calls'] = array_map(fn ($call) => [
                 'id' => $call['id'],
                 'type' => 'function',
                 'function' => [
                     'name' => $call['name'],
-                    'arguments' => json_encode($call['arguments']),
+                    // Ollama expects arguments as object/array, OpenAI expects JSON string
+                    'arguments' => $isOllama ? $call['arguments'] : json_encode($call['arguments']),
                 ],
             ], $response->tool_calls);
         }
@@ -654,7 +677,8 @@ final class Agent
 
         // Execute each tool call
         foreach ($response->tool_calls as $toolCall) {
-            $result = $this->executeTool($toolCall['name'], $toolCall['arguments']);
+            $arguments = $this->normalizeToolCallArguments($toolCall);
+            $result = $this->executeTool($toolCall['name'], $arguments);
 
             // Add tool result to messages
             $provider = get_class($this->provider);
@@ -690,6 +714,48 @@ final class Agent
         }
 
         return $this->provider->prompt('', $options);
+    }
+
+    /**
+     * Normalize tool call arguments to ensure consistent format.
+     * Handles edge cases where providers might return different formats.
+     *
+     * @param  array  $toolCall  The tool call array from the provider
+     * @return array The normalized arguments as an associative array
+     */
+    private function normalizeToolCallArguments(array $toolCall): array
+    {
+        // Try 'arguments' key first (OpenAI and normalized Anthropic)
+        $arguments = $toolCall['arguments'] ?? null;
+
+        // Fallback to 'input' key (raw Anthropic format)
+        if ($arguments === null && isset($toolCall['input'])) {
+            $arguments = $toolCall['input'];
+        }
+
+        // If still null, return empty array
+        if ($arguments === null) {
+            return [];
+        }
+
+        // If it's a JSON string, decode it
+        if (is_string($arguments)) {
+            $decoded = json_decode($arguments, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+
+            // If JSON decode failed, return empty array (invalid JSON)
+            return [];
+        }
+
+        // If it's already an array, return it
+        if (is_array($arguments)) {
+            return $arguments;
+        }
+
+        // For any other type, return empty array
+        return [];
     }
 
     /**

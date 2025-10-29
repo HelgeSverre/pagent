@@ -92,6 +92,14 @@ $report->save('reports/evaluation.md');   // Markdown
 
 ## 🤝 Multi-Agent Orchestration
 
+Pagent provides three orchestration patterns for coordinating multiple agents:
+
+1. **Pipeline** - Sequential processing through multiple agents
+2. **Handoff** - Transfer conversations between specialist agents
+3. **Delegation** - Manager-worker pattern with supervision
+
+**Note**: Advanced routing patterns (conditional router, swarm intelligence) are planned for future releases. See `DEVELOPMENT_ROADMAP.md` for details.
+
 ### 1. Pipeline (Sequential Processing)
 
 **What it does**: Chains multiple agents sequentially, passing output from one to the next.

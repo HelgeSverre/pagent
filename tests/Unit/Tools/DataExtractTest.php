@@ -127,13 +127,55 @@ test('it has configurable model', function () {
 // ========================================
 
 test('it handles malformed JSON responses', function () {
-    // Mock provider to return invalid JSON
-    // Expected: Should throw RuntimeException with 'Failed to parse extracted data'
-    expect(true)->toBeTrue();
-})->skip('Requires provider mocking to inject malformed JSON');
+    $mockProvider = new class implements \Pagent\Contracts\Provider
+    {
+        public function prompt(string $message, array $options = []): object
+        {
+            return (object) [
+                'content' => 'invalid{json}]',
+                'model' => 'mock',
+                'tokens' => 50,
+                'provider' => 'mock',
+            ];
+        }
+    };
+
+    $tool = new DataExtract($mockProvider);
+
+    expect(fn () => $tool->execute([
+        'text' => 'John Doe is 30 years old',
+        'schema' => ['type' => 'object', 'properties' => ['name' => ['type' => 'string']]],
+    ]))->toThrow(RuntimeException::class, 'Failed to parse extracted data');
+});
 
 test('it returns parsed data on valid JSON', function () {
-    // Mock provider to return valid JSON response
-    // Expected: Should return ['data' => parsed, 'schema' => schema]
-    expect(true)->toBeTrue();
-})->skip('Requires provider mocking to inject valid JSON response');
+    $mockProvider = new class implements \Pagent\Contracts\Provider
+    {
+        public function prompt(string $message, array $options = []): object
+        {
+            return (object) [
+                'content' => '{"name":"John Doe","age":30}',
+                'model' => 'mock',
+                'tokens' => 50,
+                'provider' => 'mock',
+            ];
+        }
+    };
+
+    $tool = new DataExtract($mockProvider);
+
+    $result = $tool->execute([
+        'text' => 'John Doe is 30 years old',
+        'schema' => [
+            'type' => 'object',
+            'properties' => [
+                'name' => ['type' => 'string'],
+                'age' => ['type' => 'integer'],
+            ],
+        ],
+    ]);
+
+    expect($result)->toHaveKey('data');
+    expect($result)->toHaveKey('schema');
+    expect($result['data'])->toBe(['name' => 'John Doe', 'age' => 30]);
+});
