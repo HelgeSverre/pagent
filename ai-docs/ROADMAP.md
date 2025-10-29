@@ -1,596 +1,113 @@
-# Pagent Development Roadmap
+# Pagent Roadmap
 
-**Consolidated development plan combining roadmap, next steps, and task tracking**
+**Last Updated:** 2025-10-29
+**Current Version:** v0.6.0 (Memory & Persistence)
+**Status:** Production-ready, actively developed
+
+This roadmap provides a chronological view of Pagent's feature development, organized by version releases.
 
 ---
 
-## 🎉 Current Status - v0.5.1 (Workflow & Tools Ready!)
+## ✅ v0.1.0-v0.5.0 - Foundation (Completed)
 
-### What We've Built
+**Status:** Released
+**Timeline:** Initial development
 
-**Core Features:**
+### Core Features
 
 - ✅ Fluent API inspired by PestPHP
 - ✅ Multi-provider support (Anthropic Claude, OpenAI GPT, Mock)
 - ✅ Automatic tool calling with JSON schema generation
-- ✅ Safety guards (PII detection, content filtering, prompt injection prevention)
+- ✅ Safety guards (PII detection, content filtering, prompt injection)
 - ✅ Evaluation framework (datasets, metrics, HTML/JSON/MD reports)
-- ✅ Middleware pipeline (logging, rate limiting, metrics tracking)
-- ✅ Multi-agent orchestration (pipeline, handoff, delegation patterns)
-- ✅ **Workflow patterns** (Chain, Pipeline with named steps & transforms)
-- ✅ **8 Built-in Tools** (FileRead, FileWrite, Glob, Grep, WebFetch, Bash, PdfReader, DataExtract)
-- ✅ Tool validation with type checking
+- ✅ Middleware pipeline (logging, rate limiting, metrics)
 - ✅ Conversation history and context management
-- ✅ Complete documentation (5 different guide styles)
+- ✅ 8 Built-in tools (FileRead, FileWrite, Glob, Grep, WebFetch, Bash, PdfReader, DataExtract)
+- ✅ Tool validation with type checking
+- ✅ PHPStan level 9 compliance
+- ✅ PHP 8.3 full type safety
 
-**Metrics:**
+### Metrics
 
-- 📊 **229 tests** passing (508 assertions)
-- 🎯 **99%+ pass rate**
-- 📚 **11 working examples**
-- 🔒 **PHPStan level 9** (maximum strictness)
-- 🚀 **PHP 8.3** full type safety
-- 🛠️ **8 production-ready tools** with security guards
-- 🔄 **2 workflow patterns** (Chain, Pipeline)
-- 📖 **100 article ideas** planned
-- 🎨 **5 documentation styles** (Conversational, Recipes, Quick Start, Concepts, API Reference)
+- 📊 229 tests passing (508 assertions)
+- 🎯 99%+ pass rate
+- 📚 11 working examples
+- 🛠️ 8 production-ready tools
+- 📖 5 documentation styles
 
-**Recent Additions (v0.5.1):**
+---
+
+## ✅ v0.5.1 - Workflow Patterns (Completed)
+
+**Status:** Released
+**Effort:** 4-6 hours
+**Timeline:** Week 1-2
+
+### Features
 
 - ✅ **Chain Workflow** - Simple sequential agent execution
-- ✅ **Pipeline Workflow** - Named steps with intermediate results access
-- ✅ **Transform steps** - Data manipulation between agent calls
-- ✅ **8 Built-in Tools:**
-  - FileRead - Read files with security guards
-  - FileWrite - Write/create files safely
-  - Glob - Find files with `**/*.php` patterns
-  - Grep - Search text/regex in files
-  - WebFetch - HTTP GET with SSRF protection
-  - Bash - Execute shell commands (whitelisted)
-  - PdfReader - Extract text from PDFs (pdftotext)
-  - DataExtract - Structured extraction with JSON Schema
-- ✅ **Security features:** Path traversal prevention, SSRF protection, command whitelisting
-- ✅ **46 tool tests** with comprehensive coverage
+- ✅ **Pipeline Workflow** - Named steps with intermediate results
+- ✅ **Transform Steps** - Data manipulation between agent calls
+- ✅ **WorkflowResult/StepResult** - Shared result classes
+- ✅ 2 workflow examples
+
+### Implementation
+
+- `src/Workflow/Chain.php`
+- `src/Workflow/Pipeline.php`
+- `src/Workflow/WorkflowResult.php`
+- `src/Workflow/StepResult.php`
+- `src/Workflow/Metadata.php`
 
 ---
 
-## 🎯 Next 10 Innovation Features
+## ✅ v0.6.0 - Memory & Persistence (Completed)
 
-**Updated:** 2025-10-28
-**Focus:** New capabilities & cutting-edge patterns
-**Timeline:** 2-3 months (40-60 hours total)
+**Status:** Released
+**Effort:** 8-10 hours (actual)
+**Timeline:** Month 1
 
-### 🚀 Game-Changing Features (High Impact)
+### Features
 
-1. **Streaming Support (SSE + WebSocket)** 🌊 GAME CHANGER
-   - **Time:** 4-5 hours
-   - **Impact:** Real-time responses, better UX, ChatGPT-like experience
-   - **Value:** Users see responses as they're generated
-   - **Version:** v0.7.0
+- ✅ **Streaming Support (SSE)** - Real-time response streaming
+- ✅ **Memory Persistence** - Long-running conversations
+  - SQLite adapter (production-ready)
+  - File adapter (development/single-user)
+  - Null adapter (no persistence)
+- ✅ **Context Window Management** - Token counting and pruning
+- ✅ **Session Management** - Multi-user isolation
+- ✅ **Bulk Tool Addition** - `Agent::tools()` method
 
-   ```php
-   agent('assistant')->streamTo(function($chunk) {
-       echo "data: {$chunk}\n\n";
-       flush();
-   });
+### Metrics
 
-   // WebSocket support
-   agent('chat')->websocket('ws://localhost:8080');
-   ```
+- ✅ 265+ tests passing (all green)
+- ✅ 21 streaming tests
+- ✅ 77 memory/persistence tests
+- ✅ 3 memory examples
+- ✅ 820-line memory-persistence.md guide
 
-2. **HTTP Server Integration** 🌐 GAME CHANGER
-   - **Time:** 6-8 hours
-   - **Impact:** Deploy agents as microservices, API endpoints
-   - **Value:** Create chatbot APIs, webhooks, mobile backends
-   - **Version:** v0.7.0
+### Implementation
 
-   ```php
-   agent('support-bot')
-       ->serve([
-           'host' => '0.0.0.0',
-           'port' => 8080,
-           'path' => '/api/chat',
-           'auth' => ['bearer' => env('API_TOKEN')],
-           'stream' => true
-       ]);
-   ```
-
-3. **Memory & Persistence Layer** 💾 ✅ COMPLETED (v0.6.0)
-   - **Time:** 4 hours (actual)
-   - **Impact:** Long-running conversations, context retention
-   - **Value:** Support agents with history, session management
-   - **Delivered:** SQLite, File, Null adapters + Context Manager
-
-   ```php
-   agent('support')
-       ->memory('sqlite', ['path' => 'conversations.db'])
-       ->sessionId('user-123')
-       ->contextWindow(100000)
-       ->prompt('Hello');
-
-   // Context window management with pruning
-   agent('chat')
-       ->memory('file', ['path' => 'storage/sessions'])
-       ->contextWindow(50000, 'sliding');
-   ```
-
-4. **OpenTelemetry Observability** 📊 PRODUCTION READY
-   - **Time:** 10-15 hours
-   - **Impact:** Production monitoring, debugging, cost tracking
-   - **Value:** Langfuse, Langsmith, Phoenix integration
-   - **Version:** v0.6.0
-   ```php
-   agent('bot')
-       ->observability('langfuse', [
-           'public_key' => env('LANGFUSE_KEY'),
-           'trace_id' => 'session-' . uniqid(),
-       ])
-       ->prompt('Hello'); // Automatically traced
-   ```
-
-### 🧠 Advanced Reasoning Patterns (Innovation)
-
-5. **ReAct Pattern (Reasoning + Acting)** 🤖 CUTTING EDGE
-   - **Time:** 3-4 hours
-   - **Impact:** Self-directed problem-solving agents
-   - **Value:** Agents that think through problems step-by-step
-   - **Version:** v0.8.0
-
-   ```php
-   agent('solver')->react(
-       thought: 'I need to calculate the total',
-       action: fn() => $this->tool('calculate', [10, 20]),
-       observation: fn($result) => "The result is {$result}",
-   );
-   ```
-
-6. **Chain-of-Thought Reasoning** 🧩 CUTTING EDGE
-   - **Time:** 3-4 hours
-   - **Impact:** Improved accuracy on complex tasks
-   - **Value:** Break down complex problems systematically
-   - **Version:** v0.8.0
-
-   ```php
-   agent('math')->chainOfThought()
-       ->step('Understand the problem')
-       ->step('Break into sub-problems')
-       ->step('Solve each sub-problem')
-       ->step('Combine results')
-       ->validate(fn($output) => /* check */);
-   ```
-
-7. **Tree of Thoughts (Multi-Path Exploration)** 🌳 RESEARCH GRADE
-   - **Time:** 5-6 hours
-   - **Impact:** Explore multiple solution paths
-   - **Value:** Find optimal solutions through parallel reasoning
-   - **Version:** v0.8.0
-   ```php
-   agent('planner')->treeOfThoughts([
-       'branches' => 3,  // 3 different approaches
-       'depth' => 2,     // 2 levels deep
-       'selector' => fn($branches) => /* pick best */,
-   ]);
-   ```
-
-### 🤝 Multi-Agent Orchestration (Collaboration)
-
-8. **Swarm Intelligence (Voting & Consensus)** 🐝 INNOVATIVE
-   - **Time:** 4-5 hours
-   - **Impact:** Democratic decision-making across agents
-   - **Value:** Reduce hallucinations, improve reliability
-   - **Version:** v0.8.0
-
-   ```php
-   swarm(['agent1', 'agent2', 'agent3'])
-       ->vote('What should we do?')
-       ->consensus(threshold: 0.7);
-   ```
-
-9. **Conditional Router (Dynamic Selection)** 🔀 HIGH VALUE
-   - **Time:** 2-3 hours
-   - **Impact:** Smart agent selection based on intent
-   - **Value:** Customer support routing, multi-domain bots
-   - **Version:** v0.8.0
-
-   ```php
-   router()
-       ->when('intent' === 'technical', agent('tech-support'))
-       ->when('intent' === 'billing', agent('billing'))
-       ->default(agent('general'));
-   ```
-
-10. **Parallel Agent Execution** ⚡ PERFORMANCE
-    - **Time:** 3-4 hours
-    - **Impact:** Concurrent task processing
-    - **Value:** Translate + summarize + analyze simultaneously
-    - **Version:** v0.8.0
-    ```php
-    parallel([
-        agent('translator')->task('Translate to Spanish'),
-        agent('summarizer')->task('Create summary'),
-        agent('analyzer')->task('Analyze sentiment'),
-    ])->await();
-    ```
-
-### 📊 Summary
-
-**Total Estimated Time:** 45-63 hours
-**Game Changers:** 24-33 hours (Tasks 1-4)
-**Reasoning Patterns:** 11-14 hours (Tasks 5-7)
-**Orchestration:** 9-12 hours (Tasks 8-10)
-
-**Recommended Order (Maximum Impact):**
-
-1. **Streaming Support** → Immediate UX improvement
-2. **HTTP Server** → Enables production deployments
-3. **ReAct Pattern** → Showcase advanced reasoning
-4. **Conditional Router** → Practical multi-agent systems
-5. **Memory & Persistence** → Long-running conversations
-6. **Swarm Intelligence** → Unique selling point
-7. **OpenTelemetry** → Production monitoring
-8. **Chain-of-Thought** → Advanced reasoning
-9. **Parallel Execution** → Performance optimization
-10. **Tree of Thoughts** → Research-grade feature
-
-**Quick Start Recommendations:**
-
-- Start with **Streaming** (4-5h) for immediate wow factor
-- Add **Conditional Router** (2-3h) for practical value
-- Implement **ReAct Pattern** (3-4h) to differentiate from competitors
-
-### 💡 Bonus: Experimental Features (Not Yet in Roadmap)
-
-11. **Semantic Caching** 🧠
-    - Cache responses based on semantic similarity, not exact match
-    - Use embeddings to detect similar prompts
-    - Reduce API costs by 40-60%
-
-12. **Human-in-the-Loop (HITL)** 👤
-
-    ```php
-    agent('approval-bot')
-        ->requireHumanApproval(
-            when: fn($action) => $action['risk'] === 'high',
-            notify: 'admin@example.com'
-        );
-    ```
-
-13. **Agent Marketplace/Registry** 🏪
-    - Community-shared agent configurations
-    - Pre-trained agents for common tasks
-    - One-line installation: `agent()->load('customer-support-v2')`
-
-14. **Auto-Tool Discovery** 🔍
-    - Agents automatically discover available tools
-    - LLM generates tool schemas from docblocks
-    - No manual tool registration needed
-
-15. **Multi-Modal Support** 🎨
-    - Image analysis, audio transcription, video processing
-    - Vision APIs integration (GPT-4 Vision, Claude Vision)
-    - Text-to-speech output streaming
-
-### 📊 Feature Impact Matrix
-
-```
-                            │ Implementation │ User      │ Market      │ Priority
-                            │ Time (hours)   │ Impact    │ Differentiation │ Score
-────────────────────────────┼────────────────┼───────────┼──────────────┼─────────
-1. Streaming Support        │ 4-5            │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐⭐     │ 9.5/10
-2. HTTP Server              │ 6-8            │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐⭐⭐   │ 9.8/10
-3. Memory & Persistence     │ 4-5            │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐       │ 8.5/10
-4. OpenTelemetry            │ 10-15          │ ⭐⭐⭐⭐   │ ⭐⭐⭐⭐     │ 8.0/10
-5. ReAct Pattern            │ 3-4            │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐⭐⭐   │ 9.5/10
-6. Chain-of-Thought         │ 3-4            │ ⭐⭐⭐⭐   │ ⭐⭐⭐⭐⭐   │ 9.0/10
-7. Tree of Thoughts         │ 5-6            │ ⭐⭐⭐     │ ⭐⭐⭐⭐⭐   │ 7.5/10
-8. Swarm Intelligence       │ 4-5            │ ⭐⭐⭐⭐   │ ⭐⭐⭐⭐⭐   │ 9.0/10
-9. Conditional Router       │ 2-3            │ ⭐⭐⭐⭐⭐ │ ⭐⭐⭐       │ 8.5/10
-10. Parallel Execution      │ 3-4            │ ⭐⭐⭐⭐   │ ⭐⭐⭐       │ 7.5/10
-────────────────────────────┴────────────────┴───────────┴──────────────┴─────────
-
-🏆 **Top 5 by ROI (Return on Investment):**
-1. HTTP Server (9.8) - Deploy agents as APIs instantly
-2. Streaming + ReAct (9.5 each) - UX + Intelligence
-3. Chain-of-Thought (9.0) - Advanced reasoning
-4. Swarm Intelligence (9.0) - Unique competitive advantage
-5. Memory & Persistence (8.5) - Long-term conversations
-```
-
-### 🎯 Suggested Development Sprints
-
-**Sprint 1 (Week 1-2): "Production Ready" - 10-13 hours**
-
-- Streaming Support (4-5h)
-- Conditional Router (2-3h)
-- Parallel Execution (3-4h)
-- **Result:** Real-time agents with smart routing
-
-**Sprint 2 (Week 3-4): "API Platform" - 6-8 hours**
-
-- HTTP Server Integration (6-8h)
-- **Result:** Deploy agents as microservices
-
-**Sprint 3 (Week 5-6): "Advanced Reasoning" - 10-14 hours**
-
-- ReAct Pattern (3-4h)
-- Chain-of-Thought (3-4h)
-- Swarm Intelligence (4-5h)
-- **Result:** State-of-the-art agent reasoning
-
-**Sprint 4 (Week 7-8): "Enterprise Features" - 14-20 hours**
-
-- Memory & Persistence (4-5h)
-- OpenTelemetry (10-15h)
-- **Result:** Production-grade monitoring & persistence
+- `src/Memory/` - Memory interfaces and adapters
+- `src/Streaming/` - Streaming classes and parsers
+- `docs/memory-persistence.md`
+- `docs/streaming.md`
+- `examples/11-memory-multi-session.php`
 
 ---
 
-## 🎯 Immediate Next Steps
+## 🚧 v0.7.0 - Observability & Usage Tracking (In Planning)
 
-### ✅ COMPLETED: v0.5.1 - Workflows & Tools
+**Status:** Planning
+**Effort:** 18-25 hours
+**Timeline:** Month 2-3
+**Plan:** See `ai-docs/plans/`
 
-**Implemented:**
+### Features
 
-- Chain and Pipeline workflow patterns
-- 8 production-ready tools with security guards
-- 46 tool tests passing
-- 2 workflow examples
+#### 1. OpenTelemetry Observability
 
-**Status:** Ready for use! 🎉
-
----
-
-### 🚀 Path A: Publish & Share (NEXT PRIORITY)
-
-**Time**: 3-4 hours  
-**Goal**: Make Pagent public and discoverable  
-**Priority**: HIGH
-
-#### Tasks:
-
-1. ✅ **GitHub Actions CI/CD** (1 hour) - COMPLETED
-   - ✅ PHP 8.3 matrix testing
-   - ✅ Run Pest test suite
-   - ✅ PHPStan static analysis
-   - ✅ Code style checks with Pint
-   - ✅ Release drafter workflow
-
-2. ⏳ **Publish to Packagist** (30 min) - READY TO PUBLISH
-   - ✅ Package name set as `helgesverre/pagent`
-   - ✅ GitHub repository linked
-   - ❌ Register on Packagist.org
-   - ❌ Enable automatic updates from GitHub releases
-
-3. ✅ **Polish README** (1 hour) - COMPLETED
-   - ✅ Installation via Composer documented
-   - ✅ Badges added (version, downloads, PHP version, license)
-   - ✅ v0.5.1 features highlighted
-   - ✅ Quick start guide updated
-   - ✅ Documentation links added
-
-4. ✅ **Create CONTRIBUTING.md** (30 min) - COMPLETED
-   - ✅ Contribution guidelines (7.6K comprehensive)
-   - ✅ Development setup instructions
-   - ✅ Testing requirements
-   - ✅ Code style guide
-   - ✅ Pull request process
-
-5. ❌ **Create Architecture Diagram** (1 hour) - NOT STARTED
-   - System overview (Mermaid diagram)
-   - Component relationships
-   - Data flow visualization
-   - Provider abstraction layer
-   - Tool calling architecture
-
-**Deliverables:**
-
-- ⏳ Public Packagist package (ready to publish)
-- ✅ Automated CI/CD testing
-- ✅ Community-ready documentation
-- ✅ Clear contribution path
-
----
-
-### 🔧 Path B: Enhanced Tools (HIGH VALUE)
-
-**Time**: 6-8 hours  
-**Goal**: More robust and feature-rich tool system  
-**Priority**: MEDIUM
-
-#### Features to Implement:
-
-```php
-// 1. Tool timeout
-agent('bot')
-    ->tool('slow-api', 'Call slow API', fn() => /* ... */)
-        ->timeout(5); // 5 second timeout
-
-// 2. Retry logic with exponential backoff
-agent('bot')
-    ->tool('flaky-api', 'Unreliable API', fn() => /* ... */)
-        ->retry(3, backoff: 'exponential');
-
-// 3. Return type validation
-agent('bot')
-    ->tool('get-age', 'Get user age', fn(): int => "thirty") // Runtime error!
-        ->validateReturnType();
-
-// 4. Attributes for better documentation
-#[Description('Get weather forecast for a location')]
-function getWeather(
-    #[Param('City name or coordinates')] string $location,
-    #[Param('Include 7-day forecast')] bool $includeForecast = false
-): array {
-    // Implementation
-}
-
-// 5. Built-in tool library
-use Pagent\Tools\{FileReader, WebFetcher, Calculator, DateFormatter};
-
-agent('assistant')
-    ->tool(new FileReader(maxSize: 1024 * 1024)) // 1MB limit
-    ->tool(new WebFetcher(timeout: 10))
-    ->tool(new Calculator())
-    ->tool(new DateFormatter());
-
-// 6. Tool error recovery
-agent('bot')
-    ->tool('api-call', 'Call API', fn() => /* ... */)
-        ->onError(fn($e) => ['error' => $e->getMessage(), 'status' => 'failed']);
-
-// 7. Tool Registry/Toolkit Pattern (user-space, documented)
-// Create reusable tool collections
-class FileToolkit {
-    public static function all(?string $baseDir = null): array {
-        return [
-            new FileRead($baseDir),
-            new FileWrite($baseDir),
-            new Glob($baseDir),
-            new Grep($baseDir),
-        ];
-    }
-}
-
-agent('assistant')->tools(FileToolkit::all('/project'));
-```
-
-#### Tasks:
-
-- [x] Bulk tool addition via `tools()` method (COMPLETED v0.6.0)
-- [ ] Tool timeout configuration (1-2 hours)
-- [ ] Retry logic with exponential backoff (2-3 hours)
-- [ ] Return type validation (1 hour)
-- [ ] PHP attribute parsing for descriptions (1-2 hours)
-- [ ] Built-in tool classes (2-3 hours)
-  - FileReader, WebFetcher, Calculator, DateFormatter
-- [ ] Better error messages with suggestions (1 hour)
-- [ ] **Toolkit Pattern** (Future consideration, 3-4 hours)
-  - Evaluate if community adopts user-space pattern
-  - Consider built-in toolkits (FileToolkit, WebToolkit, MathToolkit)
-  - Add `allTools()` helper if demand emerges
-  - Currently documented in FEATURES.md for user experimentation
-- [ ] **Evaluate spiral/json-schema-generator** for automatic schema generation (2-3 hours)
-  - https://github.com/spiral/json-schema-generator
-  - Generate JSON schemas from PHP DTOs automatically
-  - Replace manual schema generation with attribute-based approach
-  - Support PHPDoc constraints and validation rules
-
----
-
-## ✅ Quick Wins (COMPLETED!)
-
-**These have been implemented:**
-
-1. ✅ **Better error messages** - Includes suggestions for typos
-
-   ```php
-   // "Tool 'calc' not found. Did you mean 'calculate'? Available: add, multiply, divide"
-   ```
-
-2. ✅ **Reset methods** - Clear configuration
-
-   ```php
-   agent('bot')->clearTools();
-   agent('bot')->clearGuards();
-   agent('bot')->clearMiddleware();
-   agent('bot')->reset(); // Clear everything + messages
-   ```
-
-3. ✅ **Agent cloning** - Duplicate configuration
-
-   ```php
-   $bot2 = agent('bot1')->clone('bot2');
-   ```
-
-4. ✅ **Conversation export/import** - Save and restore state
-
-   ```php
-   $json = agent('bot')->exportConversation();
-   agent('bot')->importConversation($json);
-   ```
-
-5. ✅ **Usage statistics** - Track performance
-
-   ```php
-   $stats = agent('bot')->getStats(); // Total tokens, calls, duration
-   ```
-
-6. ✅ **Guard statistics** - Monitor security
-   ```php
-   $stats = agent('bot')->getGuardStats(); // Trigger counts per guard
-   ```
-
----
-
-## 📋 Version Roadmap
-
-### v0.5.0 - Publishing & Enhanced Tools
-
-**Target**: This week (3-4 hours for publishing, 6-8 hours for tools)  
-**Status**: Ready to start
-
-**Publishing (Priority: HIGH):**
-
-- [ ] Set up GitHub Actions CI/CD
-- [ ] Publish to Packagist
-- [ ] Add README badges
-- [ ] Create CONTRIBUTING.md
-- [ ] Create architecture diagram
-- [ ] Share and promote (Reddit, Twitter, awesome-php)
-
-**Enhanced Tools (Priority: MEDIUM):**
-
-- [ ] Tool timeout configuration
-- [ ] Retry logic with exponential backoff
-- [ ] Return type validation
-- [ ] PHP attributes for tool descriptions
-- [ ] Built-in tools library (FileReader, WebFetcher, Calculator, etc.)
-- [ ] Tool error recovery and fallbacks
-
-**Success Criteria:**
-
-- ✅ Published to Packagist
-- ✅ GitHub Actions CI/CD running
-- ✅ Tool timeout and retry support
-- ✅ 3+ built-in tools available
-- ✅ 175+ tests passing
-- ✅ Architecture diagram complete
-
----
-
-### v0.6.0 - Observability & Monitoring
-
-**Target**: Next month (10-15 hours)  
-**Status**: Planned
-
-**OpenTelemetry Integration:**
-
-Full observability with spans, traces, and events for production monitoring.
-
-```php
-// Automatic instrumentation
-agent('bot')
-    ->observability('langfuse', [
-        'public_key' => env('LANGFUSE_PUBLIC_KEY'),
-        'secret_key' => env('LANGFUSE_SECRET_KEY'),
-        'trace_id' => 'session-' . uniqid(),
-    ])
-    ->prompt('Hello'); // Automatically traced
-
-// Custom spans for specific operations
-agent('bot')->withSpan('database-query', function() {
-    return DB::query('SELECT ...');
-});
-
-// Manual event logging
-agent('bot')->logEvent('user-feedback', [
-    'rating' => 5,
-    'comment' => 'Excellent response',
-    'user_id' => auth()->id(),
-]);
-```
-
-**Features:**
+**Effort:** 10-15 hours | **Plan:** `ai-docs/plans/opentelemetry-observability-plan.md`
 
 - [ ] OpenTelemetry SDK integration
 - [ ] Automatic span creation for:
@@ -598,272 +115,366 @@ agent('bot')->logEvent('user-feedback', [
   - Tool execution with timing
   - Guard validation checks
   - Middleware processing
-  - Multi-agent handoffs and delegation
-- [ ] Support for multiple backends:
-  - Langfuse (https://langfuse.com)
-  - Langsmith (https://www.langsmith.com)
-  - Phoenix (https://phoenix.arize.com)
+  - Multi-agent handoffs
+- [ ] Platform integrations:
+  - Langfuse (LLM observability)
+  - Langsmith (LangChain ecosystem)
+  - Phoenix (Arize AI)
   - Generic OTLP exporters
-- [ ] Metadata enrichment (user ID, session ID, custom tags)
-- [ ] Cost tracking per trace
-- [ ] Token usage breakdown
+- [ ] Metadata enrichment (user ID, session ID, tags)
 - [ ] Error attribution with stack traces
-- [ ] Performance profiling and bottleneck detection
+- [ ] Performance profiling
+
+**API Preview:**
+
+```php
+agent('bot')
+    ->observability('langfuse', [
+        'public_key' => env('LANGFUSE_KEY'),
+        'trace_id' => 'session-' . uniqid(),
+    ])
+    ->prompt('Hello'); // Automatically traced
+
+agent('bot')->withSpan('database-query', function() {
+    return DB::query('SELECT ...');
+});
+
+agent('bot')->logEvent('user-feedback', [
+    'rating' => 5,
+    'comment' => 'Excellent',
+]);
+```
+
+#### 2. Cost & Token Usage Tracking
+
+**Effort:** 4-6 hours | **Plan:** `ai-docs/plans/cost-token-tracking-plan.md`
+
+- [ ] Track token usage (input, output, cached, total)
+- [ ] Calculate costs based on provider pricing
+- [ ] Budget enforcement (soft warnings, hard limits)
+- [ ] Usage analytics (by agent, session, provider)
+- [ ] Persistent storage (SQLite, File adapters)
+- [ ] Export capabilities (JSON, CSV, SQLite)
+- [ ] OpenTelemetry integration hook
+
+**API Preview:**
+
+```php
+agent('bot')
+    ->trackUsage([
+        'budget' => 10.00, // $10 USD max
+        'warn_at' => 0.8,  // Warn at 80%
+    ])
+    ->prompt('Hello');
+
+$usage = agent('bot')->getUsage();
+// ['input_tokens' => 120, 'output_tokens' => 450, 'cost' => 0.0234]
+
+// Session-level tracking
+agent('bot')
+    ->sessionId('user-123')
+    ->sessionBudget(5.00)
+    ->prompt('Hello');
+
+// Global analytics
+UsageTracker::summary(); // All agents
+UsageTracker::byAgent(); // Grouped by agent
+UsageTracker::bySession(); // Grouped by session
+```
+
+#### 3. MCP Server Support (Consumer)
+
+**Effort:** 6-8 hours | **Plan:** TBD
+
+- [ ] Connect to MCP (Model Context Protocol) servers
+- [ ] Discover available tools from MCP servers
+- [ ] Map MCP tools to Pagent tools automatically
+- [ ] Support stdio and HTTP MCP transports
+- [ ] Handle tool parameters and responses
+- [ ] Integration with existing tool system
+
+**API Preview:**
+
+```php
+// Connect to MCP server and auto-import tools
+agent('bot')
+    ->mcpServer('filesystem', [
+        'transport' => 'stdio',
+        'command' => 'npx',
+        'args' => ['-y', '@modelcontextprotocol/server-filesystem'],
+    ])
+    ->prompt('List files in /tmp');
+
+// Or HTTP transport
+agent('bot')
+    ->mcpServer('api', [
+        'transport' => 'http',
+        'url' => 'http://localhost:3000/mcp',
+    ])
+    ->prompt('Get user data');
+```
 
 **References:**
 
-- Mistral AI Observability: https://docs.mistral.ai/guides/observability/#integrations
-- OpenTelemetry PHP: https://opentelemetry.io/docs/languages/php/
+- MCP Specification: https://modelcontextprotocol.io/
+- MCP PHP: https://github.com/modelcontextprotocol/php-sdk
+
+#### 4. TOON Integration (Attribute-based Tool Definition)
+**Effort:** 3-4 hours | **Plan:** TBD
+
+- [ ] Integrate helgesverre/toon-php for tool definition
+- [ ] Support PHP attribute-based tool schemas
+- [ ] Automatic JSON schema generation from attributes
+- [ ] Type-safe tool parameter validation
+- [ ] Backward compatible with existing tool system
+- [ ] Enhanced DX for defining tools
+
+**API Preview:**
+```php
+use Toon\Tool;
+use Toon\ToolParameter;
+
+#[Tool(
+    name: 'get_weather',
+    description: 'Get weather forecast for a location'
+)]
+class GetWeatherTool
+{
+    public function __invoke(
+        #[ToolParameter(description: 'City name or coordinates')]
+        string $location,
+
+        #[ToolParameter(description: 'Include 7-day forecast')]
+        bool $includeForecast = false
+    ): array {
+        // Implementation
+        return ['temp' => 72, 'conditions' => 'sunny'];
+    }
+}
+
+// Use with Pagent
+agent('bot')
+    ->toonTool(new GetWeatherTool())
+    ->prompt('What is the weather in Paris?');
+
+// Or auto-discover tools
+agent('bot')
+    ->discoverToonTools(__DIR__ . '/tools')
+    ->prompt('Help me plan my trip');
+```
+
+**Benefits:**
+- Cleaner tool definitions with attributes
+- Automatic schema generation (no manual JSON)
+- Better IDE support and type checking
+- Reusable tool classes
+- Standards-compliant with OpenAI function calling
+
+**References:**
+- TOON (TypeScript): https://github.com/johannschopplich/toon
+- TOON PHP: https://github.com/helgesverre/toon-php
 
 ---
 
-### v0.7.0 - Memory, Streaming & HTTP Server
+## 📋 v0.8.0 - Advanced Workflows & Patterns (Planned)
 
-**Target**: 2-3 months (20-25 hours)  
-**Status**: Planned
+**Status:** Planned
+**Effort:** 20-28 hours
+**Timeline:** Month 3-4
+**Plan:** See `ai-docs/plans/workflow-orchestration-plan.md`
 
-#### Memory & Persistence
+### Features
 
-Persistent storage for long-running conversations and knowledge accumulation.
+#### 1. Workflow (Branching Logic)
 
-**Features:**
+**Effort:** 3-4 hours
 
-- [ ] Persistent conversation storage (SQLite, Redis, MySQL)
-- [ ] Automatic conversation summarization for long contexts
-- [ ] Context window management with intelligent pruning
-- [ ] Session management with TTL and expiration
-- [ ] Vector storage integration (Pinecone, Weaviate, Qdrant)
-- [ ] RAG (Retrieval-Augmented Generation) support
-- [ ] Knowledge base tools for document retrieval
+- [ ] Conditional routing based on agent output
+- [ ] Branch to different agents based on conditions
+- [ ] Merge results from multiple branches
+- [ ] Customer support triage patterns
 
-```php
-// SQLite persistence
-agent('support')
-    ->memory('sqlite', ['path' => 'storage/conversations.db'])
-    ->sessionId('user-' . auth()->id());
-
-// Redis with TTL
-agent('chat')
-    ->memory('redis', ['host' => 'localhost', 'ttl' => 3600]);
-
-// Vector storage for RAG
-agent('research')
-    ->memory('pinecone', ['api_key' => '...', 'index' => 'docs'])
-    ->tool('search-docs', 'Search knowledge base', fn($query) => /* vector search */);
-```
-
-#### Streaming Support
-
-Real-time output for better user experience.
-
-**Features:**
-
-- [ ] Server-Sent Events (SSE) for streaming responses
-- [ ] WebSocket integration
-- [ ] Progress callbacks during execution
-- [ ] Chunk-by-chunk processing
-- [ ] Streaming tool results
-- [ ] Cancellation support
+**API Preview:**
 
 ```php
-// SSE streaming
-agent('assistant')->streamTo(function($chunk) {
-    echo "data: {$chunk}\n\n";
-    flush();
-});
-
-// Progress callback
-agent('worker')->onProgress(function($status) {
-    Log::info("Progress: {$status}");
-});
+Workflow::create()
+    ->start(agent('intake'))
+    ->then(agent('classifier'))
+    ->branch(fn($r) => match($r->type) {
+        'tech' => agent('tech-support'),
+        'billing' => agent('billing'),
+        default => agent('general'),
+    })
+    ->run($message);
 ```
 
-#### HTTP Server Integration
+#### 2. Graph (Full DAG)
 
-Deploy agents as HTTP services (inspired by Bun.serve()).
+**Effort:** 5-6 hours
 
-**Features:**
+- [ ] Node-based workflow definition
+- [ ] Edge connections with conditions
+- [ ] Cycle detection (DFS algorithm)
+- [ ] Mermaid diagram visualization
+- [ ] Complex approval workflows
+
+**API Preview:**
+
+```php
+Graph::create()
+    ->node('start', agent('intake'))
+    ->node('classify', agent('classifier'))
+    ->node('tech', agent('tech-support'))
+    ->node('billing', agent('billing'))
+    ->edge('start', 'classify')
+    ->edge('classify', 'tech', when: fn($r) => $r->type === 'tech')
+    ->edge('classify', 'billing', when: fn($r) => $r->type === 'billing')
+    ->run('start', $input);
+```
+
+#### 3. Parallel Execution
+
+**Effort:** 2-3 hours
+
+- [ ] Sequential execution (default, always available)
+- [ ] Optional true parallelism (pcntl/amphp/ReactPHP)
+- [ ] Result merging and aggregation
+- [ ] Multi-source data collection
+
+**API Preview:**
+
+```php
+parallel([
+    agent('translator')->task('Translate to Spanish'),
+    agent('summarizer')->task('Create summary'),
+    agent('analyzer')->task('Analyze sentiment'),
+])->await();
+```
+
+#### 4. Advanced Reasoning Patterns
+
+**Effort:** 10-15 hours
+
+- [ ] **ReAct Pattern** - Reasoning + Acting loop (3-4h)
+- [ ] **Chain-of-Thought** - Step-by-step reasoning (3-4h)
+- [ ] **Tree of Thoughts** - Multi-path exploration (5-6h)
+
+**API Preview:**
+
+```php
+// ReAct Pattern
+agent('solver')->react(
+    thought: 'I need to calculate the total',
+    action: fn() => $this->tool('calculate', [10, 20]),
+    observation: fn($result) => "The result is {$result}",
+);
+
+// Chain-of-Thought
+agent('math')->chainOfThought()
+    ->step('Understand the problem')
+    ->step('Break into sub-problems')
+    ->step('Solve each sub-problem')
+    ->step('Combine results')
+    ->validate(fn($output) => /* check */);
+```
+
+---
+
+## 🔮 v0.9.0 - HTTP Server & Multi-Agent (Future)
+
+**Status:** Vision
+**Effort:** 15-20 hours
+**Timeline:** Month 5-6
+
+### Features
+
+#### 1. HTTP Server Integration
+
+**Effort:** 10-12 hours
 
 - [ ] Built-in HTTP server (ReactPHP, Swoole, or RoadRunner)
-- [ ] Automatic API endpoint generation from agents
-- [ ] RESTful API with request/response validation
+- [ ] Automatic API endpoint generation
+- [ ] RESTful API with validation
 - [ ] WebSocket support for real-time chat
 - [ ] CORS configuration
 - [ ] Authentication and authorization middleware
 - [ ] Rate limiting per endpoint
 - [ ] Health checks and metrics endpoints
-- [ ] Graceful shutdown and restart
+
+**API Preview:**
 
 ```php
-// Expose single agent via HTTP
 agent('support-bot')
-    ->system('You are a helpful support agent')
-    ->tool('search-kb', 'Search knowledge base', fn($q) => /* ... */)
     ->serve([
         'host' => '0.0.0.0',
         'port' => 8080,
         'path' => '/api/chat',
         'auth' => ['bearer' => env('API_TOKEN')],
-        'cors' => ['*'],
-        'rate_limit' => ['max' => 100, 'window' => 60],
+        'stream' => true, // SSE streaming
     ]);
 
 // Multi-agent API server
 server()
     ->agent('support', agent('support-bot'), '/chat/support')
     ->agent('sales', agent('sales-bot'), '/chat/sales')
-    ->agent('technical', agent('tech-bot'), '/chat/technical')
     ->middleware('auth', new BearerAuth())
-    ->middleware('logging', new RequestLogger())
     ->middleware('cors', new CorsMiddleware(['*']))
     ->start('0.0.0.0:8080');
-
-// Streaming endpoint
-agent('assistant')->serve([
-    'path' => '/stream',
-    'stream' => true, // Enable SSE
-    'format' => 'json-lines', // Or 'sse'
-]);
 ```
 
-**Use Cases:**
+#### 2. Swarm Intelligence
 
-- Deploy agents as microservices
-- Create chatbot APIs for frontends
-- Build agent-powered webhooks
-- Serve multiple specialized agents from single server
-- Mobile app backends
-- Integration with React/Vue/Svelte apps
+**Effort:** 4-5 hours
 
----
+- [ ] Multi-agent voting and consensus
+- [ ] Democratic decision-making
+- [ ] Reduce hallucinations through agreement
 
-### v0.8.0 - Advanced Patterns
+**API Preview:**
 
-**Target**: 3-4 months (15-20 hours)  
-**Status**: Planned
+```php
+swarm(['agent1', 'agent2', 'agent3'])
+    ->vote('What should we do?')
+    ->consensus(threshold: 0.7);
+```
 
-#### Agentic Reasoning Patterns
+#### 3. Conditional Router
 
-Implement advanced prompting and reasoning techniques.
+**Effort:** 2-3 hours
 
-**Features:**
+- [ ] Dynamic agent selection based on intent
+- [ ] Customer support routing
+- [ ] Multi-domain bots
 
-- [ ] **ReAct Pattern** - Reasoning + Acting loop
+**API Preview:**
 
-  ```php
-  agent('solver')->react(
-      thought: 'I need to calculate the total',
-      action: fn() => $this->tool('calculate', [10, 20]),
-      observation: fn($result) => "The result is {$result}",
-  );
-  ```
-
-- [ ] **Chain-of-Thought** - Step-by-step reasoning with validation
-
-  ```php
-  agent('math')->chainOfThought()
-      ->step('Understand the problem')
-      ->step('Break it into sub-problems')
-      ->step('Solve each sub-problem')
-      ->step('Combine results')
-      ->validate(fn($output) => /* check correctness */);
-  ```
-
-- [ ] **Tree of Thoughts** - Explore multiple reasoning paths
-
-  ```php
-  agent('planner')->treeOfThoughts([
-      'branches' => 3, // Explore 3 different approaches
-      'depth' => 2,    // Go 2 levels deep
-      'selector' => fn($branches) => /* pick best path */,
-  ]);
-  ```
-
-- [ ] **Plan-and-Execute** - Strategic task decomposition
-
-  ```php
-  agent('coordinator')
-      ->plan('Write a research paper')
-      ->decompose(fn($task) => /* break into subtasks */)
-      ->assign(fn($subtask) => /* assign to worker agents */)
-      ->execute();
-  ```
-
-- [ ] **Reflection Pattern** - Self-critique and improvement
-  ```php
-  agent('writer')
-      ->reflect(function($output) {
-          return agent('critic')->prompt("Review this: {$output}");
-      })
-      ->refine(fn($feedback) => /* improve based on feedback */);
-  ```
-
-#### Advanced Orchestration
-
-**Features:**
-
-- [ ] **Swarm Intelligence** - Multi-agent voting and consensus
-
-  ```php
-  swarm(['agent1', 'agent2', 'agent3'])
-      ->vote('What should we do?')
-      ->consensus(threshold: 0.7);
-  ```
-
-- [ ] **Conditional Routing** - Dynamic agent selection
-
-  ```php
-  router()
-      ->when('intent' === 'technical', agent('tech-support'))
-      ->when('intent' === 'billing', agent('billing'))
-      ->default(agent('general'));
-  ```
-
-- [ ] **Parallel Execution** - Run agents concurrently
-
-  ```php
-  parallel([
-      agent('translator')->task('Translate to Spanish'),
-      agent('summarizer')->task('Create summary'),
-      agent('analyzer')->task('Analyze sentiment'),
-  ])->await();
-  ```
-
-- [ ] **State Machines** - Complex workflow orchestration
-  ```php
-  stateMachine()
-      ->state('draft', agent('writer'))
-      ->state('review', agent('editor'))
-      ->state('publish', agent('publisher'))
-      ->transition('draft', 'review', when: 'complete')
-      ->transition('review', 'publish', when: 'approved')
-      ->start('draft');
-  ```
+```php
+router()
+    ->when('intent' === 'technical', agent('tech-support'))
+    ->when('intent' === 'billing', agent('billing'))
+    ->default(agent('general'));
+```
 
 ---
 
-### v1.0.0 - Enterprise Ready
+## 🌟 v1.0.0 - Enterprise Ready (Future)
 
-**Target**: 6 months (30-40 hours)  
-**Status**: Vision
+**Status:** Vision
+**Effort:** 30-40 hours
+**Timeline:** 6+ months
 
-#### Enterprise Features
+### Enterprise Features
 
-**Features:**
-
-- [ ] Cost tracking and budget enforcement
-- [ ] Comprehensive audit logging for compliance
+- [ ] Advanced caching (prompt, response, semantic)
+- [ ] Comprehensive audit logging
 - [ ] Health checks and monitoring endpoints
-- [ ] Advanced caching (prompt caching, response caching, semantic caching)
 - [ ] Fine-tuning integration for custom models
-- [ ] A/B testing framework for agent variants
+- [ ] A/B testing framework
 - [ ] Deployment strategies (canary, blue-green)
 - [ ] Multi-tenancy support with isolation
 - [ ] SLA monitoring and alerting
 
-#### Developer Experience
-
-**Features:**
+### Developer Experience
 
 - [ ] CLI tool for interactive development
 
@@ -879,15 +490,7 @@ Implement advanced prompting and reasoning techniques.
   - Tool execution traces
   - Performance profiling
 
-- [ ] Mock providers with scenario recording/replay
-
-  ```php
-  $mock = mock()->record('scenario1.json');
-  // ... run tests ...
-  $mock->replay('scenario1.json');
-  ```
-
-- [ ] Framework integrations:
+- [ ] Framework integrations
   - Laravel package with service provider
   - Symfony bundle
   - WordPress plugin helpers
@@ -899,296 +502,126 @@ Implement advanced prompting and reasoning techniques.
   $this->assertGuardBlocked($agent, PIIGuard::class);
   ```
 
+### Additional MCP Features
+
+- [ ] **MCP Server Implementation** - Expose Pagent as MCP server via HTTP API
+  - Allow external clients to use Pagent agents as MCP tools
+  - Full MCP protocol compliance
+  - Authentication and authorization
+  - Rate limiting and quotas
+
 ---
 
-## 🛠️ Technical Debt
+## 🛠️ Technical Debt & Improvements
 
 ### High Priority
 
-- [ ] **Fix PHPStan errors** (26 errors in src folder, tests excluded)
-  - **Agent.php** (3 errors):
-    - Line 238: Closure parameter signature missing
-    - Line 397: exportConversation() return type (string|false instead of string)
-    - Line 411: Mixed offset access on 'messages'
-  - **Tools/Bash.php** (1 error):
-    - Line 59: setWorkingDirectory() expects string, gets string|false
-  - **Tools/DataExtract.php** (1 error):
-    - Line 81: Undefined property access on object::$content
-  - **Tools/Glob.php** (4 errors):
-    - Line 47: recursiveGlob() parameter expects string, gets string|false
-    - Lines 101, 105, 111: Method calls on mixed types
-  - **Tools/Grep.php** (5 errors):
-    - Line 14: Unused property $contextLines
-    - Line 58: findFiles() expects string, gets string|false
-    - Lines 126, 130, 132: Method calls on mixed types
-  - **Workflow/Chain.php** (4 errors):
-    - Lines 40, 45, 54: Undefined property accesses on object
-    - Line 47: Undefined property on Pagent\Agent|Pagent\Contracts\Provider
-  - **Workflow/Pipeline.php** (8 errors):
-    - Lines 13, 31: Callable signatures missing
-    - Lines 53-69: Undefined property accesses and callable type issues
-
-- [ ] **Extract HTTP client** to PSR-18 compatible class
-  - Make it swappable (Guzzle, Symfony HTTP Client, etc.)
-  - Add interface for custom implementations
-
-- [ ] **Add retry logic** for API failures
-  - Exponential backoff
-  - Configurable retry count
-  - Circuit breaker pattern
-
-- [ ] **Improve error handling**
-  - Better error messages with context
-  - Suggestions for common mistakes
-  - Debug information in non-production
+- [ ] Fix PHPStan errors (26 errors in src folder)
+- [ ] Extract HTTP client to PSR-18 compatible interface
+- [ ] Add retry logic with exponential backoff
+- [ ] Improve error messages with context and suggestions
 
 ### Medium Priority
 
-- [ ] **Request/response interceptors**
-  - Log all API calls
-  - Modify requests before sending
-  - Transform responses after receiving
-
-- [ ] **Response caching**
-  - Semantic caching for similar prompts
-  - TTL-based cache invalidation
-  - Configurable cache backend
-
-- [ ] **Debug/verbose mode**
-  - Detailed logging of all operations
-  - Tool execution traces
-  - Guard check details
-
-- [ ] **Performance benchmarks**
-  - Token usage statistics
-  - Response time tracking
-  - Memory consumption profiling
+- [ ] Request/response interceptors
+- [ ] Response caching (semantic caching)
+- [ ] Debug/verbose mode
+- [ ] Performance benchmarks
 
 ### Low Priority
 
-- [ ] **Memory usage tracking**
-  - Monitor conversation size
-  - Alert when approaching limits
-  - Automatic pruning
-
-- [ ] **Provider failover**
-  - Automatic switch on provider failure
-  - Load balancing across providers
-  - Cost-based selection
-
-- [ ] **Conversation history pruning**
-  - Intelligent context window management
-  - Summarization of old messages
-  - Configurable retention policies
+- [ ] Memory usage tracking
+- [ ] Provider failover and load balancing
+- [ ] Conversation history pruning strategies
 
 ---
 
-## 🔬 Libraries & Tools to Evaluate
+## 📚 Documentation & Community
 
-### spiral/json-schema-generator (v0.5.0)
+### Ongoing
 
-**URL:** https://github.com/spiral/json-schema-generator
+- [ ] Comprehensive API documentation (auto-generated)
+- [ ] Architecture Decision Records (ADRs)
+- [ ] Real-world case studies with metrics
+- [ ] Performance optimization guide
+- [ ] Security best practices handbook
+- [ ] Migration guides between versions
+- [ ] Interactive playground (try agents in browser)
 
-**Current approach:** Manual reflection-based schema generation from function signatures
+### Content Creation
 
-**Potential improvement:** Attribute-based DTO schema generation
-
-```php
-// Current: Manual reflection
-fn(string $city, bool $forecast = false) => [...]
-
-// Future: DTO with attributes
-class WeatherRequest {
-    #[Field(description: 'City name')]
-    #[Constraint\Length(min: 2, max: 100)]
-    public string $city;
-
-    #[Field(description: 'Include forecast')]
-    public bool $includeForecast = false;
-}
-
-agent('weather')->tool('getWeather', WeatherRequest::class, fn(WeatherRequest $req) => [...]);
-```
-
-**Benefits:** Better validation, reusable DTOs, PHPDoc constraints, type-safe inputs  
-**Effort:** 2-3 hours
-
-### PSR-18 HTTP Clients (Technical Debt)
-
-**Current:** Manual cURL in providers  
-**Target:** PSR-18 compatible (Guzzle, Symfony HTTP Client)
-
-**Benefits:** Middleware, better errors, retry logic, testing utilities  
-**Effort:** 3-4 hours
-
-### OpenTelemetry PHP (v0.6.0)
-
-**Purpose:** Production observability (Langfuse, Langsmith, Phoenix integration)  
-**Effort:** 10-15 hours
-
-### ReactPHP / Swoole / RoadRunner (v0.7.0)
-
-**Purpose:** Async HTTP server for deploying agents as APIs  
-**Effort:** 10-15 hours
-
-### Vector Databases (v0.7.0)
-
-**Options:** Pinecone, Weaviate, Qdrant  
-**Purpose:** RAG, semantic search, long-term memory  
-**Effort:** 8-10 hours
+- [ ] 100 article ideas (see `ai-docs/future/article-ideas.md`)
+- [ ] Video tutorials and workshops
+- [ ] Conference talks and meetups
+- [ ] Community tool registry
 
 ---
 
-## 📚 Long-term Vision
+## 🔬 Libraries to Evaluate
 
-### Community & Ecosystem
+### For v0.7.0
 
-- [ ] **Plugin system** for custom providers
-- [ ] **Community tool registry** (like npm for AI tools)
-- [ ] **Agent template marketplace**
-- [ ] **Pre-built agents** for common use cases:
-  - Customer support chatbots
-  - Research assistants
-  - Code review agents
-  - Data analysis agents
-  - Content generation engines
-- [ ] **Example projects** and starter kits
-- [ ] **Video tutorials** and workshops
-- [ ] **Conference talks** and meetups
+- **open-telemetry/sdk** - Observability and tracing
+- **spiral/json-schema-generator** - Attribute-based DTO schema generation
 
-### Documentation
+### For v0.8.0+
 
-- [ ] **Comprehensive API documentation** (auto-generated)
-- [ ] **Architecture Decision Records** (ADRs)
-- [ ] **Real-world case studies** with metrics
-- [ ] **Performance optimization guide**
-- [ ] **Security best practices** handbook
-- [ ] **Migration guides** between versions
-- [ ] **Internationalization** support (multi-language docs)
-- [ ] **Interactive playground** (try agents in browser)
-
----
-
-## 🚀 Recommended Action Plan
-
-### Week 1: Publishing (3-4 hours)
-
-**Goal**: Make Pagent publicly available
-
-1. ✅ Set up GitHub Actions workflow (1 hour)
-2. ✅ Publish to Packagist (1 hour)
-3. ✅ Add badges and polish README (1 hour)
-4. ✅ Create CONTRIBUTING.md (30 min)
-5. ✅ Create architecture diagram (1 hour)
-6. ✅ Share and promote (Reddit, Twitter, Dev.to)
-
-**Outcome**: Public, installable, CI/CD enabled
-
----
-
-### Week 2-3: Enhanced Tools (6-8 hours)
-
-**Goal**: Robust tool system
-
-1. Tool timeout support (2 hours)
-2. Retry logic with exponential backoff (2-3 hours)
-3. Return type validation (1 hour)
-4. Built-in tools library (2-3 hours)
-5. Better error messages (1 hour)
-
-**Outcome**: Production-grade tool system
-
----
-
-### Month 2: Observability (10-15 hours)
-
-**Goal**: Production monitoring and debugging
-
-1. OpenTelemetry SDK integration (3-4 hours)
-2. Automatic span creation (3-4 hours)
-3. Langfuse/Langsmith integration (2-3 hours)
-4. Cost and token tracking (2-3 hours)
-5. Error tracking and debugging (1-2 hours)
-
-**Outcome**: Full observability for production agents
-
----
-
-### Month 3: Memory & HTTP Server (20-25 hours)
-
-**Goal**: Persistent state and API deployment
-
-1. Memory persistence layer (4-5 hours)
-2. Streaming support foundation (4-5 hours)
-3. HTTP server implementation (6-8 hours)
-4. API endpoint generation (3-4 hours)
-5. Production deployment guides (2-3 hours)
-
-**Outcome**: Deploy agents as HTTP services
+- **ReactPHP / Swoole / RoadRunner** - Async HTTP server
+- **Pinecone / Weaviate / Qdrant** - Vector databases for RAG
+- **amphp/parallel** - True parallel execution in PHP
 
 ---
 
 ## 📊 Success Metrics
 
-### v0.5.0 Goals:
+### v0.7.0 Goals
 
-- [ ] Published to Packagist with auto-updates
-- [ ] GitHub Actions CI/CD running on all PRs
-- [ ] 175+ tests passing (95%+ pass rate)
-- [ ] 3+ built-in tools available
-- [ ] Tool timeout and retry working
-- [ ] 10+ community stars/downloads
-
-### v0.6.0 Goals:
-
-- [ ] Full OpenTelemetry integration
-- [ ] 2+ observability platform integrations
-- [ ] Cost tracking per agent/trace
+- [ ] Full OpenTelemetry integration with 4+ platforms
+- [ ] Cost tracking accurate within 1%
+- [ ] 30+ observability tests passing
+- [ ] MCP server integration working
 - [ ] Production usage examples
 
-### v0.7.0 Goals:
+### v0.8.0 Goals
 
-- [ ] Memory persistence working
-- [ ] SSE streaming implemented
-- [ ] HTTP server deployable
-- [ ] Docker deployment guide
+- [ ] All workflow patterns implemented
+- [ ] 70-95 workflow tests passing
+- [ ] Advanced reasoning patterns (ReAct, CoT)
+- [ ] Graph visualization working
 
-### v1.0.0 Goals:
+### v1.0.0 Goals
 
-- [ ] 250+ tests passing
-- [ ] 50+ community stars
-- [ ] 5+ production users
+- [ ] 350+ tests passing
+- [ ] 100+ community stars
+- [ ] 10+ production users
 - [ ] Complete enterprise features
 - [ ] Laravel/Symfony packages
 
 ---
 
-## 🎯 Current Status Summary
+## 🎯 Current Focus
 
-**Version:** v0.6.0
-**Status:** ✅ Memory & Persistence Ready
-**Next Milestone:** v0.7.0 (HTTP Server + Advanced Features)
-**Estimated Time to v1.0.0:** 30-45 hours of focused development
+**Version:** v0.7.0 (Planning)
+**Priority Features:**
 
-**Recent Progress (v0.6.0):**
+1. OpenTelemetry Observability (10-15 hours)
+2. Cost & Token Tracking (4-6 hours)
+3. MCP Server Support (6-8 hours)
 
-- ✅ **Streaming Support** (v0.5.1) - Real-time SSE streaming, 21 tests
-- ✅ **Memory & Persistence** (v0.6.0) - SQLite/File adapters, 63 tests
-- ✅ **Context Management** - Token counting, pruning strategies
-- ✅ **Session Management** - Multi-session support, isolation
-- ✅ **3 Memory Examples** - SQLite, File, Multi-session demos
-- ✅ **Comprehensive Docs** - 820-line memory-persistence.md guide
-- ✅ **Test Coverage** - 265+ tests passing (all green!)
-- ✅ **Bulk Tool Addition** - `Agent::tools()` method, enables Toolkit pattern (5 new tests)
+**Next Milestone:** v0.8.0 - Advanced Workflows & Patterns
+**Timeline:** 2-3 months to v1.0.0
 
-**Completed Features:**
+---
 
-- ✅ Streaming (SSE, WebSocket-ready)
-- ✅ Memory persistence (3 adapters)
-- ✅ Context window management
-- ✅ Session isolation
-- ✅ 5 atomic git commits (clean history)
+## 📖 Related Documents
 
-**Next Priority:** HTTP Server Integration (v0.7.0) or ReAct Pattern!
+- **Plans:** `ai-docs/plans/` - Implementation plans for upcoming features
+- **Specs:** `ai-docs/specs/` - Technical specifications and architecture
+- **Reports:** `ai-docs/reports/` - Historical implementation reports
+- **Features:** `ai-docs/FEATURES.md` - Complete feature list
 
-**All systems go!** 🚀
+---
+
+**Last Updated:** 2025-10-29
+**Maintained By:** Pagent Core Team
+**Format:** Chronological by version, consistent structure

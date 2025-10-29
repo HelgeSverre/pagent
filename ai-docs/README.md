@@ -48,12 +48,12 @@ ai-docs/
 **Keep these at the root for quick access:**
 
 - **FEATURES.md** - Current feature list and capabilities
-- **DEVELOPMENT_ROADMAP.md** - High-level roadmap and version planning
+- **ROADMAP.md** - High-level roadmap and version planning
 - **RELEASE_CHECKLIST.md** - Steps for releasing new versions
 - **orchestration-and-evaluation-guide.md** - Technical guide explaining core systems
 - **test-coverage-roadmap.md** - Comprehensive test coverage plan and progress
 
-### _templates/
+### \_templates/
 
 **Document templates for consistency:**
 
@@ -70,12 +70,14 @@ Historical snapshots of implementation status, phase completions, and feature su
 **Naming convention:** `YYYY-MM-DD-descriptive-name.md`
 
 **Requirements:**
+
 - MUST include date in filename (YYYY-MM-DD prefix)
 - MUST include timestamp at top of document
 - SHOULD include version/phase in filename when applicable
 - SHOULD follow report-template.md format
 
 **Examples:**
+
 - `2025-10-28-implementation-status-v0.6.0.md` - Status report for v0.6.0
 - `2025-10-28-phase-1-test-coverage.md` - Phase 1 completion report
 
@@ -86,6 +88,7 @@ Historical snapshots of implementation status, phase completions, and feature su
 Feature specifications, proposals, and technical analysis documents. These are "living documents" that describe how systems work or should work.
 
 **Contents:**
+
 - Architecture proposals
 - Feature specifications
 - System design documents
@@ -100,6 +103,7 @@ Feature specifications, proposals, and technical analysis documents. These are "
 Planning documents for future work, improvement suggestions, and setup guides. These are "active" documents that guide upcoming development.
 
 **Contents:**
+
 - Test coverage plans
 - Feature implementation plans
 - Setup and configuration guides
@@ -114,6 +118,7 @@ Planning documents for future work, improvement suggestions, and setup guides. T
 Documents that are updated over time to track ongoing progress. These are "living logs" that span multiple sessions.
 
 **Contents:**
+
 - Session progress logs
 - Long-term tracking documents
 - Historical conversations
@@ -127,6 +132,7 @@ Documents that are updated over time to track ongoing progress. These are "livin
 Content ideas, feature brainstorming, and "maybe someday" items. These are low-priority ideas for future consideration.
 
 **Contents:**
+
 - Article and blog post ideas
 - Feature brainstorms
 - "Nice to have" improvements
@@ -147,17 +153,20 @@ Content ideas, feature brainstorming, and "maybe someday" items. These are low-p
 ### Naming Conventions
 
 **Reports:** `YYYY-MM-DD-descriptive-name.md`
+
 - ✅ `2025-10-28-streaming-implementation.md`
 - ✅ `2025-11-15-phase-3-summary.md`
 - ❌ `streaming-report.md` (missing date)
 - ❌ `report-2025-10-28.md` (date should be prefix)
 
 **Specs:** `descriptive-name.md` (no date)
+
 - ✅ `workflow-orchestration.md`
 - ✅ `memory-architecture.md`
 - ❌ `2025-10-28-workflow-spec.md` (specs shouldn't be dated)
 
 **Plans:** `descriptive-name-plan.md` or `descriptive-guide.md`
+
 - ✅ `test-coverage-suggestions.md`
 - ✅ `dx-setup-guide.md`
 - ✅ `feature-x-implementation-plan.md`
@@ -181,14 +190,14 @@ Content ideas, feature brainstorming, and "maybe someday" items. These are low-p
 → `future/`
 
 **Is it project-wide important?**
-→ Root level (FEATURES.md, DEVELOPMENT_ROADMAP.md, etc.)
+→ Root level (FEATURES.md, ROADMAP.md, etc.)
 
 ### Avoid Creating These
 
 ❌ **Redundant status files** - Use git commits and PRs for tracking
 ❌ **Duplicate architecture docs** - Update existing specs instead
 ❌ **Session summaries for every session** - Only create when significant work completed
-❌ **Multiple roadmaps** - Keep one canonical DEVELOPMENT_ROADMAP.md
+❌ **Multiple roadmaps** - Keep one canonical ROADMAP.md
 ❌ **Overlapping plans** - Consolidate similar plans into one document
 
 ### What "Archiving" Means
@@ -196,6 +205,7 @@ Content ideas, feature brainstorming, and "maybe someday" items. These are low-p
 **Archiving = Moving to `ai-docs/archive/`, NOT deleting.**
 
 When documents become outdated but should be preserved for historical reference:
+
 - Move to `ai-docs/archive/` directory
 - Keep the filename and date prefix intact
 - Add a note at the top if superseded by newer document
@@ -241,6 +251,7 @@ For user-facing documentation, see:
 This folder is excluded from the main documentation tree and is not published to documentation sites. Files here may become outdated as the project evolves - always refer to the main README and `/docs/` folder for current, accurate information.
 
 **Periodic cleanup recommended:**
+
 - **Archive** (move to `archive/`, don't delete) very old reports that are no longer relevant
 - **Archive** outdated specs that have been superseded by newer documents
 - **Consolidate** similar planning documents into one comprehensive plan

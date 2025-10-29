@@ -110,19 +110,19 @@ This document tracks all features mentioned in documentation, proposals, and the
 
 ### 5. Multi-Agent Orchestration (Planned/Proposed)
 
-| Feature              | Status | Implementation        | Source                 | Notes                         |
-| -------------------- | ------ | --------------------- | ---------------------- | ----------------------------- |
-| Conditional Router   | 📋     | Not implemented       | DEVELOPMENT_ROADMAP.md | Route based on classification |
-| Swarm Intelligence   | 📋     | Not implemented       | DEVELOPMENT_ROADMAP.md | Dynamic agent collaboration   |
-| Parallel Execution   | 💡     | Not implemented       | WORKFLOWS_PROPOSAL.md  | Concurrent agent runs         |
-| Branch/Conditional   | ⚠️     | Partial via transform | WORKFLOWS_PROPOSAL.md  | Not true branching yet        |
-| Graph Workflows      | 💡     | Not implemented       | WORKFLOWS_PROPOSAL.md  | DAG-based orchestration       |
-| Graph Visualizer     | 💡     | Not implemented       | WORKFLOWS_PROPOSAL.md  | Mermaid/HTML export           |
-| Workflow Builder API | 💡     | Not implemented       | WORKFLOWS_PROPOSAL.md  | Fluent graph builder          |
-| Parallel.run()       | 💡     | Not implemented       | WORKFLOWS_PROPOSAL.md  | Sequential fallback ready     |
-| Parallel.runAsync()  | 🔮     | Not implemented       | WORKFLOWS_PROPOSAL.md  | Requires amphp/ReactPHP       |
-| Cycle Detection      | 🔮     | Not implemented       | WORKFLOWS_PROPOSAL.md  | For graph workflows           |
-| State Management     | 🔮     | Not implemented       | WORKFLOWS_PROPOSAL.md  | Stateful workflows            |
+| Feature              | Status | Implementation        | Source                | Notes                         |
+| -------------------- | ------ | --------------------- | --------------------- | ----------------------------- |
+| Conditional Router   | 📋     | Not implemented       | ROADMAP.md            | Route based on classification |
+| Swarm Intelligence   | 📋     | Not implemented       | ROADMAP.md            | Dynamic agent collaboration   |
+| Parallel Execution   | 💡     | Not implemented       | WORKFLOWS_PROPOSAL.md | Concurrent agent runs         |
+| Branch/Conditional   | ⚠️     | Partial via transform | WORKFLOWS_PROPOSAL.md | Not true branching yet        |
+| Graph Workflows      | 💡     | Not implemented       | WORKFLOWS_PROPOSAL.md | DAG-based orchestration       |
+| Graph Visualizer     | 💡     | Not implemented       | WORKFLOWS_PROPOSAL.md | Mermaid/HTML export           |
+| Workflow Builder API | 💡     | Not implemented       | WORKFLOWS_PROPOSAL.md | Fluent graph builder          |
+| Parallel.run()       | 💡     | Not implemented       | WORKFLOWS_PROPOSAL.md | Sequential fallback ready     |
+| Parallel.runAsync()  | 🔮     | Not implemented       | WORKFLOWS_PROPOSAL.md | Requires amphp/ReactPHP       |
+| Cycle Detection      | 🔮     | Not implemented       | WORKFLOWS_PROPOSAL.md | For graph workflows           |
+| State Management     | 🔮     | Not implemented       | WORKFLOWS_PROPOSAL.md | Stateful workflows            |
 
 ### 6. Evaluation System
 
