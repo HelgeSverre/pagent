@@ -42,6 +42,8 @@ use function ucfirst;
 
 final class Agent
 {
+    private const MAX_TOOL_CALL_DEPTH = 10;
+
     public array $messages = [];
 
     private array $config = [];
@@ -224,7 +226,19 @@ final class Agent
             }
 
             // Handle tool calls automatically
+            $toolCallDepth = 0;
             while (! empty($response->tool_calls)) {
+                $toolCallDepth++;
+
+                if ($toolCallDepth > self::MAX_TOOL_CALL_DEPTH) {
+                    throw new RuntimeException(
+                        sprintf(
+                            'Maximum tool call depth exceeded (%d calls). Possible infinite loop detected.',
+                            self::MAX_TOOL_CALL_DEPTH
+                        )
+                    );
+                }
+
                 $response = $this->handleToolCalls($response);
             }
 
