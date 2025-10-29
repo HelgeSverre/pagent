@@ -70,3 +70,46 @@ it('creates mock provider with helper function', function (): void {
     $response = $provider->prompt('test');
     expect($response->content)->toBe('response');
 });
+
+it('telemetry_console function initializes console exporter', function (): void {
+    Pagent\Observability\TelemetryManager::instance()->clearContext();
+
+    telemetry_console(verbose: true);
+
+    expect(Pagent\Observability\TelemetryManager::instance()->isEnabled())->toBeTrue();
+});
+
+it('telemetry_jaeger function initializes jaeger exporter', function (): void {
+    Pagent\Observability\TelemetryManager::instance()->clearContext();
+
+    telemetry_jaeger('http://custom:4318/v1/traces', 'test-service');
+
+    expect(Pagent\Observability\TelemetryManager::instance()->isEnabled())->toBeTrue();
+});
+
+it('telemetry_otlp function initializes otlp exporter', function (): void {
+    Pagent\Observability\TelemetryManager::instance()->clearContext();
+
+    telemetry_otlp('http://custom:4318/v1/traces', ['key' => 'value']);
+
+    expect(Pagent\Observability\TelemetryManager::instance()->isEnabled())->toBeTrue();
+});
+
+it('telemetry_zipkin function initializes zipkin exporter', function (): void {
+    Pagent\Observability\TelemetryManager::instance()->clearContext();
+
+    telemetry_zipkin('http://custom:9411/api/v2/spans', 'test-service');
+
+    expect(Pagent\Observability\TelemetryManager::instance()->isEnabled())->toBeTrue();
+});
+
+it('telemetry function accepts custom config', function (): void {
+    Pagent\Observability\TelemetryManager::instance()->clearContext();
+
+    telemetry([
+        'enabled' => true,
+        'exporter' => 'console',
+    ]);
+
+    expect(Pagent\Observability\TelemetryManager::instance()->isEnabled())->toBeTrue();
+});
