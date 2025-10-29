@@ -31,12 +31,22 @@ parameters:
 			path: src/Agent.php
 
 		-
+			message: "#^Cannot access offset 'messages' on mixed\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
 			message: "#^Cannot call method prompt\\(\\) on Pagent\\\\Contracts\\\\Provider\\|null\\.$#"
 			count: 1
 			path: src/Agent.php
 
 		-
 			message: "#^Else branch is unreachable because ternary operator condition is always true\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Method Pagent\\\\Agent\\:\\:exportConversation\\(\\) should return string but returns string\\|false\\.$#"
 			count: 1
 			path: src/Agent.php
 
@@ -51,23 +61,28 @@ parameters:
 			path: src/Agent.php
 
 		-
+			message: "#^Method Pagent\\\\Agent\\:\\:streamTo\\(\\) has parameter \\$callback with no signature specified for callable\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
 			message: "#^Method Pagent\\\\Agent\\:\\:tool\\(\\) has parameter \\$callable with no signature specified for Closure\\.$#"
 			count: 1
 			path: src/Agent.php
 
 		-
-			message: "#^Method class@anonymous/src/Agent\\.php\\:201\\:\\:__construct\\(\\) has parameter \\$check with no signature specified for Closure\\.$#"
+			message: "#^Method class@anonymous/Agent\\.php\\:398\\:\\:__construct\\(\\) has parameter \\$check with no signature specified for Closure\\.$#"
 			count: 1
 			path: src/Agent.php
 
 		-
 			message: "#^Parameter \\#1 \\$haystack of function str_contains expects string, class\\-string\\<Pagent\\\\Contracts\\\\Provider\\>\\|false given\\.$#"
-			count: 3
+			count: 5
 			path: src/Agent.php
 
 		-
 			message: "#^Parameter \\#1 \\$object of function get_class expects object, Pagent\\\\Contracts\\\\Provider\\|null given\\.$#"
-			count: 2
+			count: 3
 			path: src/Agent.php
 
 		-
@@ -77,6 +92,11 @@ parameters:
 
 		-
 			message: "#^Property Pagent\\\\Agent\\:\\:\\$guards \\(array\\<Pagent\\\\Contracts\\\\Guard\\>\\) does not accept array\\<object\\>\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Property Pagent\\\\Agent\\:\\:\\$memory \\(Pagent\\\\Contracts\\\\Memory\\|null\\) does not accept object\\.$#"
 			count: 1
 			path: src/Agent.php
 
@@ -149,6 +169,111 @@ parameters:
 			message: "#^Trying to invoke mixed but it's not a callable\\.$#"
 			count: 1
 			path: src/Evaluation/Evaluator.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/Evaluation/Metrics/JsonSchemaMetric.php
+
+		-
+			message: "#^Property Pagent\\\\Evaluation\\\\Metrics\\\\JsonSchemaMetric\\:\\:\\$schema \\(Swaggest\\\\JsonSchema\\\\Schema\\) does not accept Swaggest\\\\JsonSchema\\\\SchemaContract\\.$#"
+			count: 1
+			path: src/Evaluation/Metrics/JsonSchemaMetric.php
+
+		-
+			message: "#^Comparison operation \"\\>\" between 4 and 0 is always true\\.$#"
+			count: 1
+			path: src/Evaluation/Metrics/MarkdownValidMetric.php
+
+		-
+			message: "#^Else branch is unreachable because ternary operator condition is always true\\.$#"
+			count: 1
+			path: src/Evaluation/Metrics/MarkdownValidMetric.php
+
+		-
+			message: "#^Comparison operation \"\\>\" between int\\<1, max\\> and 0 is always true\\.$#"
+			count: 1
+			path: src/Evaluation/Metrics/UrlValidityMetric.php
+
+		-
+			message: "#^Else branch is unreachable because ternary operator condition is always true\\.$#"
+			count: 1
+			path: src/Evaluation/Metrics/UrlValidityMetric.php
+
+		-
+			message: "#^Method Pagent\\\\Evaluation\\\\Report\\:\\:renderTemplate\\(\\) should return string but returns string\\|false\\.$#"
+			count: 1
+			path: src/Evaluation/Report.php
+
+		-
+			message: "#^Variable \\$agentName might not be defined\\.$#"
+			count: 1
+			path: src/Evaluation/Templates/evaluation-report.html.php
+
+		-
+			message: "#^Variable \\$datasetSize might not be defined\\.$#"
+			count: 1
+			path: src/Evaluation/Templates/evaluation-report.html.php
+
+		-
+			message: "#^Variable \\$metrics might not be defined\\.$#"
+			count: 1
+			path: src/Evaluation/Templates/evaluation-report.html.php
+
+		-
+			message: "#^Variable \\$results might not be defined\\.$#"
+			count: 1
+			path: src/Evaluation/Templates/evaluation-report.html.php
+
+		-
+			message: "#^Variable \\$content might not be defined\\.$#"
+			count: 1
+			path: src/Evaluation/Templates/layout.html.php
+
+		-
+			message: "#^Variable \\$title might not be defined\\.$#"
+			count: 1
+			path: src/Evaluation/Templates/layout.html.php
+
+		-
+			message: "#^Cannot access offset 'messages' on mixed\\.$#"
+			count: 1
+			path: src/Memory/Adapters/FileAdapter.php
+
+		-
+			message: "#^Method Pagent\\\\Memory\\\\Adapters\\\\FileAdapter\\:\\:load\\(\\) should return array\\<int, array\\<string, mixed\\>\\> but returns mixed\\.$#"
+			count: 1
+			path: src/Memory/Adapters/FileAdapter.php
+
+		-
+			message: "#^Constructor of class Pagent\\\\Memory\\\\Adapters\\\\NullAdapter has an unused parameter \\$config\\.$#"
+			count: 1
+			path: src/Memory/Adapters/NullAdapter.php
+
+		-
+			message: "#^Cannot access offset 'created_at' on mixed\\.$#"
+			count: 1
+			path: src/Memory/Adapters/SqliteAdapter.php
+
+		-
+			message: "#^Cannot access offset 'messages' on mixed\\.$#"
+			count: 1
+			path: src/Memory/Adapters/SqliteAdapter.php
+
+		-
+			message: "#^Method Pagent\\\\Memory\\\\Adapters\\\\SqliteAdapter\\:\\:load\\(\\) should return array\\<int, array\\<string, mixed\\>\\> but returns mixed\\.$#"
+			count: 1
+			path: src/Memory/Adapters/SqliteAdapter.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, mixed given\\.$#"
+			count: 1
+			path: src/Memory/Adapters/SqliteAdapter.php
+
+		-
+			message: "#^Match expression does not handle remaining value\\: string$#"
+			count: 1
+			path: src/Memory/ContextManager.php
 
 		-
 			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
@@ -267,7 +392,7 @@ parameters:
 
 		-
 			message: "#^Cannot access offset 'error' on mixed\\.$#"
-			count: 2
+			count: 4
 			path: src/Providers/Anthropic.php
 
 		-
@@ -287,7 +412,7 @@ parameters:
 
 		-
 			message: "#^Cannot access offset 'message' on mixed\\.$#"
-			count: 1
+			count: 2
 			path: src/Providers/Anthropic.php
 
 		-
@@ -317,12 +442,17 @@ parameters:
 
 		-
 			message: "#^Cannot access offset 'type' on mixed\\.$#"
-			count: 2
+			count: 3
 			path: src/Providers/Anthropic.php
 
 		-
 			message: "#^Cannot access offset 'usage' on mixed\\.$#"
 			count: 3
+			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|false given\\.$#"
+			count: 1
 			path: src/Providers/Anthropic.php
 
 		-
@@ -332,13 +462,98 @@ parameters:
 
 		-
 			message: "#^Part \\$error \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
-			count: 1
+			count: 2
 			path: src/Providers/Anthropic.php
 
 		-
 			message: "#^Part \\$type \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
-			count: 1
+			count: 2
 			path: src/Providers/Anthropic.php
+
+		-
+			message: "#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Cannot access offset 'arguments' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Cannot access offset 'content' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Cannot access offset 'done' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Cannot access offset 'error' on mixed\\.$#"
+			count: 3
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Cannot access offset 'eval_count' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Cannot access offset 'function' on mixed\\.$#"
+			count: 2
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Cannot access offset 'id' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Cannot access offset 'message' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Cannot access offset 'model' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Cannot access offset 'name' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Cannot access offset 'prompt_eval_count' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Cannot access offset 'tool_calls' on mixed\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|true given\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Part \\$data\\['error'\\] \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
+			count: 1
+			path: src/Providers/Ollama.php
+
+		-
+			message: "#^Part \\$error \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
+			count: 2
+			path: src/Providers/Ollama.php
 
 		-
 			message: "#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\\.$#"
@@ -362,7 +577,7 @@ parameters:
 
 		-
 			message: "#^Cannot access offset 'error' on mixed\\.$#"
-			count: 1
+			count: 2
 			path: src/Providers/OpenAI.php
 
 		-
@@ -382,7 +597,7 @@ parameters:
 
 		-
 			message: "#^Cannot access offset 'message' on mixed\\.$#"
-			count: 2
+			count: 3
 			path: src/Providers/OpenAI.php
 
 		-
@@ -421,14 +636,64 @@ parameters:
 			path: src/Providers/OpenAI.php
 
 		-
+			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/Providers/OpenAI.php
+
+		-
 			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|true given\\.$#"
 			count: 1
 			path: src/Providers/OpenAI.php
 
 		-
 			message: "#^Part \\$error \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
-			count: 1
+			count: 2
 			path: src/Providers/OpenAI.php
+
+		-
+			message: "#^Property Pagent\\\\Streaming\\\\AnthropicStreamParser\\:\\:\\$contentBlocks is never read, only written\\.$#"
+			count: 1
+			path: src/Streaming/AnthropicStreamParser.php
+
+		-
+			message: "#^Cannot access offset 'done' on mixed\\.$#"
+			count: 1
+			path: src/Streaming/OllamaStreamParser.php
+
+		-
+			message: "#^Cannot access offset 'error' on mixed\\.$#"
+			count: 1
+			path: src/Streaming/OllamaStreamParser.php
+
+		-
+			message: "#^Parameter \\#1 \\$chunk of method Pagent\\\\Streaming\\\\OllamaStreamParser\\:\\:handleChunk\\(\\) expects array, mixed given\\.$#"
+			count: 1
+			path: src/Streaming/OllamaStreamParser.php
+
+		-
+			message: "#^Parameter \\#1 \\$message of static method Pagent\\\\Streaming\\\\StreamChunk\\:\\:error\\(\\) expects string, mixed given\\.$#"
+			count: 1
+			path: src/Streaming/OllamaStreamParser.php
+
+		-
+			message: "#^Parameter \\#1 \\$chunk of method Pagent\\\\Streaming\\\\OpenAIStreamParser\\:\\:handleChunk\\(\\) expects array, mixed given\\.$#"
+			count: 1
+			path: src/Streaming/OpenAIStreamParser.php
+
+		-
+			message: "#^Method Pagent\\\\Streaming\\\\StreamResponse\\:\\:streamTo\\(\\) has parameter \\$callback with no signature specified for callable\\.$#"
+			count: 1
+			path: src/Streaming/StreamResponse.php
+
+		-
+			message: "#^Property Pagent\\\\Streaming\\\\StreamResponse\\:\\:\\$stopReason \\(string\\|null\\) does not accept mixed\\.$#"
+			count: 2
+			path: src/Streaming/StreamResponse.php
+
+		-
+			message: "#^Property Pagent\\\\Streaming\\\\StreamResponse\\:\\:\\$usage \\(array\\|null\\) does not accept mixed\\.$#"
+			count: 2
+			path: src/Streaming/StreamResponse.php
 
 		-
 			message: "#^Method Pagent\\\\Tool\\\\Tool\\:\\:__construct\\(\\) has parameter \\$callable with no signature specified for Closure\\.$#"
@@ -441,346 +706,111 @@ parameters:
 			path: src/Tool/Tool.php
 
 		-
-			message: "#^Access to an undefined property Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:\\$messages\\.$#"
+			message: "#^Parameter \\#1 \\$cwd of method Symfony\\\\Component\\\\Process\\\\Process\\:\\:setWorkingDirectory\\(\\) expects string, string\\|false given\\.$#"
 			count: 1
-			path: tests/Integration/BasicUsageTest.php
+			path: src/Tools/Bash.php
 
 		-
 			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
-			count: 7
-			path: tests/Integration/BasicUsageTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$provider\\.$#"
 			count: 1
-			path: tests/Integration/BasicUsageTest.php
+			path: src/Tools/DataExtract.php
 
 		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:prompt\\(\\)\\.$#"
-			count: 6
-			path: tests/Integration/BasicUsageTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
-			count: 5
-			path: tests/Integration/BasicUsageTest.php
-
-		-
-			message: "#^Unable to resolve the template type TValue in call to function expect$#"
-			count: 7
-			path: tests/Integration/BasicUsageTest.php
-
-		-
-			message: "#^Access to an undefined property Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:\\$messages\\.$#"
-			count: 1
-			path: tests/Integration/ProviderFeaturesTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
-			count: 9
-			path: tests/Integration/ProviderFeaturesTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$model\\.$#"
-			count: 4
-			path: tests/Integration/ProviderFeaturesTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$provider\\.$#"
+			message: "#^Cannot call method getPathname\\(\\) on mixed\\.$#"
 			count: 2
-			path: tests/Integration/ProviderFeaturesTest.php
+			path: src/Tools/Glob.php
 
 		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:model\\(\\)\\.$#"
+			message: "#^Cannot call method isFile\\(\\) on mixed\\.$#"
+			count: 1
+			path: src/Tools/Glob.php
+
+		-
+			message: "#^Parameter \\#1 \\$baseDir of method Pagent\\\\Tools\\\\Glob\\:\\:recursiveGlob\\(\\) expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/Tools/Glob.php
+
+		-
+			message: "#^Cannot call method getPathname\\(\\) on mixed\\.$#"
 			count: 2
-			path: tests/Integration/ProviderFeaturesTest.php
+			path: src/Tools/Grep.php
 
 		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:prompt\\(\\)\\.$#"
-			count: 4
-			path: tests/Integration/ProviderFeaturesTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
+			message: "#^Cannot call method isFile\\(\\) on mixed\\.$#"
 			count: 1
-			path: tests/Integration/ProviderFeaturesTest.php
+			path: src/Tools/Grep.php
 
 		-
-			message: "#^Function hasAnthropicKey not found\\.$#"
+			message: "#^Parameter \\#1 \\$baseDir of method Pagent\\\\Tools\\\\Grep\\:\\:findFiles\\(\\) expects string, string\\|false given\\.$#"
 			count: 1
-			path: tests/Integration/ProviderFeaturesTest.php
+			path: src/Tools/Grep.php
 
 		-
-			message: "#^Function hasOpenAiKey not found\\.$#"
+			message: "#^Parameter \\#1 \\$callback of function set_error_handler expects \\(callable\\(int, string, string, int\\)\\: bool\\)\\|null, Closure\\(\\)\\: void given\\.$#"
 			count: 1
-			path: tests/Integration/ProviderFeaturesTest.php
+			path: src/Tools/Grep.php
 
 		-
-			message: "#^Function skipIfMissingAnthropicKey not found\\.$#"
+			message: "#^Property Pagent\\\\Tools\\\\Grep\\:\\:\\$contextLines is never read, only written\\.$#"
 			count: 1
-			path: tests/Integration/ProviderFeaturesTest.php
+			path: src/Tools/Grep.php
 
 		-
-			message: "#^Function skipIfMissingOpenAiKey not found\\.$#"
+			message: "#^Parameter \\#1 \\$callback of function set_error_handler expects \\(callable\\(int, string, string, int\\)\\: bool\\)\\|null, Closure\\(\\)\\: void given\\.$#"
 			count: 1
-			path: tests/Integration/ProviderFeaturesTest.php
+			path: src/Tools/WebFetch.php
 
 		-
-			message: "#^Unable to resolve the template type TValue in call to function expect$#"
-			count: 10
-			path: tests/Integration/ProviderFeaturesTest.php
+			message: "#^Access to an undefined property Pagent\\\\Agent\\|Pagent\\\\Contracts\\\\Provider\\:\\:\\$name\\.$#"
+			count: 1
+			path: src/Workflow/Chain.php
 
 		-
 			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
-			count: 10
-			path: tests/Integration/RealAPITest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$model\\.$#"
-			count: 3
-			path: tests/Integration/RealAPITest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$provider\\.$#"
-			count: 3
-			path: tests/Integration/RealAPITest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$tokens\\.$#"
-			count: 3
-			path: tests/Integration/RealAPITest.php
+			count: 2
+			path: src/Workflow/Chain.php
 
 		-
 			message: "#^Access to an undefined property object\\:\\:\\$usage\\.$#"
-			count: 3
-			path: tests/Integration/RealAPITest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:prompt\\(\\)\\.$#"
 			count: 1
-			path: tests/Integration/RealAPITest.php
+			path: src/Workflow/Chain.php
 
 		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
+			message: "#^Access to an undefined property \\(callable\\)\\|Pagent\\\\Agent\\|Pagent\\\\Contracts\\\\Provider\\:\\:\\$name\\.$#"
 			count: 1
-			path: tests/Integration/RealAPITest.php
-
-		-
-			message: "#^Unable to resolve the template type TValue in call to function expect$#"
-			count: 20
-			path: tests/Integration/RealAPITest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
-			count: 6
-			path: tests/Integration/ToolCallingTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:getTools\\(\\)\\.$#"
-			count: 2
-			path: tests/Integration/ToolCallingTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:prompt\\(\\)\\.$#"
-			count: 6
-			path: tests/Integration/ToolCallingTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
-			count: 6
-			path: tests/Integration/ToolCallingTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:tool\\(\\)\\.$#"
-			count: 2
-			path: tests/Integration/ToolCallingTest.php
-
-		-
-			message: "#^Unable to resolve the template type TValue in call to function expect$#"
-			count: 6
-			path: tests/Integration/ToolCallingTest.php
+			path: src/Workflow/Pipeline.php
 
 		-
 			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
 			count: 1
-			path: tests/Unit/AgentBuilderTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
-			count: 2
-			path: tests/Unit/AgentBuilderTest.php
-
-		-
-			message: "#^Call to an undefined method Pest\\\\Expectation\\<Pagent\\\\Agent\\|null\\>\\:\\:toBeAgent\\(\\)\\.$#"
-			count: 3
-			path: tests/Unit/AgentBuilderTest.php
-
-		-
-			message: "#^Unable to resolve the template type TValue in call to function expect$#"
-			count: 1
-			path: tests/Unit/AgentBuilderTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
-			count: 2
-			path: tests/Unit/AgentGuardsTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$guard_triggered\\.$#"
-			count: 1
-			path: tests/Unit/AgentGuardsTest.php
-
-		-
-			message: "#^Function testAgent not found\\.$#"
-			count: 6
-			path: tests/Unit/AgentGuardsTest.php
-
-		-
-			message: "#^Unable to resolve the template type TValue in call to function expect$#"
-			count: 2
-			path: tests/Unit/AgentGuardsTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
-			count: 1
-			path: tests/Unit/AgentTest.php
-
-		-
-			message: "#^Unable to resolve the template type TValue in call to function expect$#"
-			count: 1
-			path: tests/Unit/AgentTest.php
-
-		-
-			message: "#^Function testAgent not found\\.$#"
-			count: 5
-			path: tests/Unit/AgentToolsTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
-			count: 5
-			path: tests/Unit/Evaluation/EvaluatorTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
-			count: 1
-			path: tests/Unit/FunctionsTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:getName\\(\\)\\.$#"
-			count: 1
-			path: tests/Unit/FunctionsTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
-			count: 1
-			path: tests/Unit/FunctionsTest.php
-
-		-
-			message: "#^Unable to resolve the template type TValue in call to function expect$#"
-			count: 1
-			path: tests/Unit/FunctionsTest.php
-
-		-
-			message: "#^Function testAgent not found\\.$#"
-			count: 3
-			path: tests/Unit/Middleware/MiddlewareTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$manager\\.$#"
-			count: 1
-			path: tests/Unit/Orchestration/DelegationTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$manager_review\\.$#"
-			count: 1
-			path: tests/Unit/Orchestration/DelegationTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$supervised\\.$#"
-			count: 1
-			path: tests/Unit/Orchestration/DelegationTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$task\\.$#"
-			count: 1
-			path: tests/Unit/Orchestration/DelegationTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$worker\\.$#"
-			count: 1
-			path: tests/Unit/Orchestration/DelegationTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$worker_output\\.$#"
-			count: 1
-			path: tests/Unit/Orchestration/DelegationTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:delegate\\(\\)\\.$#"
-			count: 4
-			path: tests/Unit/Orchestration/DelegationTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
-			count: 2
-			path: tests/Unit/Orchestration/DelegationTest.php
-
-		-
-			message: "#^Function testAgent not found\\.$#"
-			count: 1
-			path: tests/Unit/Orchestration/DelegationTest.php
-
-		-
-			message: "#^Unable to resolve the template type TAndValue in call to method Pest\\\\Expectation\\<bool\\|null\\>\\:\\:and\\(\\)$#"
-			count: 1
-			path: tests/Unit/Orchestration/DelegationTest.php
-
-		-
-			message: "#^Unable to resolve the template type TAndValue in call to method Pest\\\\Expectation\\<mixed\\>\\:\\:and\\(\\)$#"
-			count: 4
-			path: tests/Unit/Orchestration/DelegationTest.php
-
-		-
-			message: "#^Unable to resolve the template type TAndValue in call to method Pest\\\\Expectation\\<object\\|null\\>\\:\\:and\\(\\)$#"
-			count: 1
-			path: tests/Unit/Orchestration/DelegationTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
-			count: 1
-			path: tests/Unit/Orchestration/HandoffTest.php
-
-		-
-			message: "#^Function testAgent not found\\.$#"
-			count: 5
-			path: tests/Unit/Orchestration/HandoffTest.php
-
-		-
-			message: "#^Call to an undefined method Pagent\\\\Agent\\|Pagent\\\\AgentBuilder\\:\\:system\\(\\)\\.$#"
-			count: 2
-			path: tests/Unit/Orchestration/PipelineTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
-			count: 5
-			path: tests/Unit/Providers/MockTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$model\\.$#"
-			count: 1
-			path: tests/Unit/Providers/MockTest.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$provider\\.$#"
-			count: 1
-			path: tests/Unit/Providers/MockTest.php
+			path: src/Workflow/Pipeline.php
 
 		-
 			message: "#^Access to an undefined property object\\:\\:\\$tokens\\.$#"
 			count: 1
-			path: tests/Unit/Providers/MockTest.php
+			path: src/Workflow/Pipeline.php
 
 		-
-			message: "#^Unable to resolve the template type TValue in call to function expect$#"
-			count: 8
-			path: tests/Unit/Providers/MockTest.php
+			message: "#^Access to an undefined property object\\:\\:\\$usage\\.$#"
+			count: 1
+			path: src/Workflow/Pipeline.php
+
+		-
+			message: "#^Cannot call method prompt\\(\\) on \\(callable\\)\\|Pagent\\\\Agent\\|Pagent\\\\Contracts\\\\Provider\\.$#"
+			count: 1
+			path: src/Workflow/Pipeline.php
+
+		-
+			message: "#^Method Pagent\\\\Workflow\\\\Pipeline\\:\\:transform\\(\\) has parameter \\$fn with no signature specified for callable\\.$#"
+			count: 1
+			path: src/Workflow/Pipeline.php
+
+		-
+			message: "#^Property Pagent\\\\Workflow\\\\Pipeline\\:\\:\\$steps type has no signature specified for callable\\.$#"
+			count: 1
+			path: src/Workflow/Pipeline.php
+
+		-
+			message: "#^Trying to invoke \\(callable\\(\\)\\: mixed\\)\\|Pagent\\\\Agent\\|Pagent\\\\Contracts\\\\Provider but it might not be a callable\\.$#"
+			count: 1
+			path: src/Workflow/Pipeline.php
