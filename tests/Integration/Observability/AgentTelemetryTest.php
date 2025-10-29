@@ -152,7 +152,8 @@ describe('Agent Telemetry Integration', function () {
 
     it('tracks memory operations', function () {
         // Create a simple memory adapter
-        $memory = new class implements \Pagent\Contracts\Memory {
+        $memory = new class implements \Pagent\Contracts\Memory
+        {
             private array $storage = [];
 
             public function save(string $sessionId, array $messages): void

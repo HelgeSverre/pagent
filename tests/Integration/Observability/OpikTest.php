@@ -9,10 +9,9 @@ use Tests\Integration\Observability\ObservabilityTestHelper;
  *
  * Tests LLM experiment tracking with Opik
  */
-
 test('opik health endpoint responds', function () {
     $config = ObservabilityTestHelper::getTestConfig('opik');
-    $endpoint = $config['url'] . '/health';
+    $endpoint = $config['url'].'/health';
 
     // Wait for Opik to be ready (it can be slow to start)
     $isReady = ObservabilityTestHelper::waitForService($endpoint, 20, 2);
@@ -26,7 +25,7 @@ test('opik health endpoint responds', function () {
 
 test('opik api requires authentication for protected endpoints', function () {
     $config = ObservabilityTestHelper::getTestConfig('opik');
-    $endpoint = $config['url'] . '/v1/private/projects';
+    $endpoint = $config['url'].'/v1/private/projects';
 
     $response = ObservabilityTestHelper::sendRequest($endpoint, 'GET');
 
@@ -41,14 +40,14 @@ test('can query opik api with authentication when configured', function () {
         $this->markTestSkipped('Opik API key not configured. Set TEST_OPIK_API_KEY');
     }
 
-    $endpoint = $config['url'] . '/v1/private/projects';
+    $endpoint = $config['url'].'/v1/private/projects';
 
     $response = ObservabilityTestHelper::sendRequest(
         $endpoint,
         'GET',
         [],
         [
-            'Authorization' => 'Bearer ' . $config['api_key'],
+            'Authorization' => 'Bearer '.$config['api_key'],
             'Comet-Workspace' => $config['workspace'],
         ]
     );
@@ -60,7 +59,7 @@ test('opik backend has required services running', function () {
     $config = ObservabilityTestHelper::getTestConfig('opik');
 
     // Check main API
-    expect(ObservabilityTestHelper::isServiceAvailable($config['url'] . '/health'))
+    expect(ObservabilityTestHelper::isServiceAvailable($config['url'].'/health'))
         ->toBeTrue('Opik backend API should be available');
 
     // Check if frontend is accessible (via docker)

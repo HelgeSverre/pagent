@@ -10,7 +10,6 @@ use Tests\Integration\Observability\ObservabilityTestHelper;
  * These tests verify that all observability services are running
  * and accessible before running other integration tests.
  */
-
 beforeAll(function () {
     // Only check services if we're running observability tests
     if (! in_array('observability', $_SERVER['argv'] ?? [])) {
@@ -54,7 +53,7 @@ test('phoenix UI is accessible', function () {
 
 test('langfuse health endpoint responds', function () {
     $config = ObservabilityTestHelper::getTestConfig('langfuse');
-    $url = $config['base_url'] . '/api/public/health';
+    $url = $config['base_url'].'/api/public/health';
 
     $response = ObservabilityTestHelper::sendRequest($url);
 
@@ -76,7 +75,7 @@ test('helicone UI is accessible', function () {
 
 test('opik backend health endpoint responds', function () {
     $config = ObservabilityTestHelper::getTestConfig('opik');
-    $url = $config['url'] . '/health';
+    $url = $config['url'].'/health';
 
     // Opik may take longer to start
     $isAvailable = ObservabilityTestHelper::waitForService($url, 10, 2);

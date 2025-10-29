@@ -9,10 +9,9 @@ use Tests\Integration\Observability\ObservabilityTestHelper;
  *
  * Tests LLM monitoring and prompt management with Langfuse
  */
-
 test('langfuse public api requires authentication', function () {
     $config = ObservabilityTestHelper::getTestConfig('langfuse');
-    $endpoint = $config['base_url'] . '/api/public/traces';
+    $endpoint = $config['base_url'].'/api/public/traces';
 
     // Attempt without credentials should fail
     $response = ObservabilityTestHelper::sendRequest($endpoint, 'GET');
@@ -27,7 +26,7 @@ test('can create trace with langfuse api when configured', function () {
         $this->markTestSkipped('Langfuse API keys not configured. Set TEST_LANGFUSE_PUBLIC_KEY and TEST_LANGFUSE_SECRET_KEY');
     }
 
-    $endpoint = $config['base_url'] . '/api/public/ingestion';
+    $endpoint = $config['base_url'].'/api/public/ingestion';
 
     $traceData = [
         'batch' => [
@@ -48,14 +47,14 @@ test('can create trace with langfuse api when configured', function () {
         ],
     ];
 
-    $credentials = base64_encode($config['public_key'] . ':' . $config['secret_key']);
+    $credentials = base64_encode($config['public_key'].':'.$config['secret_key']);
 
     $response = ObservabilityTestHelper::sendRequest(
         $endpoint,
         'POST',
         $traceData,
         [
-            'Authorization' => 'Basic ' . $credentials,
+            'Authorization' => 'Basic '.$credentials,
             'Content-Type' => 'application/json',
         ]
     );
@@ -65,7 +64,7 @@ test('can create trace with langfuse api when configured', function () {
 
 test('langfuse health endpoint is accessible', function () {
     $config = ObservabilityTestHelper::getTestConfig('langfuse');
-    $endpoint = $config['base_url'] . '/api/public/health';
+    $endpoint = $config['base_url'].'/api/public/health';
 
     $response = ObservabilityTestHelper::sendRequest($endpoint);
 
@@ -83,15 +82,15 @@ test('langfuse returns project information when authenticated', function () {
         $this->markTestSkipped('Langfuse API keys not configured');
     }
 
-    $endpoint = $config['base_url'] . '/api/public/traces';
+    $endpoint = $config['base_url'].'/api/public/traces';
 
-    $credentials = base64_encode($config['public_key'] . ':' . $config['secret_key']);
+    $credentials = base64_encode($config['public_key'].':'.$config['secret_key']);
 
     $response = ObservabilityTestHelper::sendRequest(
         $endpoint,
         'GET',
         [],
-        ['Authorization' => 'Basic ' . $credentials]
+        ['Authorization' => 'Basic '.$credentials]
     );
 
     expect($response['status'])->toBe(200);

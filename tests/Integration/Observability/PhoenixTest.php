@@ -9,10 +9,9 @@ use Tests\Integration\Observability\ObservabilityTestHelper;
  *
  * Tests LLM observability with Phoenix
  */
-
 test('can send trace data to phoenix', function () {
     $config = ObservabilityTestHelper::getTestConfig('phoenix');
-    $tracesEndpoint = $config['base_url'] . '/v1/traces';
+    $tracesEndpoint = $config['base_url'].'/v1/traces';
 
     // Sample trace data in OpenInference format
     $traceData = [
@@ -65,7 +64,7 @@ test('can send trace data to phoenix', function () {
 
 test('phoenix api returns dataset information', function () {
     $config = ObservabilityTestHelper::getTestConfig('phoenix');
-    $datasetsEndpoint = $config['base_url'] . '/v1/datasets';
+    $datasetsEndpoint = $config['base_url'].'/v1/datasets';
 
     $headers = [];
     if (! empty($config['api_key'])) {

@@ -9,7 +9,6 @@ use Tests\Integration\Observability\ObservabilityTestHelper;
  *
  * Tests LLM cost tracking and proxy with Helicone
  */
-
 test('helicone web ui is accessible', function () {
     $config = ObservabilityTestHelper::getTestConfig('helicone');
     $url = $config['base_url'];
@@ -27,12 +26,12 @@ test('helicone gateway is running', function () {
     // Gateway should be accessible
     $isAvailable = ObservabilityTestHelper::isServiceAvailable($gatewayUrl);
 
-    expect($isAvailable)->toBeTrue('Helicone gateway should be running at ' . $gatewayUrl);
+    expect($isAvailable)->toBeTrue('Helicone gateway should be running at '.$gatewayUrl);
 })->group('observability', 'helicone');
 
 test('helicone gateway requires authentication', function () {
     $config = ObservabilityTestHelper::getTestConfig('helicone');
-    $gatewayUrl = $config['gateway_url'] . '/v1/chat/completions';
+    $gatewayUrl = $config['gateway_url'].'/v1/chat/completions';
 
     // Attempt without API key should fail
     $response = ObservabilityTestHelper::sendRequest(

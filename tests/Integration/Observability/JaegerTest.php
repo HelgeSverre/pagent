@@ -9,10 +9,9 @@ use Tests\Integration\Observability\ObservabilityTestHelper;
  *
  * Tests distributed tracing with Jaeger using OTLP protocol
  */
-
 test('can send OTLP trace data to jaeger', function () {
     $config = ObservabilityTestHelper::getTestConfig('jaeger');
-    $otlpEndpoint = $config['otlp_http'] . '/v1/traces';
+    $otlpEndpoint = $config['otlp_http'].'/v1/traces';
 
     // Sample OTLP trace data
     $traceData = [
@@ -58,7 +57,7 @@ test('can send OTLP trace data to jaeger', function () {
 
 test('jaeger ui accepts service queries', function () {
     $config = ObservabilityTestHelper::getTestConfig('jaeger');
-    $servicesEndpoint = $config['ui_url'] . '/api/services';
+    $servicesEndpoint = $config['ui_url'].'/api/services';
 
     $response = ObservabilityTestHelper::sendRequest($servicesEndpoint);
 
