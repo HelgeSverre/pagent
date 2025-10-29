@@ -189,6 +189,73 @@ clean:
 ci: check test
     @echo "CI pipeline complete!"
 
+# === Observability Stack ===
+
+[group('observability')]
+[doc('Start observability stack (Jaeger, Phoenix, Langfuse, Opik, Helicone)')]
+observability-up:
+    @echo "Starting observability stack..."
+    docker compose -f docker-compose.observability.yml up -d
+    @echo ""
+    @just observability-urls
+
+[group('observability')]
+[doc('Stop observability stack')]
+observability-down:
+    @echo "Stopping observability stack..."
+    docker compose -f docker-compose.observability.yml down
+    @echo "Observability stack stopped!"
+
+[group('observability')]
+[doc('View observability stack logs')]
+observability-logs:
+    docker compose -f docker-compose.observability.yml logs -f
+
+[group('observability')]
+[doc('Show observability service URLs')]
+observability-urls:
+    #!/usr/bin/env bash
+    echo ""
+    echo "╔════════════════════════════════════════════════════════════════╗"
+    echo "║          Observability Stack - Service URLs                   ║"
+    echo "╠════════════════════════════════════════════════════════════════╣"
+    echo "║ Jaeger (Distributed Tracing)                                  ║"
+    echo "║   UI:      http://localhost:16686                             ║"
+    echo "║   OTLP:    http://localhost:4318 (HTTP), :4317 (gRPC)         ║"
+    echo "╠════════════════════════════════════════════════════════════════╣"
+    echo "║ Phoenix (LLM Observability - Arize)                           ║"
+    echo "║   UI:      http://localhost:6006                              ║"
+    echo "║   OTLP:    http://localhost:6007                              ║"
+    echo "╠════════════════════════════════════════════════════════════════╣"
+    echo "║ Langfuse (LLM Monitoring & Prompts)                           ║"
+    echo "║   UI:      http://localhost:3000                              ║"
+    echo "╠════════════════════════════════════════════════════════════════╣"
+    echo "║ Helicone (LLM Cost Tracking)                                  ║"
+    echo "║   UI:      http://localhost:3001                              ║"
+    echo "║   Gateway: http://localhost:8585                              ║"
+    echo "╠════════════════════════════════════════════════════════════════╣"
+    echo "║ Opik (LLM Experiment Tracking - Comet)                        ║"
+    echo "║   UI:      http://localhost:5173                              ║"
+    echo "║   API:     http://localhost:8080                              ║"
+    echo "╚════════════════════════════════════════════════════════════════╝"
+    echo ""
+
+[group('observability')]
+[doc('Restart observability stack')]
+observability-restart:
+    @just observability-down
+    @just observability-up
+
+[group('observability')]
+[doc('Run observability integration tests')]
+observability-test:
+    @echo "Starting observability stack..."
+    @just observability-up
+    @echo "Waiting for services to be ready..."
+    @sleep 10
+    @echo "Running observability tests..."
+    composer test:observability
+
 # === Development Workflows ===
 
 [group('workflow')]

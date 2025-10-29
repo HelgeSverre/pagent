@@ -40,7 +40,10 @@
       "Bash(test:*)",
       "Bash(git mv:*)",
       "Bash(curl:*)",
-      "WebFetch(domain:pestphp.com)"
+      "WebFetch(domain:pestphp.com)",
+      "WebFetch(domain:spec.modelcontextprotocol.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:arize.com)"
     ],
     "deny": []
   }

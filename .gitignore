@@ -27,3 +27,6 @@ branding
 
 # temporary memory
 storage/
+
+# Docker observability environment
+docker/observability/.env
