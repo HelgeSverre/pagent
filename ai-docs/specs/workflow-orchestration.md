@@ -1,6 +1,17 @@
-# Workflows & Subagent Delegation Proposal
+# Workflow Orchestration Specification
 
 **Goal:** Enable complex multi-agent patterns with a clean, fluent API.
+
+**Status:** Partially Implemented
+
+- ✅ **Chain** - Simple sequential execution (v0.5.x)
+- ✅ **Pipeline** - Named steps with transforms (v0.5.x)
+- ✅ **WorkflowResult/StepResult** - Shared result classes (v0.5.x)
+- ⏸️ **Workflow** - Branching logic (Proposed for v0.6.0)
+- ⏸️ **Graph** - Full graph-based DAG (Proposed for v0.7.0)
+- ⏸️ **Parallel** - Parallel execution (Proposed for v0.7.0)
+
+**Location:** This document lives in `ai-docs/specs/` as the authoritative technical specification for workflow patterns.
 
 ---
 

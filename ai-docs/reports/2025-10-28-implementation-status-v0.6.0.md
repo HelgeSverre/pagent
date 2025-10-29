@@ -9,9 +9,11 @@
 ## ✅ What We Built
 
 ### Phase 1: Streaming Support (v0.5.1)
+
 **Status:** ✅ COMPLETE
 
 **Components:**
+
 - ✅ StreamChunk class (value object for chunks)
 - ✅ StreamResponse class (container with collect/streamTo)
 - ✅ AnthropicStreamParser (SSE event parsing)
@@ -22,20 +24,24 @@
 - ✅ OpenAI provider streaming
 
 **Tests:**
+
 - ✅ 21 new tests (all passing)
 - ✅ Unit tests: StreamChunk, StreamResponse
 - ✅ Integration tests: Anthropic, OpenAI streaming
 
 **Documentation:**
+
 - ✅ docs/streaming.md (811 lines)
 - ✅ 3 examples (basic, SSE endpoint, HTML client)
 
 **Commits:** 5 atomic commits
 
 ### Phase 2: Memory & Persistence (v0.6.0)
+
 **Status:** ✅ COMPLETE
 
 **Components:**
+
 - ✅ Memory interface (src/Contracts/Memory.php)
 - ✅ NullAdapter (no-op default)
 - ✅ FileAdapter (JSON file storage)
@@ -47,6 +53,7 @@
 - ✅ Auto-load/save in Agent
 
 **Tests:**
+
 - ✅ 77 new tests (all passing)
 - ✅ Unit tests: 63 tests
   - NullAdapter: 8 tests
@@ -60,6 +67,7 @@
   - Tool calling compatibility
 
 **Documentation:**
+
 - ✅ docs/memory-persistence.md (272 lines - comprehensive guide)
 - ✅ 3 examples (SQLite, File, Multi-session)
 
@@ -111,6 +119,7 @@
 ### What We Delivered Instead
 
 **Core MVP (Phases 1-2):**
+
 - ✅ 3 storage adapters (Null, File, SQLite) - covers all base use cases
 - ✅ Context window management - prevents token overruns
 - ✅ Session isolation - multi-user support
@@ -126,25 +135,25 @@
 
 ### ✅ Completed Documentation
 
-| File | Status | Lines | Purpose |
-|------|--------|-------|---------|
-| `docs/streaming.md` | ✅ | 811 | Streaming guide |
-| `docs/memory-persistence.md` | ✅ | 272 | Memory guide |
-| `STREAMING_IMPLEMENTATION_SUMMARY.md` | ✅ | 404 | Streaming summary |
-| `MEMORY_IMPLEMENTATION_SUMMARY.md` | ✅ | 404 | Memory summary |
-| `README.md` | ✅ Updated | - | Features list, examples |
-| `DEVELOPMENT_ROADMAP.md` | ✅ Updated | - | Progress tracking |
+| File                                  | Status     | Lines | Purpose                 |
+| ------------------------------------- | ---------- | ----- | ----------------------- |
+| `docs/streaming.md`                   | ✅         | 811   | Streaming guide         |
+| `docs/memory-persistence.md`          | ✅         | 272   | Memory guide            |
+| `STREAMING_IMPLEMENTATION_SUMMARY.md` | ✅         | 404   | Streaming summary       |
+| `MEMORY_IMPLEMENTATION_SUMMARY.md`    | ✅         | 404   | Memory summary          |
+| `README.md`                           | ✅ Updated | -     | Features list, examples |
+| `DEVELOPMENT_ROADMAP.md`              | ✅ Updated | -     | Progress tracking       |
 
 ### 📋 Existing Documentation (Unchanged)
 
-| File | Status | Purpose |
-|------|--------|---------|
-| `docs/README.md` | ✅ | Docs index |
-| `docs/laravel-integration.md` | ✅ | Laravel guide |
-| `docs/symfony-integration.md` | ✅ | Symfony guide |
-| `docs/slim-integration.md` | ✅ | Slim guide |
-| `docs/vanilla-php.md` | ✅ | Vanilla PHP guide |
-| `docs/orchestration-workflows.md` | ✅ | Workflows guide |
+| File                              | Status | Purpose           |
+| --------------------------------- | ------ | ----------------- |
+| `docs/README.md`                  | ✅     | Docs index        |
+| `docs/laravel-integration.md`     | ✅     | Laravel guide     |
+| `docs/symfony-integration.md`     | ✅     | Symfony guide     |
+| `docs/slim-integration.md`        | ✅     | Slim guide        |
+| `docs/vanilla-php.md`             | ✅     | Vanilla PHP guide |
+| `docs/orchestration-workflows.md` | ✅     | Workflows guide   |
 
 **Total Documentation:** 7 guides + 4 summary docs = 11 documents
 
@@ -163,25 +172,25 @@ Duration: 93.16s
 
 ### Test Breakdown
 
-| Category | Tests | Status |
-|----------|-------|--------|
-| **Unit Tests** | 332 | ✅ PASSING |
-| - Core Agent | 45 | ✅ |
-| - Tools (8 tools) | 120 | ✅ |
-| - Guards | 28 | ✅ |
-| - Middleware | 15 | ✅ |
-| - Workflows | 24 | ✅ |
-| - Streaming | 21 | ✅ |
-| - Memory | 63 | ✅ |
-| - Other | 16 | ✅ |
-| **Integration Tests** | 67 | ✅ PASSING |
-| - Basic Usage | 12 | ✅ |
-| - Tool Calling | 15 | ✅ |
-| - Provider Features | 7 | ✅ |
-| - Memory Persistence | 14 | ✅ |
-| - Real API | 19 | ✅ |
-| **Architecture Tests** | 12 | ✅ PASSING |
-| **TOTAL** | **411** | **✅ PASSING** |
+| Category               | Tests   | Status         |
+| ---------------------- | ------- | -------------- |
+| **Unit Tests**         | 332     | ✅ PASSING     |
+| - Core Agent           | 45      | ✅             |
+| - Tools (8 tools)      | 120     | ✅             |
+| - Guards               | 28      | ✅             |
+| - Middleware           | 15      | ✅             |
+| - Workflows            | 24      | ✅             |
+| - Streaming            | 21      | ✅             |
+| - Memory               | 63      | ✅             |
+| - Other                | 16      | ✅             |
+| **Integration Tests**  | 67      | ✅ PASSING     |
+| - Basic Usage          | 12      | ✅             |
+| - Tool Calling         | 15      | ✅             |
+| - Provider Features    | 7       | ✅             |
+| - Memory Persistence   | 14      | ✅             |
+| - Real API             | 19      | ✅             |
+| **Architecture Tests** | 12      | ✅ PASSING     |
+| **TOTAL**              | **411** | **✅ PASSING** |
 
 ### Tests Skipped (Expected)
 
@@ -194,6 +203,7 @@ Duration: 93.16s
 ## 🎯 What's Complete
 
 ### Features
+
 - ✅ Real-time streaming (SSE)
 - ✅ Memory persistence (3 adapters)
 - ✅ Session management
@@ -202,6 +212,7 @@ Duration: 93.16s
 - ✅ Auto-load/save
 
 ### Quality
+
 - ✅ 411 tests passing (980 assertions)
 - ✅ PHPStan level 9 compliant
 - ✅ Full test coverage for new features
@@ -209,6 +220,7 @@ Duration: 93.16s
 - ✅ Working examples
 
 ### Developer Experience
+
 - ✅ Clean, fluent API
 - ✅ Multiple storage options
 - ✅ Backward compatible
@@ -220,12 +232,14 @@ Duration: 93.16s
 ## 📊 Metrics
 
 ### Code Changes
+
 - **Files changed:** 75
 - **Lines added:** ~15,000
 - **Lines removed:** ~280
 - **Net addition:** ~14,700 lines
 
 ### New Components
+
 - **Classes:** 10 (5 streaming + 5 memory)
 - **Interfaces:** 1 (Memory)
 - **Tests:** 98 (21 streaming + 77 memory)
@@ -233,6 +247,7 @@ Duration: 93.16s
 - **Documentation:** 1,083 lines
 
 ### Commits
+
 - **Total:** 9 atomic commits
 - **5 commits:** Streaming (v0.5.1)
 - **4 commits:** Memory (v0.6.0)
@@ -244,6 +259,7 @@ Duration: 93.16s
 ### ✅ Ready for Production
 
 **Streaming:**
+
 - Handles Anthropic SSE events
 - Handles OpenAI SSE events
 - Error handling
@@ -251,6 +267,7 @@ Duration: 93.16s
 - Well tested
 
 **Memory:**
+
 - SQLite with transactions
 - Atomic file writes
 - Session isolation
@@ -283,12 +300,14 @@ Duration: 93.16s
 ## 📈 Before vs After
 
 ### Before (v0.5.0)
+
 - 240 tests
 - No streaming support
 - No memory/persistence
 - Conversations lost after script end
 
 ### After (v0.6.0)
+
 - **411 tests** (+171 tests!)
 - ✅ Real-time streaming
 - ✅ Memory persistence
@@ -303,6 +322,7 @@ Duration: 93.16s
 ## 🎉 Summary
 
 ### What Works
+
 - ✅ **All 411 tests passing**
 - ✅ **Streaming** - Real-time SSE responses
 - ✅ **Memory** - 3 storage adapters
@@ -312,15 +332,18 @@ Duration: 93.16s
 - ✅ **Examples** - 6 working demos
 
 ### What's Missing (Intentionally)
+
 - ❌ Vector storage (deferred to v0.7.0+)
 - ❌ RAG support (deferred to v0.7.0+)
 - ❌ Redis adapter (users can implement)
 - ❌ Exact tokenizer (estimation works well)
 
 ### Recommendation
+
 **Ship it!** 🚀
 
 The implementation is:
+
 - ✅ Complete for MVP
 - ✅ Well tested (411 tests)
 - ✅ Well documented (1,083 lines)

@@ -9,6 +9,7 @@ This report documents issues found while fact-checking documentation against the
 ### Actions Taken
 
 ✅ **Fixed Issues**:
+
 - Corrected multi-worker delegation example in `orchestration-workflows.md`
 - Added clarification notes about Orchestration vs Workflow Pipeline classes
 - Added comparison table for Chain vs Pipeline (Workflow)
@@ -83,6 +84,7 @@ public function to(string|Agent $worker): self
 **Current Documentation**: Mixes examples from both classes without clearly distinguishing them.
 
 **Recommendation**:
+
 - Clearly separate sections for "Orchestration Pipeline" vs "Workflow Pipeline"
 - Document when to use each
 - Show both APIs clearly
@@ -146,6 +148,7 @@ public function to(string|Agent $worker): self
 **Status**: ⚠️ NEEDS VERIFICATION
 
 **Potential Issues**:
+
 - Service provider pattern needs testing
 - Tool registry implementation needs verification
 - Agent factory caching logic should be tested
@@ -157,6 +160,7 @@ public function to(string|Agent $worker): self
 **Status**: ⚠️ NEEDS VERIFICATION
 
 **Potential Issues**:
+
 - Bundle extension configuration needs testing
 - YAML configuration parsing needs verification
 - Service container integration should be tested
@@ -168,6 +172,7 @@ public function to(string|Agent $worker): self
 **Status**: ⚠️ NEEDS VERIFICATION
 
 **Potential Issues**:
+
 - DI container integration needs testing
 - Middleware implementation should be verified
 
@@ -206,13 +211,13 @@ public function to(string|Agent $worker): self
 
 ## Test Coverage Summary
 
-| Feature | Test File | Tests | Status |
-|---------|-----------|-------|--------|
-| Pipeline (Orchestration) | `Orchestration/PipelineTest.php` | 6 | ✅ Good |
-| Pipeline (Workflow) | `Workflow/PipelineTest.php` | 9 | ✅ Good |
-| Chain | `Workflow/ChainTest.php` | 6 | ✅ Good |
-| Handoff | `Orchestration/HandoffTest.php` | 5 | ✅ Good |
-| Delegation | `Orchestration/DelegationTest.php` | 5 | ⚠️ Missing multi-worker tests |
+| Feature                  | Test File                          | Tests | Status                        |
+| ------------------------ | ---------------------------------- | ----- | ----------------------------- |
+| Pipeline (Orchestration) | `Orchestration/PipelineTest.php`   | 6     | ✅ Good                       |
+| Pipeline (Workflow)      | `Workflow/PipelineTest.php`        | 9     | ✅ Good                       |
+| Chain                    | `Workflow/ChainTest.php`           | 6     | ✅ Good                       |
+| Handoff                  | `Orchestration/HandoffTest.php`    | 5     | ✅ Good                       |
+| Delegation               | `Orchestration/DelegationTest.php` | 5     | ⚠️ Missing multi-worker tests |
 
 ---
 
@@ -221,6 +226,7 @@ public function to(string|Agent $worker): self
 Overall documentation quality is **good**, with one critical issue (multi-worker delegation) and some clarification needed around the two different Pipeline classes.
 
 **Priority Fixes**:
+
 1. ❌ Remove/fix multi-worker delegation example
 2. ⚠️ Clarify Orchestration vs Workflow Pipeline differences
 3. ✅ Framework integration docs are conceptually sound but need integration testing

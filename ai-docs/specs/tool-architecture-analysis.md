@@ -16,7 +16,6 @@ The core issue is that **class-based tools cannot be added to agents** because:
 
 - `Agent->tool()` only accepts closures (line 174 in `src/Agent.php`)
 - `Agent->getToolSchemas()` calls `toAnthropicSchema()` and `toOpenAISchema()` on all tools, but class-based tools don't have these methods
-- The `showcase/papermint-03-production.php` example shows the **intended usage pattern** that is currently broken
 
 ---
 
@@ -252,24 +251,9 @@ The `Agent->tools` array is typed as `Tool[]`, but this refers to `Pagent\Tool\T
 
 ### 2.2 Evidence of Intended Usage
 
-**File:** `showcase/papermint-03-production.php` (Lines 22-23)
-
-```php
-agent('extractor')->provider(openai())
-    ->tool(new PdfReader(baseDir: '/receipts'))
-    ->tool(new DataExtract(model: 'gpt-4o-mini'))
-    ->system('Extract text from PDF and parse receipt data using tools');
-```
-
-This code shows the **intended pattern** but it **cannot currently work** because:
-
-1. `Agent->tool()` expects `(string, string, Closure)` but receives `(PdfReader)`
-2. Even if we fixed the signature, `getToolSchemas()` would fail calling `toAnthropicSchema()`
-3. The `Tool[]` typehint would be violated
-
 **Roadmap Confirmation:**
 
-`DEVELOPMENT_ROADMAP.md` (Lines 159-165) shows this was planned:
+`DEVELOPMENT_ROADMAP.md` (Lines 159-165) shows class-based tools were planned:
 
 ```php
 // 5. Built-in tool library
@@ -693,12 +677,11 @@ private array $tools = [];
 
 ---
 
-### Phase 4: Showcase & Examples
+### Phase 4: Examples
 
-**Files to Update:**
+**Files to Create:**
 
-1. `showcase/papermint-03-production.php` - Make it work!
-2. Create `examples/10-builtin-tools.php` - Demo all 8 tools
+1. `examples/10-builtin-tools.php` - Demo all 8 tools
 
 **Example Code:**
 
@@ -917,7 +900,7 @@ if ($tools[0] instanceof \Pagent\Tool\Tool) {
 
 - Run full test suite (should still have 229+ tests passing)
 - Run examples to ensure backward compatibility
-- Run new showcase examples with class-based tools
+- Run new examples with class-based tools
 
 ---
 
@@ -940,10 +923,9 @@ if ($tools[0] instanceof \Pagent\Tool\Tool) {
 - **Time:** 3-4 hours
 - **Impact:** MEDIUM - Ensures stability and discoverability
 
-**Priority 3: Examples & Showcase (Phase 4)**
+**Priority 3: Examples (Phase 4)**
 
 - Create comprehensive examples
-- Fix papermint showcase
 - **Time:** 2 hours
 - **Impact:** LOW - Nice to have
 
@@ -1312,7 +1294,7 @@ test('all 8 built-in tools work through agent', function () {
 | **Phase 1** | Create interface, adapter, update Tool | 2-3 hours      | Low        | Low        |
 | **Phase 2** | Update Agent integration               | 1-2 hours      | Medium     | Medium     |
 | **Phase 3** | Testing & documentation                | 3-4 hours      | Medium     | Low        |
-| **Phase 4** | Examples & showcase                    | 2 hours        | Low        | Low        |
+| **Phase 4** | Examples                               | 2 hours        | Low        | Low        |
 | **Total**   | Full implementation                    | **8-11 hours** | Medium     | Low-Medium |
 
 **Dependencies:**

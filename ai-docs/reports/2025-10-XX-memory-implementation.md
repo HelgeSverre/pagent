@@ -97,6 +97,7 @@ Complete memory and persistence system enabling stateful conversations across se
 ## 📊 Key Metrics
 
 ### Code Added
+
 - **5 new classes** (Memory interface + 3 adapters + ContextManager)
 - **~1,200 lines** of implementation code
 - **~1,500 lines** of test code
@@ -104,12 +105,14 @@ Complete memory and persistence system enabling stateful conversations across se
 - **3 complete examples**
 
 ### Test Coverage
+
 - **77 new tests** (63 unit + 14 integration)
 - **All tests passing** ✅
 - **Total: 411 tests** (980 assertions)
 - **Previous: 240 tests** → **New: 411 tests** (+171 tests!)
 
 ### Features Delivered
+
 - ✅ Memory persistence (3 adapters)
 - ✅ Session management & isolation
 - ✅ Context window management
@@ -280,12 +283,12 @@ tests/
 
 ### Benchmarks (Approximate)
 
-| Adapter | Write Latency | Read Latency | Concurrent Sessions |
-|---------|---------------|--------------|---------------------|
-| Null    | 0ms           | 0ms          | Unlimited           |
-| File    | 1-5ms         | 1-2ms        | 1-10                |
-| SQLite  | 1-2ms         | <1ms         | 100+                |
-| SQLite+WAL | <1ms       | <1ms         | 1000+               |
+| Adapter    | Write Latency | Read Latency | Concurrent Sessions |
+| ---------- | ------------- | ------------ | ------------------- |
+| Null       | 0ms           | 0ms          | Unlimited           |
+| File       | 1-5ms         | 1-2ms        | 1-10                |
+| SQLite     | 1-2ms         | <1ms         | 100+                |
+| SQLite+WAL | <1ms          | <1ms         | 1000+               |
 
 ### Memory Usage
 
@@ -339,18 +342,21 @@ Potential improvements (not in this release):
 ## 🎯 Impact
 
 ### Developer Experience
+
 - **Instant persistence** - One method call away
 - **Multiple backends** - Choose what fits
 - **Well tested** - 77 tests give confidence
 - **Documented** - 820 lines of guidance
 
 ### Competitive Advantage
+
 - **Few PHP frameworks have this** - Memory persistence is rare
 - **Production ready** - SQLite + transactions = reliable
 - **Flexible** - Multiple adapters for different needs
 - **Complete** - Context management included
 
 ### ROI Score: 8.5/10
+
 - ⏰ **Implementation time:** 4 hours (as estimated!)
 - 🎯 **User impact:** ⭐⭐⭐⭐⭐
 - 🏆 **Market differentiation:** ⭐⭐⭐
@@ -369,6 +375,7 @@ Potential improvements (not in this release):
 7. `docs: update README and roadmap for memory feature` (v0.6.0)
 
 **Total Changes:**
+
 - Files changed: 75
 - Insertions: 14,906
 - Deletions: 277

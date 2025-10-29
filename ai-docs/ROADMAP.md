@@ -67,6 +67,7 @@
    - **Impact:** Real-time responses, better UX, ChatGPT-like experience
    - **Value:** Users see responses as they're generated
    - **Version:** v0.7.0
+
    ```php
    agent('assistant')->streamTo(function($chunk) {
        echo "data: {$chunk}\n\n";
@@ -82,6 +83,7 @@
    - **Impact:** Deploy agents as microservices, API endpoints
    - **Value:** Create chatbot APIs, webhooks, mobile backends
    - **Version:** v0.7.0
+
    ```php
    agent('support-bot')
        ->serve([
@@ -98,6 +100,7 @@
    - **Impact:** Long-running conversations, context retention
    - **Value:** Support agents with history, session management
    - **Delivered:** SQLite, File, Null adapters + Context Manager
+
    ```php
    agent('support')
        ->memory('sqlite', ['path' => 'conversations.db'])
@@ -132,6 +135,7 @@
    - **Impact:** Self-directed problem-solving agents
    - **Value:** Agents that think through problems step-by-step
    - **Version:** v0.8.0
+
    ```php
    agent('solver')->react(
        thought: 'I need to calculate the total',
@@ -145,6 +149,7 @@
    - **Impact:** Improved accuracy on complex tasks
    - **Value:** Break down complex problems systematically
    - **Version:** v0.8.0
+
    ```php
    agent('math')->chainOfThought()
        ->step('Understand the problem')
@@ -174,6 +179,7 @@
    - **Impact:** Democratic decision-making across agents
    - **Value:** Reduce hallucinations, improve reliability
    - **Version:** v0.8.0
+
    ```php
    swarm(['agent1', 'agent2', 'agent3'])
        ->vote('What should we do?')
@@ -185,6 +191,7 @@
    - **Impact:** Smart agent selection based on intent
    - **Value:** Customer support routing, multi-domain bots
    - **Version:** v0.8.0
+
    ```php
    router()
        ->when('intent' === 'technical', agent('tech-support'))
@@ -213,6 +220,7 @@
 **Orchestration:** 9-12 hours (Tasks 8-10)
 
 **Recommended Order (Maximum Impact):**
+
 1. **Streaming Support** → Immediate UX improvement
 2. **HTTP Server** → Enables production deployments
 3. **ReAct Pattern** → Showcase advanced reasoning
@@ -225,6 +233,7 @@
 10. **Tree of Thoughts** → Research-grade feature
 
 **Quick Start Recommendations:**
+
 - Start with **Streaming** (4-5h) for immediate wow factor
 - Add **Conditional Router** (2-3h) for practical value
 - Implement **ReAct Pattern** (3-4h) to differentiate from competitors
@@ -237,6 +246,7 @@
     - Reduce API costs by 40-60%
 
 12. **Human-in-the-Loop (HITL)** 👤
+
     ```php
     agent('approval-bot')
         ->requireHumanApproval(
@@ -289,22 +299,26 @@
 ### 🎯 Suggested Development Sprints
 
 **Sprint 1 (Week 1-2): "Production Ready" - 10-13 hours**
+
 - Streaming Support (4-5h)
 - Conditional Router (2-3h)
 - Parallel Execution (3-4h)
 - **Result:** Real-time agents with smart routing
 
 **Sprint 2 (Week 3-4): "API Platform" - 6-8 hours**
+
 - HTTP Server Integration (6-8h)
 - **Result:** Deploy agents as microservices
 
 **Sprint 3 (Week 5-6): "Advanced Reasoning" - 10-14 hours**
+
 - ReAct Pattern (3-4h)
 - Chain-of-Thought (3-4h)
 - Swarm Intelligence (4-5h)
 - **Result:** State-of-the-art agent reasoning
 
 **Sprint 4 (Week 7-8): "Enterprise Features" - 14-20 hours**
+
 - Memory & Persistence (4-5h)
 - OpenTelemetry (10-15h)
 - **Result:** Production-grade monitoring & persistence
@@ -1157,6 +1171,7 @@ agent('weather')->tool('getWeather', WeatherRequest::class, fn(WeatherRequest $r
 **Estimated Time to v1.0.0:** 30-45 hours of focused development
 
 **Recent Progress (v0.6.0):**
+
 - ✅ **Streaming Support** (v0.5.1) - Real-time SSE streaming, 21 tests
 - ✅ **Memory & Persistence** (v0.6.0) - SQLite/File adapters, 63 tests
 - ✅ **Context Management** - Token counting, pruning strategies
@@ -1167,6 +1182,7 @@ agent('weather')->tool('getWeather', WeatherRequest::class, fn(WeatherRequest $r
 - ✅ **Bulk Tool Addition** - `Agent::tools()` method, enables Toolkit pattern (5 new tests)
 
 **Completed Features:**
+
 - ✅ Streaming (SSE, WebSocket-ready)
 - ✅ Memory persistence (3 adapters)
 - ✅ Context window management
