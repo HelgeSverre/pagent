@@ -33,7 +33,7 @@
 ## Documentation Policy
 
 - **DO NOT create new files** without explicit user approval
-- **Consolidate information** into existing files (DEVELOPMENT_ROADMAP.md, FEATURES.md, etc.)
+- **Consolidate information** into existing files (ROADMAP.md, FEATURES.md, etc.)
 - **Avoid fragmentation** - use existing structure rather than creating new documents
 - **Update existing files** when adding related information
 
@@ -74,21 +74,21 @@ ai-docs/
 
 ### Decision Tree: Where Does This Document Go?
 
-| Document Type | Location | Example |
-|--------------|----------|---------|
+| Document Type               | Location                             | Example                                      |
+| --------------------------- | ------------------------------------ | -------------------------------------------- |
 | Point-in-time status/report | `reports/` with `YYYY-MM-DD-` prefix | `2025-10-28-implementation-status-v0.6.0.md` |
-| Technical specification | `specs/` | `workflow-orchestration.md` |
-| Implementation plan | `plans/` | `test-coverage-suggestions.md` |
-| Long-running progress log | `archive/` | `session-progress.md` |
-| Future idea/brainstorm | `future/` | `article-ideas.md` |
-| Project-wide important | Root level | `FEATURES.md`, `DEVELOPMENT_ROADMAP.md` |
+| Technical specification     | `specs/`                             | `workflow-orchestration.md`                  |
+| Implementation plan         | `plans/`                             | `test-coverage-suggestions.md`               |
+| Long-running progress log   | `archive/`                           | `session-progress.md`                        |
+| Future idea/brainstorm      | `future/`                            | `article-ideas.md`                           |
+| Project-wide important      | Root level                           | `FEATURES.md`, `ROADMAP.md`                  |
 
 ### What NOT to Create
 
 ❌ **Redundant status files** - Use git commits and PRs for tracking
 ❌ **Duplicate architecture docs** - Update existing specs instead
 ❌ **Session summaries for every session** - Only when significant work completed
-❌ **Multiple roadmaps** - Keep one canonical DEVELOPMENT_ROADMAP.md
+❌ **Multiple roadmaps** - Keep one canonical ROADMAP.md
 ❌ **Overlapping plans** - Consolidate similar plans into one document
 
 ### Archiving Old Documents
@@ -121,6 +121,7 @@ Ask yourself:
 ### Quick Reference
 
 **Creating a Report:**
+
 1. Copy `ai-docs/_templates/report-template.md`
 2. Name it `YYYY-MM-DD-descriptive-name.md`
 3. Place in `ai-docs/reports/`
@@ -128,6 +129,7 @@ Ask yourself:
 5. Follow template structure
 
 **Creating a Plan:**
+
 1. Copy `ai-docs/_templates/plan-template.md`
 2. Name it `descriptive-name-plan.md` or `descriptive-guide.md`
 3. Place in `ai-docs/plans/`
@@ -135,12 +137,14 @@ Ask yourself:
 5. Follow template structure
 
 **Creating a Spec:**
+
 1. Name it `descriptive-name.md` (no date)
 2. Place in `ai-docs/specs/`
 3. Include status section if describing implementation
 4. Keep updated as design evolves
 
 **Updating Root Documents:**
+
 - `FEATURES.md` - Add/update feature descriptions
 - `DEVELOPMENT_ROADMAP.md` - Update version plans and priorities
 - `RELEASE_CHECKLIST.md` - Update release process
@@ -165,7 +169,7 @@ Ask yourself:
 → Update `ai-docs/archive/session-progress.md` (use sparingly)
 
 **Scenario: Feature roadmap changes**
-→ Update `ai-docs/DEVELOPMENT_ROADMAP.md` (root level, not new file)
+→ Update `ai-docs/ROADMAP.md` (root level, not new file)
 
 ---
 
