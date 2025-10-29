@@ -1,0 +1,298 @@
+services:
+  # Jaeger - Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: pagent-jaeger
+    profiles:
+      - all
+      - jaeger
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"  # Jaeger UI
+      - "${JAEGER_COLLECTOR_PORT:-14268}:14268"  # HTTP collector
+      - "${JAEGER_OTLP_GRPC_PORT:-4317}:4317"    # OTLP gRPC
+      - "${JAEGER_OTLP_HTTP_PORT:-4318}:4318"    # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - LOG_LEVEL=${JAEGER_LOG_LEVEL:-info}
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:16686/"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - jaeger-data:/tmp
+
+  # Zipkin - Distributed Tracing
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: pagent-zipkin
+    profiles:
+      - all
+      - zipkin
+    ports:
+      - "${ZIPKIN_PORT:-9411}:9411"  # Zipkin UI and API
+    environment:
+      - STORAGE_TYPE=mem
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9411/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # Phoenix by Arize - LLM Observability
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    container_name: pagent-phoenix
+    profiles:
+      - all
+      - phoenix
+    ports:
+      - "${PHOENIX_UI_PORT:-6006}:6006"  # Phoenix UI
+      - "${PHOENIX_GRPC_PORT:-6007}:6007"  # OTLP collector
+    environment:
+      - PHOENIX_PORT=6006
+      - PHOENIX_GRPC_PORT=6007
+      - PHOENIX_WORKING_DIR=/phoenix-data
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:6006/"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    volumes:
+      - phoenix-data:/phoenix-data
+
+  # PostgreSQL for Langfuse
+  langfuse-db:
+    image: postgres:16-alpine
+    container_name: pagent-langfuse-db
+    profiles:
+      - all
+      - langfuse
+    environment:
+      POSTGRES_DB: ${LANGFUSE_DB_NAME:-langfuse}
+      POSTGRES_USER: ${LANGFUSE_DB_USER:-langfuse}
+      POSTGRES_PASSWORD: ${LANGFUSE_DB_PASSWORD:-langfuse_password}
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LANGFUSE_DB_USER:-langfuse}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  # Langfuse - LLM Monitoring & Prompt Management (v2 for simpler local setup)
+  langfuse:
+    image: langfuse/langfuse:2
+    container_name: pagent-langfuse
+    profiles:
+      - all
+      - langfuse
+    ports:
+      - "${LANGFUSE_PORT:-3000}:3000"  # Langfuse UI
+    environment:
+      DATABASE_URL: postgresql://${LANGFUSE_DB_USER:-langfuse}:${LANGFUSE_DB_PASSWORD:-langfuse_password}@langfuse-db:5432/${LANGFUSE_DB_NAME:-langfuse}
+      NEXTAUTH_URL: http://localhost:${LANGFUSE_PORT:-3000}
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-changeme_langfuse_secret_key_min_32_chars}
+      SALT: ${LANGFUSE_SALT:-changeme_langfuse_salt_key}
+      TELEMETRY_ENABLED: ${LANGFUSE_TELEMETRY_ENABLED:-true}
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: ${LANGFUSE_EXPERIMENTAL:-true}
+    networks:
+      - observability
+    restart: unless-stopped
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/public/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # MySQL for Opik
+  opik-mysql:
+    image: mysql:8.0
+    container_name: pagent-opik-mysql
+    profiles:
+      - all
+      - opik
+    environment:
+      MYSQL_ROOT_PASSWORD: ${OPIK_MYSQL_ROOT_PASSWORD:-opik_root_password}
+      MYSQL_DATABASE: ${OPIK_DB_NAME:-opik}
+      MYSQL_USER: ${OPIK_DB_USER:-opik}
+      MYSQL_PASSWORD: ${OPIK_DB_PASSWORD:-opik_password}
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${OPIK_MYSQL_ROOT_PASSWORD:-opik_root_password}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  # ClickHouse for Opik
+  opik-clickhouse:
+    image: clickhouse/clickhouse-server:24.10
+    container_name: pagent-opik-clickhouse
+    profiles:
+      - all
+      - opik
+    environment:
+      CLICKHOUSE_DB: ${OPIK_DB_NAME:-opik}
+      CLICKHOUSE_USER: ${OPIK_DB_USER:-opik}
+      CLICKHOUSE_PASSWORD: ${OPIK_DB_PASSWORD:-opik_password}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  # Opik Backend - LLM Experiment Tracking
+  opik-backend:
+    image: ghcr.io/comet-ml/opik/opik-backend:latest
+    container_name: pagent-opik-backend
+    profiles:
+      - all
+      - opik
+    ports:
+      - "${OPIK_BACKEND_PORT:-8080}:8080"  # Backend API
+    environment:
+      STATE_DB_PROTOCOL: "jdbc:mysql://"
+      STATE_DB_URL: "opik-mysql:3306/${OPIK_DB_NAME:-opik}?createDatabaseIfNotExist=true&rewriteBatchedStatements=true"
+      STATE_DB_DATABASE_NAME: ${OPIK_DB_NAME:-opik}
+      STATE_DB_USER: ${OPIK_DB_USER:-opik}
+      STATE_DB_PASS: ${OPIK_DB_PASSWORD:-opik_password}
+      CLICKHOUSE_URL: clickhouse://opik-clickhouse:8123
+      CLICKHOUSE_USER: ${OPIK_DB_USER:-opik}
+      CLICKHOUSE_PASSWORD: ${OPIK_DB_PASSWORD:-opik_password}
+      CLICKHOUSE_DATABASE: ${OPIK_DB_NAME:-opik}
+      OPIK_USAGE_REPORT_ENABLED: ${OPIK_TELEMETRY_ENABLED:-false}
+    networks:
+      - observability
+    restart: unless-stopped
+    depends_on:
+      opik-mysql:
+        condition: service_healthy
+      opik-clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Helicone - LLM Observability & Cost Tracking
+  helicone:
+    image: helicone/helicone-all-in-one:latest
+    container_name: pagent-helicone
+    profiles:
+      - all
+      - helicone
+    ports:
+      - "${HELICONE_PORT:-3001}:3000"  # Web UI (using 3001 to avoid conflict with Langfuse)
+      - "${HELICONE_GATEWAY_PORT:-8585}:8585"  # Jawn gateway
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@helicone-db:5432/helicone
+      - NEXT_PUBLIC_BASE_PATH=http://localhost:${HELICONE_PORT:-3001}
+    networks:
+      - observability
+    restart: unless-stopped
+    depends_on:
+      helicone-db:
+        condition: service_healthy
+
+  # PostgreSQL for Helicone
+  helicone-db:
+    image: postgres:16-alpine
+    container_name: pagent-helicone-db
+    profiles:
+      - all
+      - helicone
+    environment:
+      POSTGRES_DB: helicone
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - helicone-data:/var/lib/postgresql/data
+
+  # Opik Frontend
+  opik-frontend:
+    image: ghcr.io/comet-ml/opik/opik-frontend:latest
+    container_name: pagent-opik-frontend
+    profiles:
+      - all
+      - opik
+    ports:
+      - "${OPIK_FRONTEND_PORT:-5173}:5173"  # Frontend UI
+    environment:
+      OPIK_BACKEND_URL: http://opik-backend:8080
+      VITE_BACKEND_URL: http://localhost:${OPIK_BACKEND_PORT:-8080}
+    networks:
+      - observability
+    restart: unless-stopped
+    depends_on:
+      opik-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+networks:
+  observability:
+    driver: bridge
+    name: pagent-observability
+
+volumes:
+  jaeger-data:
+    name: pagent-jaeger-data
+  phoenix-data:
+    name: pagent-phoenix-data
+  postgres-data:
+    name: pagent-postgres-data
+  mysql-data:
+    name: pagent-mysql-data
+  clickhouse-data:
+    name: pagent-clickhouse-data
+  helicone-data:
+    name: pagent-helicone-data
