@@ -22,4 +22,8 @@ examples/reports/*.md
 coverage/
 .coverage/
 
-branding/*
+# WIP Branding stuff
+branding
+
+# temporary memory
+storage/
