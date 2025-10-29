@@ -130,6 +130,7 @@ $response = $ollama->prompt('Hello!', [
 ```
 
 **Benefits:**
+
 - 🔒 Complete privacy - all data stays local
 - 💰 Zero API costs
 - ⚡ Low latency
@@ -203,6 +204,7 @@ agent('custom')
 ```
 
 **When to use each:**
+
 - **String-based**: Quick setup, standard configuration
 - **Instance-based**: Custom config, multiple providers with same name, testing
 
@@ -280,6 +282,17 @@ $agent = agent('assistant')
     ->tool(new FileRead())
     ->tool(new WebFetch())
     ->prompt('Read the file data.json and fetch https://api.example.com/data');
+
+// Add multiple tools at once
+$agent = agent('file-assistant')
+    ->provider('anthropic')
+    ->tools([
+        new FileRead(baseDir: '/project'),
+        new FileWrite(baseDir: '/project'),
+        new Glob(baseDir: '/project'),
+        new Grep(baseDir: '/project'),
+    ])
+    ->prompt('List all PHP files and show me the config');
 
 // Create custom class-based tools
 use Pagent\Tools\Tool;

@@ -39,12 +39,14 @@ echo $response->content;
 Download and install Ollama from [ollama.com](https://ollama.com):
 
 **macOS:**
+
 ```bash
 brew install ollama
 ollama serve
 ```
 
 **Linux:**
+
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ollama serve
@@ -427,6 +429,7 @@ $result = $delegation->run();
 ### For Tool Calling (Recommended)
 
 **qwen3:8b** ⭐ Best for tool calling
+
 - Excellent function calling support
 - Fast inference
 - Good balance of size/performance
@@ -437,6 +440,7 @@ ollama pull qwen3:8b
 ```
 
 **llama3.1** - Alternative option
+
 - Native tool support
 - Widely used
 - Good performance
@@ -448,6 +452,7 @@ ollama pull llama3.1
 ### For General Use
 
 **gpt-oss:20b** - Larger, more capable
+
 - Better for complex reasoning
 - Slower inference
 - Higher memory requirements
@@ -457,6 +462,7 @@ ollama pull gpt-oss:20b
 ```
 
 **mistral** - Balanced option
+
 - Good performance
 - Tool support
 - Moderate size
@@ -484,11 +490,13 @@ $agent->model($model);
 ### Hardware Requirements
 
 **Minimum (qwen3:8b):**
+
 - 8GB RAM
 - 4 CPU cores
 - ~5GB disk space
 
 **Recommended (gpt-oss:20b):**
+
 - 24GB RAM
 - 8 CPU cores
 - ~12GB disk space
@@ -498,12 +506,14 @@ $agent->model($model);
 Ollama automatically uses GPU if available:
 
 **Check GPU usage:**
+
 ```bash
 ollama list
 nvidia-smi  # For NVIDIA GPUs
 ```
 
 **Force CPU mode:**
+
 ```bash
 CUDA_VISIBLE_DEVICES="" ollama serve
 ```
@@ -535,12 +545,14 @@ $results = await($promises);
 ### Memory Management
 
 **Keep model loaded:**
+
 ```bash
 ollama run qwen3:8b
 # Keep terminal open to keep model in memory
 ```
 
 **Preload multiple models:**
+
 ```bash
 ollama run qwen3:8b &
 ollama run gpt-oss:20b &
@@ -555,6 +567,7 @@ ollama run gpt-oss:20b &
 **Problem:** `Ollama API request failed. Is the Ollama server running?`
 
 **Solution:**
+
 ```bash
 # Start Ollama server
 ollama serve
@@ -571,6 +584,7 @@ curl http://localhost:11434/api/version
 **Problem:** `Ollama API error: model 'qwen3:8b' not found`
 
 **Solution:**
+
 ```bash
 # List available models
 ollama list
@@ -584,6 +598,7 @@ ollama pull qwen3:8b
 **Problem:** Responses take too long
 
 **Solutions:**
+
 1. Use smaller model: `qwen3:8b` instead of `gpt-oss:20b`
 2. Enable GPU acceleration
 3. Increase timeout: `'timeout' => 300`
@@ -595,6 +610,7 @@ ollama pull qwen3:8b
 **Problem:** `Ollama API request failed` after long wait
 
 **Solutions:**
+
 ```php
 // Increase timeout
 $provider = ollama(['timeout' => 300]);
@@ -611,6 +627,7 @@ $agent->model('qwen3:8b');
 **Problem:** Agent doesn't use tools
 
 **Solutions:**
+
 1. Use tool-compatible model (`qwen3:8b`, `llama3.1`)
 2. Add clear system prompt:
    ```php
@@ -783,16 +800,16 @@ $safeContent = htmlspecialchars($response->content);
 
 ## Comparison with Cloud Providers
 
-| Feature | Ollama | Anthropic | OpenAI |
-|---------|--------|-----------|--------|
-| **Cost** | Free | $$ | $$$ |
-| **Privacy** | 100% local | Cloud | Cloud |
-| **Latency** | Low (local) | Medium | Medium |
-| **Models** | Open source | Claude | GPT |
-| **Setup** | Server required | API key | API key |
-| **Scaling** | Manual | Automatic | Automatic |
-| **Tool Calling** | Yes (qwen3, llama3.1) | Yes | Yes |
-| **Streaming** | NDJSON | SSE | SSE |
+| Feature          | Ollama                | Anthropic | OpenAI    |
+| ---------------- | --------------------- | --------- | --------- |
+| **Cost**         | Free                  | $$        | $$$       |
+| **Privacy**      | 100% local            | Cloud     | Cloud     |
+| **Latency**      | Low (local)           | Medium    | Medium    |
+| **Models**       | Open source           | Claude    | GPT       |
+| **Setup**        | Server required       | API key   | API key   |
+| **Scaling**      | Manual                | Automatic | Automatic |
+| **Tool Calling** | Yes (qwen3, llama3.1) | Yes       | Yes       |
+| **Streaming**    | NDJSON                | SSE       | SSE       |
 
 ## Next Steps
 
