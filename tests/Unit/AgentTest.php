@@ -129,7 +129,7 @@ test('it prevents infinite tool call loops', function (): void {
     // Should throw after maximum depth exceeded (suggested: 10 iterations)
     expect(fn () => $agent->prompt('start'))
         ->toThrow(RuntimeException::class, 'Maximum tool call depth exceeded');
-})->skip('Requires implementing MAX_TOOL_CALL_DEPTH constant and loop protection in Agent::prompt()');
+});
 
 test('it handles tool removal during execution gracefully', function (): void {
     $callCount = 0;
@@ -222,4 +222,4 @@ test('it detects circular tool call chains', function (): void {
 
     // Should have stopped before excessive calls
     expect(count($calls))->toBeLessThan(20);
-})->skip('Requires implementing circular chain detection or MAX_TOOL_CALL_DEPTH limit');
+});
