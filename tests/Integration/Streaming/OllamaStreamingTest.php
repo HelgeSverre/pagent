@@ -40,6 +40,7 @@ test('Ollama streamPrompt returns StreamResponse', function () {
         ->and($response->getModel())->toBe('qwen3:8b');
 });
 
+// TODO: flakey test, imrpove
 test('Ollama streaming collects full content correctly', function () {
     skipIfMissingOllamaModel('qwen3:8b');
 
@@ -47,8 +48,10 @@ test('Ollama streaming collects full content correctly', function () {
 
     $response = $provider->streamPrompt('Say "hello world" only', [
         'model' => 'qwen3:8b',
-        'max_tokens' => 20,
+        'max_tokens' => 100,
     ]);
+
+    ray($response);
 
     $fullContent = $response->collect();
 

@@ -442,16 +442,13 @@ test('both empty allows all domains (default behavior)', function () {
     );
 
     // Should not throw any allow/disallow errors
-    $passed = false;
     try {
         $tool->execute(['url' => 'http://any-domain.com']);
-        $passed = true; // No restrictions applied
+        expect(true)->toBeTrue();
     } catch (RuntimeException $e) {
         expect($e->getMessage())->not->toContain('allow list');
         expect($e->getMessage())->not->toContain('disallow list');
-        $passed = true;
     }
-    expect($passed)->toBeTrue();
 });
 
 test('allow list with different domain blocks others', function () {
@@ -473,15 +470,12 @@ test('empty pattern in allow list is handled', function () {
     $tool = new WebFetch(allowList: ['', 'example.com']);
 
     // Empty pattern should not break matching
-    $passed = false;
     try {
         $tool->execute(['url' => 'http://example.com']);
-        $passed = true; // Successfully matched valid pattern
+        expect(true)->toBeTrue();
     } catch (RuntimeException $e) {
         expect($e->getMessage())->not->toContain('not in allow list');
-        $passed = true;
     }
-    expect($passed)->toBeTrue();
 });
 
 test('wildcard in middle of domain pattern works', function () {

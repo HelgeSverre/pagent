@@ -34,7 +34,7 @@ test('Anthropic streamPrompt returns StreamResponse', function () {
     expect($response)->toBeInstanceOf(StreamResponse::class)
         ->and($response->getProvider())->toBe('anthropic')
         ->and($response->getModel())->toContain('claude');
-})->skip('Requires live API call');
+});
 
 test('Anthropic streaming collects full content correctly', function () {
     $provider = new Anthropic([
@@ -52,7 +52,7 @@ test('Anthropic streaming collects full content correctly', function () {
         ->and(strlen($fullContent))->toBeGreaterThan(0)
         ->and($response->getUsage())->toBeArray()
         ->and($response->getStopReason())->toBeString();
-})->skip('Requires live API call');
+});
 
 test('Anthropic streaming produces text chunks', function () {
     $provider = new Anthropic([
@@ -83,7 +83,7 @@ test('Anthropic streaming produces text chunks', function () {
     expect($hasTextChunk)->toBeTrue('Should have at least one text chunk')
         ->and($hasStartChunk)->toBeTrue('Should have a start chunk')
         ->and($hasEndChunk)->toBeTrue('Should have an end chunk');
-})->skip('Requires live API call');
+});
 
 test('Anthropic streaming handles errors gracefully', function () {
     $provider = new Anthropic([

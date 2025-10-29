@@ -27,14 +27,14 @@ test('OpenAI streamPrompt returns StreamResponse', function () {
     ]);
 
     $response = $provider->streamPrompt('Say "test" only', [
-        'model' => 'gpt-3.5-turbo',
+        'model' => 'gpt-4.1-nano',
         'max_tokens' => 10,
     ]);
 
     expect($response)->toBeInstanceOf(StreamResponse::class)
         ->and($response->getProvider())->toBe('openai')
         ->and($response->getModel())->toContain('gpt');
-})->skip('Requires live API call');
+});
 
 test('OpenAI streaming collects full content correctly', function () {
     $provider = new OpenAI([
@@ -42,7 +42,7 @@ test('OpenAI streaming collects full content correctly', function () {
     ]);
 
     $response = $provider->streamPrompt('Say "hello world" only', [
-        'model' => 'gpt-3.5-turbo',
+        'model' => 'gpt-4.1-nano',
         'max_tokens' => 20,
     ]);
 
@@ -50,7 +50,7 @@ test('OpenAI streaming collects full content correctly', function () {
 
     expect($fullContent)->toBeString()
         ->and(strlen($fullContent))->toBeGreaterThan(0);
-})->skip('Requires live API call');
+});
 
 test('OpenAI streaming produces text chunks', function () {
     $provider = new OpenAI([
@@ -58,7 +58,7 @@ test('OpenAI streaming produces text chunks', function () {
     ]);
 
     $response = $provider->streamPrompt('Count to 3', [
-        'model' => 'gpt-3.5-turbo',
+        'model' => 'gpt-4.1-nano',
         'max_tokens' => 50,
     ]);
 
@@ -81,7 +81,7 @@ test('OpenAI streaming produces text chunks', function () {
     expect($hasTextChunk)->toBeTrue('Should have at least one text chunk')
         ->and($hasStartChunk)->toBeTrue('Should have a start chunk')
         ->and($hasEndChunk)->toBeTrue('Should have an end chunk');
-})->skip('Requires live API call');
+});
 
 test('OpenAI streaming handles errors gracefully', function () {
     $provider = new OpenAI([
