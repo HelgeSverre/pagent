@@ -148,6 +148,29 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
 
+  # Zookeeper for Opik ClickHouse
+  opik-zookeeper:
+    image: zookeeper:3.9
+    container_name: pagent-opik-zookeeper
+    profiles:
+      - all
+      - opik
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=opik-zookeeper:2888:3888;2181
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "zkServer.sh", "status"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - zookeeper-data:/data
+      - zookeeper-logs:/datalog
+
   # ClickHouse for Opik
   opik-clickhouse:
     image: clickhouse/clickhouse-server:24.10
@@ -163,18 +186,40 @@ services:
     networks:
       - observability
     restart: unless-stopped
+    depends_on:
+      opik-zookeeper:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
       interval: 5s
       timeout: 3s
-      retries: 5
-      start_period: 20s
+      retries: 10
+      start_period: 60s
     volumes:
       - clickhouse-data:/var/lib/clickhouse
+      - ./docker/clickhouse_config:/etc/clickhouse-server/config.d:ro
     ulimits:
       nofile:
         soft: 262144
         hard: 262144
+
+  # Redis for Opik
+  opik-redis:
+    image: redis:7-alpine
+    container_name: pagent-opik-redis
+    profiles:
+      - all
+      - opik
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-data:/data
 
   # Opik Backend - LLM Experiment Tracking
   opik-backend:
@@ -183,6 +228,7 @@ services:
     profiles:
       - all
       - opik
+    command: bash -c "./run_db_migrations.sh && ./entrypoint.sh"
     ports:
       - "${OPIK_BACKEND_PORT:-8080}:8080"  # Backend API
     environment:
@@ -191,10 +237,16 @@ services:
       STATE_DB_DATABASE_NAME: ${OPIK_DB_NAME:-opik}
       STATE_DB_USER: ${OPIK_DB_USER:-opik}
       STATE_DB_PASS: ${OPIK_DB_PASSWORD:-opik_password}
-      CLICKHOUSE_URL: clickhouse://opik-clickhouse:8123
-      CLICKHOUSE_USER: ${OPIK_DB_USER:-opik}
-      CLICKHOUSE_PASSWORD: ${OPIK_DB_PASSWORD:-opik_password}
-      CLICKHOUSE_DATABASE: ${OPIK_DB_NAME:-opik}
+      ANALYTICS_DB_MIGRATIONS_URL: "jdbc:clickhouse://opik-clickhouse:8123"
+      ANALYTICS_DB_MIGRATIONS_USER: ${OPIK_DB_USER:-opik}
+      ANALYTICS_DB_MIGRATIONS_PASS: ${OPIK_DB_PASSWORD:-opik_password}
+      ANALYTICS_DB_PROTOCOL: "HTTP"
+      ANALYTICS_DB_HOST: "opik-clickhouse"
+      ANALYTICS_DB_PORT: 8123
+      ANALYTICS_DB_DATABASE_NAME: ${OPIK_DB_NAME:-opik}
+      ANALYTICS_DB_USERNAME: ${OPIK_DB_USER:-opik}
+      ANALYTICS_DB_PASS: ${OPIK_DB_PASSWORD:-opik_password}
+      REDIS_URL: redis://opik-redis:6379
       OPIK_USAGE_REPORT_ENABLED: ${OPIK_TELEMETRY_ENABLED:-false}
     networks:
       - observability
@@ -204,12 +256,14 @@ services:
         condition: service_healthy
       opik-clickhouse:
         condition: service_healthy
+      opik-redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      test: ["CMD", "curl", "-f", "-s", "http://localhost:8080/health-check"]
+      interval: 1s
+      timeout: 3s
+      retries: 600
+      start_period: 60s
 
   # Helicone - LLM Observability & Cost Tracking
   helicone:
@@ -294,5 +348,11 @@ volumes:
     name: pagent-mysql-data
   clickhouse-data:
     name: pagent-clickhouse-data
+  redis-data:
+    name: pagent-redis-data
+  zookeeper-data:
+    name: pagent-zookeeper-data
+  zookeeper-logs:
+    name: pagent-zookeeper-logs
   helicone-data:
     name: pagent-helicone-data

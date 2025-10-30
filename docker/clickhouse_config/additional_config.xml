@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <macros>
+        <shard>1</shard>
+        <replica>clickhouse</replica>
+        <cluster>cluster</cluster>
+    </macros>
+    <zookeeper>
+        <node>
+            <host>opik-zookeeper</host>
+            <port>2181</port>
+        </node>
+        <session_timeout_ms>30000</session_timeout_ms>
+    </zookeeper>
+    <distributed_ddl>
+        <path>/clickhouse/task_queue/ddl</path>
+    </distributed_ddl>
+    <remote_servers>
+        <cluster>
+            <shard>
+                <replica>
+                    <host>opik-clickhouse</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </cluster>
+    </remote_servers>
+</clickhouse>
