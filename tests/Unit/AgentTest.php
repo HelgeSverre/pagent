@@ -223,3 +223,40 @@ test('it detects circular tool call chains', function (): void {
     // Should have stopped before excessive calls
     expect(count($calls))->toBeLessThan(20);
 });
+
+// ========================================
+// Agent::clone() Tests
+// ========================================
+
+test('clone preserves telemetry configuration', function (): void {
+    $agent = new Agent('original-agent');
+    $agent->provider(new Mock);
+    $agent->telemetry(true);
+
+    expect($agent->telemetryEnabled)->toBeTrue();
+
+    $cloned = $agent->clone('cloned-agent');
+
+    expect($cloned->getName())->toBe('cloned-agent');
+    expect($cloned->telemetryEnabled)->toBeTrue();
+});
+
+test('clone does not copy messages or sessionId', function (): void {
+    $agent = new Agent('original-agent');
+    $agent->provider(new Mock);
+    $agent->sessionId('session-123');
+
+    // Add some messages to the original agent
+    $agent->prompt('Hello');
+    $agent->prompt('How are you?');
+
+    expect($agent->messages)->toHaveCount(4); // 2 user + 2 assistant
+
+    $cloned = $agent->clone('cloned-agent');
+
+    // Cloned agent should have empty messages
+    expect($cloned->messages)->toBeEmpty();
+
+    // Verify original agent still has its messages
+    expect($agent->messages)->toHaveCount(4);
+});
