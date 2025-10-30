@@ -10,6 +10,8 @@ use Throwable;
 
 final class Span
 {
+    private const ALLOWED_TYPES = ['array', 'bool', 'float', 'int', 'string', 'null'];
+
     public function __construct(
         private readonly SpanInterface $span
     ) {}
@@ -20,7 +22,7 @@ final class Span
             return $this;
         }
 
-        if (! is_array($value) && ! is_bool($value) && ! is_float($value) && ! is_int($value) && ! is_string($value) && $value !== null) {
+        if (! in_array(get_debug_type($value), self::ALLOWED_TYPES, true)) {
             return $this;
         }
 

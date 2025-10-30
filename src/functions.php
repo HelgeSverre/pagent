@@ -14,7 +14,10 @@ if (! function_exists('agent')) {
     function agent(string $name): Agent|AgentBuilder
     {
         if (Registry::has($name)) {
-            return Registry::get($name) ?? new AgentBuilder($name);
+            $agent = Registry::get($name);
+            assert($agent instanceof Agent);
+
+            return $agent;
         }
 
         return new AgentBuilder($name);

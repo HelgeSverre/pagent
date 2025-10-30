@@ -52,6 +52,11 @@ final class Dataset
         }
 
         $file = fopen($path, 'r');
+
+        if ($file === false) {
+            throw new RuntimeException("Failed to open dataset file: {$path}");
+        }
+
         $items = [];
         $headers = null;
 
