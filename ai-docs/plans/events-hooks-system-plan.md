@@ -31,6 +31,7 @@ This implementation **replaces** the current manual span creation approach with 
 ### Design Philosophy
 
 Following Pagent's existing patterns:
+
 - **Hybrid Pattern**: Support both closures (simple) and classes (reusable), like Guards
 - **Fluent API**: Chainable methods following Pest-inspired design
 - **Type Safety**: PHPStan level 9, strict types throughout
@@ -810,6 +811,7 @@ public function prompt(string $message, array $options = []): object
 ```
 
 Similar modifications for:
+
 - `callProviderWithSpan()` → Fire `BeforeLLMRequestEvent`, `AfterLLMResponseEvent`
 - `executeToolWithSpan()` → Fire `ToolExecutingEvent`, `ToolExecutedEvent`, `ToolErrorEvent`
 - Guard validation → Fire `GuardCheckingEvent`, `GuardPassedEvent`, `GuardViolatedEvent`
@@ -1001,6 +1003,7 @@ final class TelemetryEventBridge implements EventListener
 ### Phase 1: Parallel Operation (v0.8.0 alpha)
 
 Both systems run simultaneously:
+
 - Manual `TelemetryManager` calls remain in Agent
 - Event system is added
 - `TelemetryEventBridge` is opt-in via config
@@ -1050,6 +1053,7 @@ $this->fireEvent(new AfterPromptEvent($this, $message, $response, $duration));
 **User Code Impact:**
 
 Most users won't notice the change. Users who:
+
 - **Only use `Agent::telemetry(true)`**: No changes needed
 - **Manually call `TelemetryManager`**: Need to migrate to events or listeners
 - **Custom exporters**: No changes needed
@@ -1062,6 +1066,7 @@ Most users won't notice the change. Users who:
 ### Phase 1: Core Event Infrastructure (2-3 hours)
 
 **Tasks:**
+
 1. Create `Event` base class with propagation control
 2. Create `EventListener` interface
 3. Create `EventDispatcher` with priority system
@@ -1069,6 +1074,7 @@ Most users won't notice the change. Users who:
 5. Write 10-12 unit tests for dispatcher
 
 **Files Created:**
+
 - `src/Events/Event.php`
 - `src/Events/EventListener.php`
 - `src/Events/EventDispatcher.php`
@@ -1076,6 +1082,7 @@ Most users won't notice the change. Users who:
 - `tests/Unit/Events/EventDispatcherTest.php`
 
 **Tests:**
+
 - ✅ `it('dispatches events to listeners')`
 - ✅ `it('respects priority order')`
 - ✅ `it('stops propagation when requested')`
@@ -1092,12 +1099,14 @@ Most users won't notice the change. Users who:
 ### Phase 2: Event Classes (2-3 hours)
 
 **Tasks:**
+
 1. Create all 18 event classes with proper types
 2. Group by namespace (Agent, LLM, Tool, Guard, Memory, Stream)
 3. Add `getEventName()` implementations
 4. Write 8-10 unit tests for event objects
 
 **Files Created:**
+
 - `src/Events/Events/Agent/*.php` (3 files)
 - `src/Events/Events/LLM/*.php` (2 files)
 - `src/Events/Events/Tool/*.php` (3 files)
@@ -1107,6 +1116,7 @@ Most users won't notice the change. Users who:
 - `tests/Unit/Events/EventsTest.php`
 
 **Tests:**
+
 - ✅ `it('creates BeforePromptEvent with correct data')`
 - ✅ `it('creates AfterPromptEvent with duration')`
 - ✅ `it('generates correct event names')`
@@ -1121,6 +1131,7 @@ Most users won't notice the change. Users who:
 ### Phase 3: Agent Integration (1-2 hours)
 
 **Tasks:**
+
 1. Add `EventDispatcher` property to Agent
 2. Add `on()`, `once()`, `off()`, `listen()` methods
 3. Add `fireEvent()` private method
@@ -1128,12 +1139,15 @@ Most users won't notice the change. Users who:
 5. Write 8-10 integration tests
 
 **Files Modified:**
+
 - `src/Agent.php`
 
 **Files Created:**
+
 - `tests/Integration/Events/AgentEventsTest.php`
 
 **Tests:**
+
 - ✅ `it('fires before_prompt event')`
 - ✅ `it('fires after_prompt event with response')`
 - ✅ `it('fires LLM events during provider call')`
@@ -1148,6 +1162,7 @@ Most users won't notice the change. Users who:
 ### Phase 4: TelemetryEventBridge (1 hour)
 
 **Tasks:**
+
 1. Create `TelemetryEventBridge` class
 2. Map events to span creation
 3. Track active spans
@@ -1155,10 +1170,12 @@ Most users won't notice the change. Users who:
 5. Write 6-8 integration tests
 
 **Files Created:**
+
 - `src/Events/Bridges/TelemetryEventBridge.php`
 - `tests/Integration/Events/TelemetryEventBridgeTest.php`
 
 **Tests:**
+
 - ✅ `it('creates agent span from before_prompt event')`
 - ✅ `it('ends span on after_prompt event')`
 - ✅ `it('creates LLM spans with semantic attributes')`
@@ -1171,6 +1188,7 @@ Most users won't notice the change. Users who:
 ### Phase 5: Testing & Documentation (1-2 hours)
 
 **Tasks:**
+
 1. Write comprehensive documentation
 2. Create migration guide
 3. Add code examples
@@ -1179,12 +1197,14 @@ Most users won't notice the change. Users who:
 6. Update telemetry examples
 
 **Files Created:**
+
 - `docs/events-hooks.md`
 - `docs/migration-v0.8.0.md`
 - `examples/20-events-custom-listener.php`
 - `examples/21-events-telemetry-bridge.php`
 
 **Files Modified:**
+
 - `CHANGELOG.md`
 - `README.md` (add events section)
 
@@ -1195,6 +1215,7 @@ Most users won't notice the change. Users who:
 ### Unit Tests (20-25 tests)
 
 **EventDispatcher Tests** (`tests/Unit/Events/EventDispatcherTest.php`):
+
 1. `it('dispatches events to registered listeners')`
 2. `it('executes listeners in priority order (high to low)')`
 3. `it('stops propagation when event.stopPropagation() called')`
@@ -1210,25 +1231,14 @@ Most users won't notice the change. Users who:
 13. `it('does nothing when dispatching event with no listeners')`
 14. `it('listen() registers class listener for all its events')`
 
-**Event Classes Tests** (`tests/Unit/Events/EventsTest.php`):
-15. `it('BeforePromptEvent has correct properties')`
-16. `it('AfterPromptEvent includes duration')`
-17. `it('ToolExecutedEvent includes result and duration')`
-18. `it('GuardViolatedEvent includes reason')`
-19. `it('all events include timestamp')`
-20. `it('getEventName() returns snake_case name')`
-21. `it('event properties are readonly')`
-22. `it('isPropagationStopped() returns false by default')`
-23. `it('stopPropagation() sets flag to true')`
+**Event Classes Tests** (`tests/Unit/Events/EventsTest.php`): 15. `it('BeforePromptEvent has correct properties')` 16. `it('AfterPromptEvent includes duration')` 17. `it('ToolExecutedEvent includes result and duration')` 18. `it('GuardViolatedEvent includes reason')` 19. `it('all events include timestamp')` 20. `it('getEventName() returns snake_case name')` 21. `it('event properties are readonly')` 22. `it('isPropagationStopped() returns false by default')` 23. `it('stopPropagation() sets flag to true')`
 
-**EventManager Tests** (`tests/Unit/Events/EventManagerTest.php`):
-24. `it('returns singleton instance')`
-25. `it('delegates to EventDispatcher')`
-26. `it('reset() clears singleton')`
+**EventManager Tests** (`tests/Unit/Events/EventManagerTest.php`): 24. `it('returns singleton instance')` 25. `it('delegates to EventDispatcher')` 26. `it('reset() clears singleton')`
 
 ### Integration Tests (10-15 tests)
 
 **Agent Events Tests** (`tests/Integration/Events/AgentEventsTest.php`):
+
 1. `it('fires before_prompt and after_prompt events')`
 2. `it('includes agent reference in events')`
 3. `it('before_prompt fires before LLM call')`
@@ -1240,15 +1250,7 @@ Most users won't notice the change. Users who:
 9. `it('allows registering per-agent listeners via on()')`
 10. `it('allows registering global listeners via EventManager')`
 
-**TelemetryEventBridge Tests** (`tests/Integration/Events/TelemetryEventBridgeTest.php`):
-11. `it('creates spans from events automatically')`
-12. `it('agent.prompt span created from BeforePromptEvent')`
-13. `it('llm.request span created from BeforeLLMRequestEvent')`
-14. `it('tool.execute span created from ToolExecutingEvent')`
-15. `it('spans include correct attributes from events')`
-16. `it('handles concurrent operations with multiple spans')`
-17. `it('cleans up spans after operations complete')`
-18. `it('works alongside existing manual TelemetryManager usage')`
+**TelemetryEventBridge Tests** (`tests/Integration/Events/TelemetryEventBridgeTest.php`): 11. `it('creates spans from events automatically')` 12. `it('agent.prompt span created from BeforePromptEvent')` 13. `it('llm.request span created from BeforeLLMRequestEvent')` 14. `it('tool.execute span created from ToolExecutingEvent')` 15. `it('spans include correct attributes from events')` 16. `it('handles concurrent operations with multiple spans')` 17. `it('cleans up spans after operations complete')` 18. `it('works alongside existing manual TelemetryManager usage')`
 
 ---
 
@@ -1476,6 +1478,7 @@ $agent = agent('bot')
 ### Transition Period (v0.8.0)
 
 **Default Behavior:**
+
 - Events system is ENABLED by default
 - Manual `TelemetryManager` calls remain in Agent (both approaches work)
 - `TelemetryEventBridge` is opt-in via config
@@ -1507,6 +1510,7 @@ $span = TelemetryManager::instance()->startAgentSpan('custom', 'my-agent');
 **For Library Users:**
 
 Most users won't need changes:
+
 - ✅ `Agent::telemetry(true)` continues to work
 - ✅ Existing observability exporters work
 - ✅ All agent methods continue to work
@@ -1550,12 +1554,14 @@ $agent
 ### New Files to Create (26 files)
 
 **Core Event System (4 files):**
+
 - [ ] `src/Events/Event.php`
 - [ ] `src/Events/EventListener.php`
 - [ ] `src/Events/EventDispatcher.php`
 - [ ] `src/Events/EventManager.php`
 
 **Event Classes (18 files):**
+
 - [ ] `src/Events/Events/Agent/BeforePromptEvent.php`
 - [ ] `src/Events/Events/Agent/AfterPromptEvent.php`
 - [ ] `src/Events/Events/Agent/ContextPrunedEvent.php`
@@ -1577,9 +1583,11 @@ $agent
 - [ ] `src/Events/Events/Stream/StreamCompletedEvent.php`
 
 **Bridges (1 file):**
+
 - [ ] `src/Events/Bridges/TelemetryEventBridge.php`
 
 **Tests (3 files):**
+
 - [ ] `tests/Unit/Events/EventDispatcherTest.php`
 - [ ] `tests/Unit/Events/EventsTest.php`
 - [ ] `tests/Integration/Events/AgentEventsTest.php`
@@ -1634,16 +1642,19 @@ $agent
 ### Dependencies
 
 **Internal:**
+
 - ✅ v0.7.0 TelemetryManager (already implemented)
 - ✅ Agent class (existing)
 - ✅ Observability infrastructure (existing)
 
 **External:**
+
 - None (pure PHP 8.3+ implementation)
 
 ### Estimated Timeline
 
 **Full-Time (dedicated):**
+
 - Phase 1: 2-3 hours
 - Phase 2: 2-3 hours
 - Phase 3: 1-2 hours
@@ -1652,6 +1663,7 @@ $agent
 - **Total: 6-8 hours (1-2 days)**
 
 **Part-Time (alongside other work):**
+
 - **Total: 2-3 weeks**
 
 ### Critical Path

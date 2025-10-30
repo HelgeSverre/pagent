@@ -220,6 +220,7 @@ agent('bot')
 - MCP PHP: https://github.com/modelcontextprotocol/php-sdk
 
 #### 4. TOON Integration (Attribute-based Tool Definition)
+
 **Effort:** 3-4 hours | **Plan:** TBD
 
 - [ ] Integrate helgesverre/toon-php for tool definition
@@ -230,6 +231,7 @@ agent('bot')
 - [ ] Enhanced DX for defining tools
 
 **API Preview:**
+
 ```php
 use Toon\Tool;
 use Toon\ToolParameter;
@@ -264,6 +266,7 @@ agent('bot')
 ```
 
 **Benefits:**
+
 - Cleaner tool definitions with attributes
 - Automatic schema generation (no manual JSON)
 - Better IDE support and type checking
@@ -271,6 +274,7 @@ agent('bot')
 - Standards-compliant with OpenAI function calling
 
 **References:**
+
 - TOON (TypeScript): https://github.com/johannschopplich/toon
 - TOON PHP: https://github.com/helgesverre/toon-php
 

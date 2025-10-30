@@ -12,11 +12,13 @@ Implement an MCP (Model Context Protocol) server that exposes Pagent agents as t
 ## Concept
 
 **v0.7.0 - MCP Consumer (Already Implemented):**
+
 - Pagent agents can USE tools from external MCP servers
 - Pagent is the **client**
 - Example: Pagent agent calls filesystem tools from an MCP server
 
 **v0.15.0 - MCP Server (This Spec):**
+
 - External tools can USE Pagent agents as tools
 - Pagent is the **server**
 - Example: Claude Desktop calls a "PHP code generator" Pagent agent
@@ -24,22 +26,27 @@ Implement an MCP (Model Context Protocol) server that exposes Pagent agents as t
 ## Use Cases
 
 ### 1. IDE Integration
+
 ```
 Claude Desktop → MCP Protocol → Pagent Server → Code Generation Agent
 ```
+
 - Developer asks Claude Desktop to "write a Laravel controller"
 - Claude Desktop sees "laravel_generator" tool from Pagent MCP server
 - Calls tool → Pagent agent generates code → Returns to Claude Desktop
 
 ### 2. Multi-Language Workflows
+
 ```
 Python Script → MCP Client → Pagent Server → PHP Expert Agent
 ```
+
 - Python app needs PHP code generation
 - Calls Pagent MCP server with "php_expert" tool
 - Gets PHP code back
 
 ### 3. Agent Marketplace
+
 ```
 Multiple Clients → Pagent Server → Specialized Agents
                                   ├─ Legal Agent
@@ -47,6 +54,7 @@ Multiple Clients → Pagent Server → Specialized Agents
                                   ├─ SQL Generator Agent
                                   └─ Content Writer Agent
 ```
+
 - Single Pagent server exposes many specialized agents
 - Multiple clients can consume them via standard MCP protocol
 
@@ -56,10 +64,12 @@ Multiple Clients → Pagent Server → Specialized Agents
 
 **Protocol:** JSON-RPC 2.0 over stdio or HTTP
 **Transports:**
+
 - `stdio` - Standard input/output (for local processes)
 - `http` - HTTP server (for network access)
 
 **Core Methods:**
+
 1. `initialize` - Client/server handshake
 2. `tools/list` - Server lists available tools
 3. `tools/call` - Client calls a tool
@@ -181,6 +191,7 @@ php pagent-server.php --test
 ### 4. Client Configuration
 
 **For Claude Desktop (`claude_desktop_config.json`):**
+
 ```json
 {
   "mcpServers": {
@@ -196,6 +207,7 @@ php pagent-server.php --test
 ```
 
 **For HTTP clients:**
+
 ```bash
 curl -X POST http://localhost:8080/mcp \
   -H "Content-Type: application/json" \
@@ -217,6 +229,7 @@ curl -X POST http://localhost:8080/mcp \
 ### 1. Transport Layer
 
 **Stdio Transport:**
+
 ```php
 class StdioTransport implements Transport
 {
@@ -232,6 +245,7 @@ class StdioTransport implements Transport
 ```
 
 **HTTP Transport:**
+
 ```php
 class HttpTransport implements Transport
 {
@@ -387,6 +401,7 @@ class McpHandler
 ## Example Server Implementation
 
 **pagent-server.php:**
+
 ```php
 #!/usr/bin/env php
 <?php
@@ -542,30 +557,35 @@ class HttpTransport
 ## Implementation Plan
 
 ### Phase 1: Core Protocol (2 hours)
+
 1. Create `MCP/Server.php` class
 2. Create `MCP/McpHandler.php` for JSON-RPC
 3. Implement `initialize`, `tools/list`, `tools/call` methods
 4. Add agent registration API
 
 ### Phase 2: Transport Layer (2 hours)
+
 1. Implement `MCP/Transports/StdioTransport.php`
 2. Implement `MCP/Transports/HttpTransport.php`
 3. Add transport factory/selection logic
 4. Test both transports
 
 ### Phase 3: CLI & Server Script (1 hour)
+
 1. Create `bin/pagent-server.php` script
 2. Add CLI argument parsing
 3. Add `--list`, `--test` commands
 4. Make script executable
 
 ### Phase 4: Security & Middleware (1 hour)
+
 1. Add API key authentication for HTTP
 2. Add rate limiting support
 3. Add CORS headers
 4. Add request logging
 
 ### Phase 5: Documentation & Testing (2 hours)
+
 1. Write integration tests
 2. Create example server implementations
 3. Document MCP server setup
@@ -587,6 +607,7 @@ PAGENT_MCP_LOG_REQUESTS=true
 ### Config File
 
 **pagent-mcp.php:**
+
 ```php
 <?php
 
@@ -705,15 +726,18 @@ test('stdio transport works end-to-end', function () {
 ## Dependencies
 
 **Required:**
+
 - `php >= 8.3`
 - `ext-json`
 
 **Optional (for HTTP transport):**
+
 - `react/http` - Async HTTP server
 - `react/socket` - Socket server
 - `react/event-loop` - Event loop
 
 **Install HTTP deps:**
+
 ```bash
 composer require react/http react/socket
 ```
@@ -723,6 +747,7 @@ composer require react/http react/socket
 ### Use Case 1: SQL Generator for Claude Desktop
 
 **Setup:**
+
 ```bash
 # Configure Claude Desktop
 {
@@ -736,6 +761,7 @@ composer require react/http react/socket
 ```
 
 **Usage:**
+
 ```
 User: "Generate SQL to get all active users"
 Claude Desktop: [sees "generate_sql" tool]
@@ -747,6 +773,7 @@ Claude Desktop: "Here's the SQL query..."
 ### Use Case 2: Code Review API
 
 **Server:**
+
 ```php
 $server = new Server();
 $server->registerAgent($reviewAgent, 'review_code', 'Review code');
@@ -754,6 +781,7 @@ $server->listen('http', port: 8080);
 ```
 
 **Client (any language):**
+
 ```python
 import requests
 

@@ -12,6 +12,7 @@ Implement response caching to avoid redundant LLM API calls for identical or sim
 ## Problem Statement
 
 **Current behavior:**
+
 ```php
 $agent = agent('assistant')->provider(anthropic());
 
@@ -25,6 +26,7 @@ $response2 = $agent->prompt('What is 2+2?');
 ```
 
 **Desired behavior:**
+
 ```php
 $agent = agent('assistant')
     ->provider(anthropic())
@@ -61,6 +63,7 @@ $response2 = $agent->prompt('What is 2+2?');
 ### Cache Key Generation
 
 **Cache key components:**
+
 1. Agent system prompt (affects responses)
 2. User message (the actual prompt)
 3. Model name (different models = different responses)
@@ -69,11 +72,13 @@ $response2 = $agent->prompt('What is 2+2?');
 6. Tools available (affects tool calling)
 
 **Cache key format:**
+
 ```
 pagent:cache:{agent_name}:{hash}
 ```
 
 **Hash calculation:**
+
 ```php
 $cacheData = [
     'system' => $agent->system ?? '',
@@ -349,6 +354,7 @@ $agent->warmCache([
 ## Cache Invalidation Strategy
 
 **Automatic invalidation when:**
+
 1. System prompt changes
 2. Model changes
 3. Temperature changes
@@ -356,6 +362,7 @@ $agent->warmCache([
 5. Tools added/removed
 
 **Implementation:**
+
 ```php
 class Agent
 {
@@ -389,6 +396,7 @@ class Agent
 ## Implementation Plan
 
 ### Phase 1: Core Cache Infrastructure (2 hours)
+
 1. Create `Contracts/CacheAdapter.php` interface
 2. Implement `MemoryCacheAdapter` (for testing)
 3. Implement `FileCacheAdapter` (for persistence)
@@ -396,17 +404,20 @@ class Agent
 5. Add tests for adapters
 
 ### Phase 2: Agent Integration (1 hour)
+
 1. Add `cache()` method to `Agent` class
 2. Add `clearCache()`, `bustCache()` methods
 3. Add cache invalidation to config methods (system, model, etc.)
 4. Add `from_cache` flag to responses
 
 ### Phase 3: Redis Adapter (1 hour)
+
 1. Implement `RedisCacheAdapter`
 2. Add Redis tests (skip if Redis not available)
 3. Document Redis setup
 
 ### Phase 4: Documentation & Testing (2 hours)
+
 1. Write comprehensive tests for all adapters
 2. Write integration tests (cache hits/misses)
 3. Update README with caching examples
@@ -507,12 +518,14 @@ test('file adapter persists across instances', function () {
 ## Performance Expectations
 
 **Cache Hit Latency:**
+
 - Memory: < 1ms
 - File: < 5ms
 - Redis (local): < 2ms
 - Redis (network): < 10ms
 
 **Cost Savings:**
+
 - 100 identical prompts without cache: $0.30
 - 100 identical prompts with cache: $0.003 (99% savings)
 
@@ -530,6 +543,7 @@ test('file adapter persists across instances', function () {
 ## Edge Cases & Considerations
 
 ### 1. Tool Calling
+
 ```php
 // Different tool calls = different cache keys
 $agent->tool('weather', 'Get weather', fn($loc) => "...");
@@ -540,6 +554,7 @@ $r3 = $agent->prompt('Weather in LA?');    // Cache miss (different prompt)
 ```
 
 ### 2. Conversation History
+
 ```php
 // With conversation history, cache key includes full history
 $agent->prompt('Hello');     // Cache miss
@@ -550,6 +565,7 @@ $agent->prompt('Hello');     // Still cache miss (history different from first c
 **Solution:** Only cache single-turn prompts, not conversational agents. Or make history part of cache key.
 
 ### 3. Streaming Responses
+
 ```php
 // Streaming responses should NOT be cached (too complex)
 $agent->cache()->stream('Tell me a story', function($chunk) {
@@ -559,6 +575,7 @@ $agent->cache()->stream('Tell me a story', function($chunk) {
 ```
 
 ### 4. Non-Deterministic Responses
+
 ```php
 // High temperature = non-deterministic
 $agent->temperature(1.0)->cache();

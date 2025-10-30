@@ -25,6 +25,7 @@ LLM API costs can accumulate quickly, especially in production applications with
 - Per-agent, per-session, and application-wide usage metrics
 
 Currently, Pagent returns basic token counts in response objects but lacks:
+
 - Cost calculation capabilities
 - Usage aggregation and persistence
 - Budget enforcement mechanisms
@@ -474,12 +475,12 @@ $stats = UsageTracker::global()->summary();
 
 **Pricing (as of 2025-10-29):**
 
-| Model                  | Input (per 1M tokens) | Output (per 1M tokens) | Cache Write | Cache Read |
-| ---------------------- | --------------------- | ---------------------- | ----------- | ---------- |
-| claude-sonnet-4        | $3.00                 | $15.00                 | $3.75       | $0.30      |
-| claude-opus-4          | $15.00                | $75.00                 | $18.75      | $1.50      |
-| claude-3.5-sonnet      | $3.00                 | $15.00                 | $3.75       | $0.30      |
-| claude-3.5-haiku       | $1.00                 | $5.00                  | $1.25       | $0.10      |
+| Model             | Input (per 1M tokens) | Output (per 1M tokens) | Cache Write | Cache Read |
+| ----------------- | --------------------- | ---------------------- | ----------- | ---------- |
+| claude-sonnet-4   | $3.00                 | $15.00                 | $3.75       | $0.30      |
+| claude-opus-4     | $15.00                | $75.00                 | $18.75      | $1.50      |
+| claude-3.5-sonnet | $3.00                 | $15.00                 | $3.75       | $0.30      |
+| claude-3.5-haiku  | $1.00                 | $5.00                  | $1.25       | $0.10      |
 
 **Token Usage Fields:**
 
@@ -535,13 +536,13 @@ class AnthropicPricing implements PricingModel
 
 **Pricing (as of 2025-10-29):**
 
-| Model           | Input (per 1M tokens) | Output (per 1M tokens) |
-| --------------- | --------------------- | ---------------------- |
-| gpt-4-turbo     | $10.00                | $30.00                 |
-| gpt-4           | $30.00                | $60.00                 |
-| gpt-3.5-turbo   | $0.50                 | $1.50                  |
-| gpt-4o          | $5.00                 | $15.00                 |
-| gpt-4o-mini     | $0.15                 | $0.60                  |
+| Model         | Input (per 1M tokens) | Output (per 1M tokens) |
+| ------------- | --------------------- | ---------------------- |
+| gpt-4-turbo   | $10.00                | $30.00                 |
+| gpt-4         | $30.00                | $60.00                 |
+| gpt-3.5-turbo | $0.50                 | $1.50                  |
+| gpt-4o        | $5.00                 | $15.00                 |
+| gpt-4o-mini   | $0.15                 | $0.60                  |
 
 **Token Usage Fields:**
 
@@ -620,6 +621,7 @@ class OllamaPricing implements PricingModel
 ```
 
 **Note:** While Ollama is free in terms of API costs, users may want to track token usage for:
+
 - Comparing local vs. cloud costs
 - Monitoring resource usage
 - Testing applications before deploying to paid providers
@@ -803,6 +805,7 @@ final readonly class BudgetLimits
 ### Integration Tests
 
 1. **End-to-End with Real Provider Responses**
+
    ```php
    it('tracks cost for real Anthropic API call', function (): void {
        $agent = agent('test')
@@ -826,6 +829,7 @@ final readonly class BudgetLimits
    ```
 
 2. **Budget Enforcement in Real Scenarios**
+
    ```php
    it('throws exception when budget exceeded', function (): void {
        expect(fn () => agent('test')
@@ -837,6 +841,7 @@ final readonly class BudgetLimits
    ```
 
 3. **Session Budget Across Multiple Calls**
+
    ```php
    it('accumulates session budget across calls', function (): void {
        $sessionId = 'test-session-' . uniqid();
@@ -865,6 +870,7 @@ final readonly class BudgetLimits
    ```
 
 4. **Persistent Storage with SQLite**
+
    ```php
    it('persists usage to SQLite database', function (): void {
        $dbPath = sys_get_temp_dir() . '/pagent-test-' . uniqid() . '.db';
@@ -951,6 +957,7 @@ This feature is designed to be **100% backward compatible** and **opt-in**:
    - No changes to response objects or agent behavior
 
 2. **Gradual Adoption**
+
    ```php
    // Step 1: Enable tracking without any enforcement
    agent('bot')->trackUsage()->prompt('Hello');
@@ -969,6 +976,7 @@ This feature is designed to be **100% backward compatible** and **opt-in**:
    ```
 
 3. **Global Configuration (Optional)**
+
    ```php
    // Enable for all agents in bootstrap/config
    UsageTracker::enableGlobal([
@@ -1038,11 +1046,13 @@ class InMemoryUsageStorage implements UsageStorage
 ```
 
 **Pros:**
+
 - Fast, no I/O
 - No setup required
 - Perfect for short-lived scripts
 
 **Cons:**
+
 - Data lost when process ends
 - No persistence across requests
 - Memory usage grows unbounded
@@ -1117,12 +1127,14 @@ class SqliteUsageStorage implements UsageStorage
 ```
 
 **Pros:**
+
 - Persistent across requests
 - Efficient queries and indexing
 - Production-ready
 - No external service required
 
 **Cons:**
+
 - Requires write permissions
 - Single-file locking (not for high concurrency)
 - Manual backup required
@@ -1174,11 +1186,13 @@ class FileUsageStorage implements UsageStorage
 ```
 
 **Pros:**
+
 - Human-readable JSON
 - Easy to inspect and debug
 - Simple backup (just copy files)
 
 **Cons:**
+
 - Slow for large datasets
 - No indexing or efficient queries
 - Concurrent writes can cause issues
@@ -1441,8 +1455,8 @@ $agent = agent('openai-bot')
 
 ## Risks & Mitigation
 
-| Risk                                               | Impact | Mitigation                                                                                   |
-| -------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------- |
+| Risk                                               | Impact | Mitigation                                                                                  |
+| -------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------- |
 | Pricing data becomes outdated                      | High   | Document where to update pricing; Add comments with source URLs; Create GitHub issue alerts |
 | Performance overhead from tracking                 | Medium | Make tracking opt-in; Optimize storage writes; Use async writes where possible              |
 | Storage fills up disk space                        | Medium | Document retention policies; Provide cleanup utilities; Support TTL in storage adapters     |
@@ -1474,14 +1488,14 @@ $agent = agent('openai-bot')
 
 ## Timeline
 
-| Phase                           | Duration | Target Date |
-| ------------------------------- | -------- | ----------- |
-| Phase 1: Core Tracking System   | 6-8 hrs  | Day 1-2     |
-| Phase 2: Budget Enforcement     | 4-5 hrs  | Day 2-3     |
-| Phase 3: Persistence & Storage  | 3-4 hrs  | Day 3-4     |
-| Phase 4: Querying & Reporting   | 3-4 hrs  | Day 4-5     |
-| Phase 5: Testing & Documentation| 2-3 hrs  | Day 5-6     |
-| **Total**                       | **18-24 hrs** | **1 week** |
+| Phase                            | Duration      | Target Date |
+| -------------------------------- | ------------- | ----------- |
+| Phase 1: Core Tracking System    | 6-8 hrs       | Day 1-2     |
+| Phase 2: Budget Enforcement      | 4-5 hrs       | Day 2-3     |
+| Phase 3: Persistence & Storage   | 3-4 hrs       | Day 3-4     |
+| Phase 4: Querying & Reporting    | 3-4 hrs       | Day 4-5     |
+| Phase 5: Testing & Documentation | 2-3 hrs       | Day 5-6     |
+| **Total**                        | **18-24 hrs** | **1 week**  |
 
 ---
 
@@ -1497,6 +1511,7 @@ Cost and token tracking will provide a data source for OpenTelemetry observabili
 - Remain optional (can use cost tracking without OTel)
 
 **API Preview:**
+
 ```php
 agent('bot')
     ->trackUsage()

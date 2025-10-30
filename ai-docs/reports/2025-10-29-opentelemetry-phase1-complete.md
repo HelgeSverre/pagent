@@ -31,6 +31,7 @@ Successfully implemented Phase 1 of the OpenTelemetry observability feature for 
 ### 1. Core Infrastructure
 
 **TelemetryManager.php** (185 lines)
+
 - Singleton pattern for global telemetry access
 - Configuration-based initialization with sensible defaults
 - Support for enabling/disabling telemetry at runtime
@@ -39,6 +40,7 @@ Successfully implemented Phase 1 of the OpenTelemetry observability feature for 
 - Graceful shutdown with resource cleanup
 
 **Span.php** (74 lines)
+
 - Wraps OpenTelemetry SpanInterface with fluent API
 - Type-safe attribute handling with validation
 - Support for events, exceptions, and status codes
@@ -46,6 +48,7 @@ Successfully implemented Phase 1 of the OpenTelemetry observability feature for 
 - Chainable methods for ergonomic usage
 
 **SpanContext.php** (34 lines)
+
 - Wrapper for OpenTelemetry SpanContextInterface
 - Provides trace ID and span ID access
 - Context validity checking
@@ -54,12 +57,14 @@ Successfully implemented Phase 1 of the OpenTelemetry observability feature for 
 ### 2. No-Op Pattern
 
 **NullSpan.php** (45 lines)
+
 - Zero-overhead implementation when telemetry disabled
 - All methods return `$this` for chaining
 - No memory allocation or processing
 - Performance verified: <1ms for 1000 operations
 
 **NullSpanContext.php** (23 lines)
+
 - Returns empty IDs and invalid state
 - Consistent interface with real SpanContext
 - No dependencies on OpenTelemetry SDK
@@ -67,10 +72,12 @@ Successfully implemented Phase 1 of the OpenTelemetry observability feature for 
 ### 3. Exporters
 
 **ExporterInterface.php** (12 lines)
+
 - Extends OpenTelemetry SpanExporterInterface
 - Provides base contract for future exporters
 
 **ConsoleExporter.php** (51 lines)
+
 - Outputs spans to console for debugging
 - Optional verbose mode with attributes
 - Formatted output with box drawing characters
@@ -133,10 +140,12 @@ Duration: 0.54s
 Implemented OpenTelemetry Semantic Conventions for GenAI:
 
 ### Agent Context Attributes
+
 - `agent.name` - Agent name/identifier
 - `agent.operation` - Operation type (prompt, stream, etc.)
 
 ### LLM Request/Response Attributes
+
 - `gen_ai.system` - Provider name (anthropic, openai, etc.)
 - `gen_ai.request.model` - Model identifier
 - `gen_ai.request.temperature` - Sampling temperature
@@ -148,6 +157,7 @@ Implemented OpenTelemetry Semantic Conventions for GenAI:
 - `gen_ai.operation.name` - Operation type (chat, completion)
 
 ### Tool Execution Attributes
+
 - `tool.name` - Tool identifier
 - `tool.arguments` - JSON-encoded arguments
 
@@ -155,17 +165,17 @@ Implemented OpenTelemetry Semantic Conventions for GenAI:
 
 ## Code Quality Metrics
 
-| Metric                | Value      | Status |
-| --------------------- | ---------- | ------ |
-| Implementation Files  | 7          | ✅     |
-| Test Files            | 4          | ✅     |
-| Total Tests           | 36         | ✅     |
-| Test Assertions       | 49         | ✅     |
-| Tests Passing         | 36 (100%)  | ✅     |
-| PHPStan Level         | 9          | ✅     |
-| PHPStan Errors        | 0          | ✅     |
-| Lines of Code (Impl)  | 424        | ✅     |
-| Lines of Code (Tests) | ~400       | ✅     |
+| Metric                | Value     | Status |
+| --------------------- | --------- | ------ |
+| Implementation Files  | 7         | ✅     |
+| Test Files            | 4         | ✅     |
+| Total Tests           | 36        | ✅     |
+| Test Assertions       | 49        | ✅     |
+| Tests Passing         | 36 (100%) | ✅     |
+| PHPStan Level         | 9         | ✅     |
+| PHPStan Errors        | 0         | ✅     |
+| Lines of Code (Impl)  | 424       | ✅     |
+| Lines of Code (Tests) | ~400      | ✅     |
 
 ---
 
@@ -282,12 +292,14 @@ None - Phase 1 is complete with all requirements met.
 ## OpenTelemetry Integration
 
 ### Packages Used
+
 - `open-telemetry/api` (^1.7) - Core API interfaces
 - `open-telemetry/sdk` (^1.9) - SDK implementation
 - `open-telemetry/sem-conv` (^1.37) - Semantic conventions
 - `open-telemetry/exporter-otlp` (^1.3) - OTLP export support
 
 ### Future Exporter Support
+
 - OTLP (HTTP/gRPC) - Generic OpenTelemetry
 - Jaeger - Distributed tracing
 - Zipkin - Distributed tracing
@@ -300,12 +312,14 @@ None - Phase 1 is complete with all requirements met.
 ## Verification
 
 ### PHPStan Analysis
+
 ```bash
 ./vendor/bin/phpstan analyse src/Observability/ --memory-limit=1G
 [OK] No errors
 ```
 
 ### Test Execution
+
 ```bash
 ./vendor/bin/pest tests/Unit/Observability/ --no-coverage
 Tests:    36 passed (49 assertions)
@@ -313,6 +327,7 @@ Duration: 0.54s
 ```
 
 ### Code Style
+
 - Strict types on all files
 - PSR-4 autoloading compliant
 - Final classes where appropriate

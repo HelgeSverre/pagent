@@ -37,7 +37,7 @@ MCP deliberately reuses message-flow ideas from the Language Server Protocol (LS
 ### Current State
 
 - Pagent has robust tool system (src/Contracts/ToolInterface.php, src/Tool/Tool.php)
-- Tools support both class-based (src/Tools/*.php) and closure-based definitions
+- Tools support both class-based (src/Tools/\*.php) and closure-based definitions
 - Automatic schema generation for Anthropic and OpenAI formats
 - Automatic tool execution with recursive calling
 - Tool validation with JSON schema
@@ -45,6 +45,7 @@ MCP deliberately reuses message-flow ideas from the Language Server Protocol (LS
 ### Integration Strategy
 
 Create an MCP client that:
+
 1. Connects to MCP servers via stdio or HTTP transports
 2. Performs capability negotiation and tool discovery
 3. Maps MCP tool schemas to Pagent's ToolInterface
@@ -873,18 +874,18 @@ Create test scripts for:
 
 ## Risks & Mitigation
 
-| Risk                               | Impact | Mitigation                                                      |
-| ---------------------------------- | ------ | --------------------------------------------------------------- |
-| Process management complexity      | High   | Use battle-tested Symfony Process component                     |
-| JSON-RPC implementation bugs       | Medium | Follow MCP spec strictly, add comprehensive tests               |
-| Zombie processes on error          | High   | Register shutdown handler, proper cleanup in destructors        |
-| Schema mapping incompatibilities   | Medium | MCP schema is similar to Anthropic, minimal transformation      |
-| Timeout/hanging on stdio           | Medium | Implement strict timeouts, non-blocking reads where possible    |
-| MCP spec changes                   | Low    | Pin to specific protocol version (2024-11-05), version later    |
-| PHP platform limitations           | Medium | stdio requires proc_open, HTTP more portable                    |
-| Dependency on external processes   | Medium | Graceful degradation, clear error messages                      |
-| Multiple concurrent requests       | Low    | Use request/response ID correlation, queue if needed            |
-| Large tool output (memory)         | Low    | Streaming not required for v0.7.0, can add later                |
+| Risk                             | Impact | Mitigation                                                   |
+| -------------------------------- | ------ | ------------------------------------------------------------ |
+| Process management complexity    | High   | Use battle-tested Symfony Process component                  |
+| JSON-RPC implementation bugs     | Medium | Follow MCP spec strictly, add comprehensive tests            |
+| Zombie processes on error        | High   | Register shutdown handler, proper cleanup in destructors     |
+| Schema mapping incompatibilities | Medium | MCP schema is similar to Anthropic, minimal transformation   |
+| Timeout/hanging on stdio         | Medium | Implement strict timeouts, non-blocking reads where possible |
+| MCP spec changes                 | Low    | Pin to specific protocol version (2024-11-05), version later |
+| PHP platform limitations         | Medium | stdio requires proc_open, HTTP more portable                 |
+| Dependency on external processes | Medium | Graceful degradation, clear error messages                   |
+| Multiple concurrent requests     | Low    | Use request/response ID correlation, queue if needed         |
+| Large tool output (memory)       | Low    | Streaming not required for v0.7.0, can add later             |
 
 ---
 
@@ -939,13 +940,13 @@ Create test scripts for:
 
 ## Timeline
 
-| Phase                       | Duration  | Dependencies              |
-| --------------------------- | --------- | ------------------------- |
-| Phase 1: Core MCP Client    | 2-3 hours | None                      |
-| Phase 2: Transports         | 2-3 hours | Phase 1                   |
-| Phase 3: Tool Integration   | 1-2 hours | Phase 1, Phase 2          |
-| Phase 4: Testing & Docs     | 1 hour    | Phase 1, Phase 2, Phase 3 |
-| **Total**                   | 6-8 hours |                           |
+| Phase                     | Duration  | Dependencies              |
+| ------------------------- | --------- | ------------------------- |
+| Phase 1: Core MCP Client  | 2-3 hours | None                      |
+| Phase 2: Transports       | 2-3 hours | Phase 1                   |
+| Phase 3: Tool Integration | 1-2 hours | Phase 1, Phase 2          |
+| Phase 4: Testing & Docs   | 1 hour    | Phase 1, Phase 2, Phase 3 |
+| **Total**                 | 6-8 hours |                           |
 
 **Target Completion:** v0.7.0 release (Month 2-3)
 

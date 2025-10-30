@@ -14,6 +14,7 @@
 Implement comprehensive OpenTelemetry instrumentation for Pagent to enable distributed tracing, performance monitoring, and deep observability into LLM agent interactions. Allows integration with Jaeger, Zipkin, Datadog, New Relic, Langfuse, Langsmith, and Phoenix.
 
 **Key Benefits:**
+
 - **Debugging**: Visualize multi-agent workflows
 - **Performance**: Track latency and identify bottlenecks
 - **Cost Visibility**: Monitor token usage in real-time
@@ -78,6 +79,7 @@ Exporters
 #### Files to Create:
 
 **1. TelemetryManager Singleton**
+
 - File: `src/Observability/TelemetryManager.php`
 - Responsibilities:
   - Initialize OpenTelemetry SDK
@@ -94,6 +96,7 @@ Exporters
   - `shutdown(): void` - Flush spans
 
 **2. Span Wrapper**
+
 - File: `src/Observability/Span.php`
 - Wraps OpenTelemetry SpanInterface for fluent API
 - Methods:
@@ -106,6 +109,7 @@ Exporters
   - `getContext(): SpanContext`
 
 **3. SpanContext**
+
 - File: `src/Observability/SpanContext.php`
 - Wraps OpenTelemetry SpanContextInterface
 - Methods:
@@ -115,12 +119,14 @@ Exporters
   - `isValid(): bool`
 
 **4. NullSpan**
+
 - File: `src/Observability/NullSpan.php`
 - No-op implementation when telemetry disabled
 - All methods return `$this` or do nothing
 - Zero overhead when disabled
 
 **5. ConsoleExporter**
+
 - File: `src/Observability/Exporters/ConsoleExporter.php`
 - Implements `ExporterInterface`
 - Outputs spans to console for debugging
@@ -130,7 +136,9 @@ Exporters
   - `forceFlush(): bool`
 
 **6. Global Helper Functions**
+
 - File: Add to `src/functions.php`
+
 ```php
 function telemetry(array $config = []): void
 function telemetry_console(bool $verbose = false): void
@@ -139,6 +147,7 @@ function telemetry_otlp(string $endpoint): void
 ```
 
 **Tests Required (10 tests):**
+
 - `tests/Unit/Observability/TelemetryManagerTest.php`
   - it returns singleton instance
   - it initializes with default config
@@ -157,12 +166,14 @@ function telemetry_otlp(string $endpoint): void
 #### Agent.php Modifications:
 
 **Add Properties:**
+
 ```php
 private bool $telemetryEnabled = false;
 private ?Span $currentSpan = null;
 ```
 
 **Add Methods:**
+
 ```php
 public function telemetry(bool $enabled = true): self
 private function startOperationSpan(string $operation, array $attrs): Span
@@ -172,6 +183,7 @@ private function runGuardsWithTelemetry(string $input, string $output, Span $par
 ```
 
 **Modify `prompt()` Method:**
+
 - Start agent operation span at beginning
 - Wrap provider call with LLM span
 - Wrap tool execution with tool spans
@@ -183,6 +195,7 @@ private function runGuardsWithTelemetry(string $input, string $output, Span $par
 - End span
 
 **Integration Points:**
+
 - **Line ~140**: Start agent span
 - **Line ~183**: Wrap provider call
 - **Line ~200**: Wrap tool handling
@@ -190,6 +203,7 @@ private function runGuardsWithTelemetry(string $input, string $output, Span $par
 - **Line ~235**: Set final attributes
 
 **Tests Required (8 tests):**
+
 - `tests/Integration/Observability/AgentTelemetryTest.php`
   - it creates span for prompt operation
   - it creates LLM span for provider call
@@ -207,6 +221,7 @@ private function runGuardsWithTelemetry(string $input, string $output, Span $par
 #### Pipeline.php Modifications:
 
 **Modify `run()` Method:**
+
 - Start workflow.pipeline span
 - For each step:
   - Start workflow.step child span
@@ -217,10 +232,12 @@ private function runGuardsWithTelemetry(string $input, string $output, Span $par
 - End workflow span
 
 **Integration Points:**
+
 - `src/Workflow/Pipeline.php` - Add span creation in `run()`
 - `src/Workflow/Chain.php` - Similar span creation
 
 **Tests Required (5 tests):**
+
 - `tests/Integration/Observability/WorkflowTelemetryTest.php`
   - it traces multi-step pipeline
   - it links parent-child spans
@@ -235,25 +252,30 @@ private function runGuardsWithTelemetry(string $input, string $output, Span $par
 #### Files to Create:
 
 **1. Base Interface**
+
 - File: `src/Observability/Exporters/ExporterInterface.php`
 - Extends OpenTelemetry's `SpanExporterInterface`
 
 **2. OTLPExporter**
+
 - File: `src/Observability/Exporters/OTLPExporter.php`
 - Uses `open-telemetry/exporter-otlp` package
 - Supports HTTP and gRPC
 
 **3. JaegerExporter**
+
 - File: `src/Observability/Exporters/JaegerExporter.php`
 - Uses `open-telemetry/contrib-jaeger` package
 - Default endpoint: http://localhost:14268/api/traces
 
 **4. ZipkinExporter**
+
 - File: `src/Observability/Exporters/ZipkinExporter.php`
 - Uses `open-telemetry/contrib-zipkin` package
 - Default endpoint: http://localhost:9411/api/v2/spans
 
 **Tests Required (4 tests):**
+
 - `tests/Unit/Observability/Exporters/ConsoleExporterTest.php`
   - it exports spans to console
   - it shows attributes in verbose mode
@@ -399,6 +421,7 @@ try {
 ### Unit Tests (20-25 tests)
 
 **TelemetryManagerTest.php:**
+
 1. Returns singleton instance
 2. Initializes with default config
 3. Can be disabled
@@ -412,6 +435,7 @@ try {
 11. Shuts down gracefully
 
 **SpanTest.php:**
+
 1. Sets single attribute
 2. Sets multiple attributes
 3. Adds events
@@ -421,6 +445,7 @@ try {
 7. Ends properly
 
 **NullSpanTest.php:**
+
 1. Does nothing on setAttribute
 2. Does nothing on addEvent
 3. Does nothing on recordException
@@ -429,6 +454,7 @@ try {
 6. Can be chained
 
 **ConsoleExporterTest.php:**
+
 1. Exports spans to console
 2. Shows attributes in verbose mode
 3. Can be shut down
@@ -436,6 +462,7 @@ try {
 ### Integration Tests (10-15 tests)
 
 **AgentTelemetryTest.php:**
+
 1. Creates span for prompt operation
 2. Creates LLM span for provider call
 3. Creates tool execution spans
@@ -446,6 +473,7 @@ try {
 8. Works when disabled
 
 **WorkflowTelemetryTest.php:**
+
 1. Traces multi-step pipeline
 2. Links parent-child spans
 3. Records step failures
@@ -523,12 +551,14 @@ TelemetryManager::instance()->initialize([
 ## Implementation Timeline
 
 ### Day 1-2: Core Infrastructure (3-4 hours)
+
 - Create TelemetryManager, Span, SpanContext, NullSpan
 - Create ConsoleExporter
 - Add global helper functions
 - Write 10 unit tests
 
 ### Day 3-4: Agent Integration (3-4 hours)
+
 - Modify Agent::prompt() with telemetry
 - Add LLM request spans
 - Add tool execution spans
@@ -536,17 +566,20 @@ TelemetryManager::instance()->initialize([
 - Write 8 integration tests
 
 ### Day 5: Workflow Integration (2 hours)
+
 - Modify Pipeline::run() with telemetry
 - Add step spans
 - Write 5 workflow tests
 
 ### Day 6-7: Exporters (2-3 hours)
+
 - Implement OTLPExporter
 - Implement JaegerExporter
 - Implement ZipkinExporter
 - Write 4 exporter tests
 
 ### Day 8: Documentation & Examples (1-2 hours)
+
 - Write user guide (`docs/observability.md`)
 - Create 5 example scripts
 - Update README
@@ -558,6 +591,7 @@ TelemetryManager::instance()->initialize([
 ## Success Criteria
 
 ### Functionality
+
 - ✅ Automatic instrumentation of all Agent operations
 - ✅ Distributed tracing across multi-agent workflows
 - ✅ Tool execution tracking
@@ -570,17 +604,20 @@ TelemetryManager::instance()->initialize([
 - ✅ Can be disabled with zero overhead
 
 ### Code Quality
+
 - ✅ 30-40 tests passing
 - ✅ PHPStan level 9 compliance
 - ✅ All public APIs documented
 - ✅ No memory leaks
 
 ### Documentation
+
 - ✅ User guide written
 - ✅ 5+ working examples
 - ✅ API reference complete
 
 ### Performance
+
 - ✅ <5ms overhead per span when enabled
 - ✅ Zero overhead when disabled
 
@@ -588,30 +625,33 @@ TelemetryManager::instance()->initialize([
 
 ## Risks & Mitigation
 
-| Risk | Impact | Likelihood | Mitigation |
-|------|--------|------------|------------|
-| Performance overhead | Medium | Medium | Lazy initialization, NullSpan, efficient builders |
-| OpenTelemetry complexity | Medium | Low | Simple wrapper API, zero-config defaults |
-| Exporter failures | Medium | Medium | Graceful degradation, retry logic, fallback |
-| Memory usage | Low | Low | Immediate export, batch processors |
+| Risk                     | Impact | Likelihood | Mitigation                                        |
+| ------------------------ | ------ | ---------- | ------------------------------------------------- |
+| Performance overhead     | Medium | Medium     | Lazy initialization, NullSpan, efficient builders |
+| OpenTelemetry complexity | Medium | Low        | Simple wrapper API, zero-config defaults          |
+| Exporter failures        | Medium | Medium     | Graceful degradation, retry logic, fallback       |
+| Memory usage             | Low    | Low        | Immediate export, batch processors                |
 
 ---
 
 ## Future Enhancements (Post v0.7.0)
 
 ### v0.8.0
+
 - Metrics (counters, gauges, histograms)
 - Automatic cost tracking in spans
 - Span links for complex workflows
 - Custom span processors
 
 ### v0.9.0
+
 - Langfuse native integration
 - Langsmith native integration
 - Phoenix native integration
 - Custom platform adapters
 
 ### v1.0.0
+
 - Distributed context propagation (HTTP headers)
 - Multi-service tracing
 - Alerting integration

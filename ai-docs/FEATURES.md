@@ -71,28 +71,28 @@ This document tracks all features mentioned in documentation, proposals, and the
 
 ### 3. Tool System
 
-| Feature                     | Status | Implementation                       | Source | Notes                                         |
-| --------------------------- | ------ | ------------------------------------ | ------ | --------------------------------------------- |
-| Closure-Based Tools         | ✅     | `src/Tool/Tool.php`                  | Core   | `Tool::fromClosure()`                         |
-| Class-Based Tools           | ✅     | `src/Tools/Tool.php`                 | Core   | Abstract base class                           |
-| Automatic Schema Generation | ✅     | Reflection-based                     | Core   | From PHP type hints                           |
-| Anthropic Schema Format     | ✅     | `ToolInterface::toAnthropicSchema()` | Core   |                                               |
-| OpenAI Schema Format        | ✅     | `ToolInterface::toOpenAISchema()`    | Core   |                                               |
-| Automatic Tool Execution    | ✅     | `Agent::handleToolCalls()`           | Core   | Recursive calling                             |
-| Tool Result Formatting      | ✅     | Provider-specific formats            | Core   |                                               |
-| Built-in FileRead           | ✅     | `src/Tools/FileRead.php`             | Tools  | With safety checks                            |
-| Built-in FileWrite          | ✅     | `src/Tools/FileWrite.php`            | Tools  | With safety checks                            |
-| Built-in Bash               | ✅     | `src/Tools/Bash.php`                 | Tools  | Command execution                             |
-| Built-in WebFetch           | ✅     | `src/Tools/WebFetch.php`             | Tools  | With SSRF protection                          |
-| Built-in Grep               | ✅     | `src/Tools/Grep.php`                 | Tools  | Content search                                |
-| Built-in Glob               | ✅     | `src/Tools/Glob.php`                 | Tools  | File pattern matching                         |
-| Built-in PdfReader          | ✅     | `src/Tools/PdfReader.php`            | Tools  | PDF extraction                                |
-| Built-in DataExtract        | ✅     | `src/Tools/DataExtract.php`          | Tools  | Structured extraction                         |
-| Parameter Validation        | ✅     | `src/Tool/ToolValidator.php`         | Core   | JSON schema validation                        |
-| Tool Argument Parser        | ✅     | `src/Tool/ToolArgument.php`          | Core   | Type inference                                |
-| Bulk Tool Addition          | ✅     | `Agent::tools()`                     | Core   | Add multiple tools at once                    |
+| Feature                     | Status | Implementation                       | Source     | Notes                                                  |
+| --------------------------- | ------ | ------------------------------------ | ---------- | ------------------------------------------------------ |
+| Closure-Based Tools         | ✅     | `src/Tool/Tool.php`                  | Core       | `Tool::fromClosure()`                                  |
+| Class-Based Tools           | ✅     | `src/Tools/Tool.php`                 | Core       | Abstract base class                                    |
+| Automatic Schema Generation | ✅     | Reflection-based                     | Core       | From PHP type hints                                    |
+| Anthropic Schema Format     | ✅     | `ToolInterface::toAnthropicSchema()` | Core       |                                                        |
+| OpenAI Schema Format        | ✅     | `ToolInterface::toOpenAISchema()`    | Core       |                                                        |
+| Automatic Tool Execution    | ✅     | `Agent::handleToolCalls()`           | Core       | Recursive calling                                      |
+| Tool Result Formatting      | ✅     | Provider-specific formats            | Core       |                                                        |
+| Built-in FileRead           | ✅     | `src/Tools/FileRead.php`             | Tools      | With safety checks                                     |
+| Built-in FileWrite          | ✅     | `src/Tools/FileWrite.php`            | Tools      | With safety checks                                     |
+| Built-in Bash               | ✅     | `src/Tools/Bash.php`                 | Tools      | Command execution                                      |
+| Built-in WebFetch           | ✅     | `src/Tools/WebFetch.php`             | Tools      | With SSRF protection                                   |
+| Built-in Grep               | ✅     | `src/Tools/Grep.php`                 | Tools      | Content search                                         |
+| Built-in Glob               | ✅     | `src/Tools/Glob.php`                 | Tools      | File pattern matching                                  |
+| Built-in PdfReader          | ✅     | `src/Tools/PdfReader.php`            | Tools      | PDF extraction                                         |
+| Built-in DataExtract        | ✅     | `src/Tools/DataExtract.php`          | Tools      | Structured extraction                                  |
+| Parameter Validation        | ✅     | `src/Tool/ToolValidator.php`         | Core       | JSON schema validation                                 |
+| Tool Argument Parser        | ✅     | `src/Tool/ToolArgument.php`          | Core       | Type inference                                         |
+| Bulk Tool Addition          | ✅     | `Agent::tools()`                     | Core       | Add multiple tools at once                             |
 | TOON Integration            | 📋     | Not implemented                      | ROADMAP.md | Attribute-based tool definition (helgesverre/toon-php) |
-| Tool Registry/Toolkit       | 💡     | Not implemented                      | Future | Reusable tool sets (MathToolkit, FileToolkit) |
+| Tool Registry/Toolkit       | 💡     | Not implemented                      | Future     | Reusable tool sets (MathToolkit, FileToolkit)          |
 
 ### 4. Multi-Agent Orchestration (Implemented)
 
@@ -204,32 +204,32 @@ This document tracks all features mentioned in documentation, proposals, and the
 
 ### 12. Observability & Monitoring
 
-| Feature                          | Status | Implementation                               | Source      | Notes                                                |
-| -------------------------------- | ------ | -------------------------------------------- | ----------- | ---------------------------------------------------- |
-| TelemetryManager                 | ✅     | `src/Observability/TelemetryManager.php`     | v0.7.0      | OpenTelemetry SDK wrapper, singleton pattern         |
-| OpenTelemetry SDK Integration    | ✅     | `open-telemetry/sdk` dependency              | v0.7.0      | Industry-standard distributed tracing                |
-| Span Creation (Manual)           | ✅     | `startAgentSpan()`, `startLLMSpan()`         | v0.7.0      | Manual span creation throughout Agent.php            |
-| Semantic Conventions             | ✅     | GenAI attributes (`gen_ai.*`)                | v0.7.0      | OpenTelemetry semantic conventions for LLMs          |
-| Console Exporter                 | ✅     | `src/Observability/Exporters/ConsoleExporter.php` | v0.7.0 | Debug output to console                              |
-| OTLP Exporter                    | ✅     | `src/Observability/Exporters/OTLPExporter.php` | v0.7.0    | Generic OTLP protocol support                        |
-| Jaeger Exporter                  | ✅     | `src/Observability/Exporters/JaegerExporter.php` | v0.7.0  | Jaeger-specific integration                          |
-| Zipkin Exporter                  | ✅     | `src/Observability/Exporters/ZipkinExporter.php` | v0.7.0  | Zipkin-specific integration                          |
-| InMemory Exporter                | ✅     | For testing                                  | v0.7.0      | Test-only exporter with span inspection              |
-| Agent Telemetry Integration      | ✅     | `Agent::telemetry(true)`                     | v0.7.0      | Opt-in per-agent telemetry                           |
-| Events/Hooks System              | 📋     | Not implemented                              | v0.8.0      | Event-driven architecture for observability          |
-| Event Base Classes               | 📋     | Event, EventListener, EventDispatcher        | v0.8.0      | Typed event objects with propagation control         |
-| Lifecycle Events                 | 📋     | 15-20 typed event classes                    | v0.8.0      | BeforePromptEvent, ToolExecutedEvent, etc.           |
-| Hybrid Listener Pattern          | 📋     | Interface + Closure support                  | v0.8.0      | Like Guards: both class and closure listeners        |
-| EventDispatcher Priority         | 📋     | Priority-based listener execution            | v0.8.0      | Control listener order                               |
-| Global Events                    | 📋     | EventManager singleton                       | v0.8.0      | Cross-agent event listening                          |
-| Per-Agent Events                 | 📋     | `Agent::on()`, `once()`, `off()`             | v0.8.0      | Instance-level event listeners                       |
-| TelemetryEventBridge             | 📋     | Event-driven span creation                   | v0.8.0      | Replaces manual TelemetryManager calls               |
-| Event-Driven Telemetry (Breaking)| 📋     | Fire events → Bridge creates spans           | v0.8.0      | Refactor from manual span creation to event-driven   |
-| Cost & Token Tracking            | 📋     | `UsageTracker` singleton                     | v0.7.0      | Track usage, calculate costs, budget enforcement     |
-| Provider Pricing                 | 📋     | `ProviderPricing` with Jan 2025 pricing      | v0.7.0      | Up-to-date pricing for Anthropic, OpenAI, etc.       |
-| Budget Enforcement               | 📋     | Soft warnings, hard limits                   | v0.7.0      | Agent, session, and global budget tracking           |
-| Usage Analytics                  | 📋     | By agent, session, provider                  | v0.7.0      | Queryable usage statistics                           |
-| Usage Export                     | 📋     | JSON, CSV, SQLite                            | v0.7.0      | Export usage data for analysis                       |
+| Feature                           | Status | Implementation                                    | Source | Notes                                              |
+| --------------------------------- | ------ | ------------------------------------------------- | ------ | -------------------------------------------------- |
+| TelemetryManager                  | ✅     | `src/Observability/TelemetryManager.php`          | v0.7.0 | OpenTelemetry SDK wrapper, singleton pattern       |
+| OpenTelemetry SDK Integration     | ✅     | `open-telemetry/sdk` dependency                   | v0.7.0 | Industry-standard distributed tracing              |
+| Span Creation (Manual)            | ✅     | `startAgentSpan()`, `startLLMSpan()`              | v0.7.0 | Manual span creation throughout Agent.php          |
+| Semantic Conventions              | ✅     | GenAI attributes (`gen_ai.*`)                     | v0.7.0 | OpenTelemetry semantic conventions for LLMs        |
+| Console Exporter                  | ✅     | `src/Observability/Exporters/ConsoleExporter.php` | v0.7.0 | Debug output to console                            |
+| OTLP Exporter                     | ✅     | `src/Observability/Exporters/OTLPExporter.php`    | v0.7.0 | Generic OTLP protocol support                      |
+| Jaeger Exporter                   | ✅     | `src/Observability/Exporters/JaegerExporter.php`  | v0.7.0 | Jaeger-specific integration                        |
+| Zipkin Exporter                   | ✅     | `src/Observability/Exporters/ZipkinExporter.php`  | v0.7.0 | Zipkin-specific integration                        |
+| InMemory Exporter                 | ✅     | For testing                                       | v0.7.0 | Test-only exporter with span inspection            |
+| Agent Telemetry Integration       | ✅     | `Agent::telemetry(true)`                          | v0.7.0 | Opt-in per-agent telemetry                         |
+| Events/Hooks System               | 📋     | Not implemented                                   | v0.8.0 | Event-driven architecture for observability        |
+| Event Base Classes                | 📋     | Event, EventListener, EventDispatcher             | v0.8.0 | Typed event objects with propagation control       |
+| Lifecycle Events                  | 📋     | 15-20 typed event classes                         | v0.8.0 | BeforePromptEvent, ToolExecutedEvent, etc.         |
+| Hybrid Listener Pattern           | 📋     | Interface + Closure support                       | v0.8.0 | Like Guards: both class and closure listeners      |
+| EventDispatcher Priority          | 📋     | Priority-based listener execution                 | v0.8.0 | Control listener order                             |
+| Global Events                     | 📋     | EventManager singleton                            | v0.8.0 | Cross-agent event listening                        |
+| Per-Agent Events                  | 📋     | `Agent::on()`, `once()`, `off()`                  | v0.8.0 | Instance-level event listeners                     |
+| TelemetryEventBridge              | 📋     | Event-driven span creation                        | v0.8.0 | Replaces manual TelemetryManager calls             |
+| Event-Driven Telemetry (Breaking) | 📋     | Fire events → Bridge creates spans                | v0.8.0 | Refactor from manual span creation to event-driven |
+| Cost & Token Tracking             | 📋     | `UsageTracker` singleton                          | v0.7.0 | Track usage, calculate costs, budget enforcement   |
+| Provider Pricing                  | 📋     | `ProviderPricing` with Jan 2025 pricing           | v0.7.0 | Up-to-date pricing for Anthropic, OpenAI, etc.     |
+| Budget Enforcement                | 📋     | Soft warnings, hard limits                        | v0.7.0 | Agent, session, and global budget tracking         |
+| Usage Analytics                   | 📋     | By agent, session, provider                       | v0.7.0 | Queryable usage statistics                         |
+| Usage Export                      | 📋     | JSON, CSV, SQLite                                 | v0.7.0 | Export usage data for analysis                     |
 
 ### 13. Developer Experience
 
@@ -438,11 +438,11 @@ The new `Agent::tools()` method (added 2025-10-29) provides the foundation for t
 
 ## Version History
 
-| Version | Date       | Changes                                                                       |
-| ------- | ---------- | ----------------------------------------------------------------------------- |
-| 1.2     | 2025-10-29 | Added TOON Integration to roadmap, updated references to ROADMAP.md          |
-| 1.1     | 2025-10-29 | Added Agent::tools() method, documented Toolkit pattern future enhancement    |
-| 1.0     | 2025-01-29 | Initial feature inventory created                                             |
+| Version | Date       | Changes                                                                    |
+| ------- | ---------- | -------------------------------------------------------------------------- |
+| 1.2     | 2025-10-29 | Added TOON Integration to roadmap, updated references to ROADMAP.md        |
+| 1.1     | 2025-10-29 | Added Agent::tools() method, documented Toolkit pattern future enhancement |
+| 1.0     | 2025-01-29 | Initial feature inventory created                                          |
 
 ---
 

@@ -14,15 +14,18 @@ Custom Pest expectations and helper functions to improve test readability and re
 ### Existing Helpers (from `tests/Pest.php`)
 
 **Custom Expectations:**
+
 - `toBeAgent()` - Check instance of Agent
 - `toHaveProvider()` - Check agent has configured provider
 
 **Helper Functions:**
+
 - `testAgent(string $name = 'test-agent')` - Create test agent with mock provider
 - `skipIfMissingEnv()`, `skipIfHasEnv()` - Environment-based test skipping
 - `hasAnthropicKey()`, `hasOpenAiKey()`, `hasOllamaAvailable()` - API availability checks
 
 **Common Test Patterns Found:**
+
 ```php
 // Response content checking
 expect($response->content)->toBe('expected')
@@ -240,12 +243,14 @@ conversation($agent)
 ## Implementation Plan
 
 ### Phase 1: Core Response Expectations (1 hour)
+
 1. Implement `toContainKeyword()`, `toContainKeywords()`
 2. Implement `toMatchPattern()`
 3. Implement `toBeWithinLength()`, `toHaveLengthGreaterThan()`, `toHaveLengthLessThan()`
 4. Implement `toHaveCodeBlock()`
 
 ### Phase 2: Agent & Tool Expectations (1 hour)
+
 1. Implement `toHaveTool()`, `toHaveTools()`, `toHaveToolCount()`
 2. Implement `toHaveUsedTool()`, `toHaveUsedTools()`
 3. Implement `toHaveToolCall()`, `toHaveToolCallCount()`
@@ -253,16 +258,19 @@ conversation($agent)
 5. Implement `toHaveConversationLength()`, `toHaveMessageCount()`
 
 ### Phase 3: Guard & Middleware Expectations (0.5 hour)
+
 1. Implement `toHaveGuard()`, `toHaveGuards()`, `toHaveGuardCount()`
 2. Implement `toHaveTriggeredGuard()`, `toHavePassedGuard()`, `toHavePassedAllGuards()`
 3. Implement `toHaveMiddleware()`, `toHaveMiddlewareCount()`
 
 ### Phase 4: Helper Functions (0.5 hour)
+
 1. Implement `testAgentWithTools()`, `testAgentWithGuards()`, `testAgentWithMiddleware()`
 2. Implement `mockTool()`, `mockToolThatFails()`, `mockToolWithDelay()`
 3. Implement `assertAgentResponded()`, `assertToolCalled()`, `assertGuardBlocked()`
 
 ### Phase 5: Documentation & Tests (1 hour)
+
 1. Update test files to use new expectations
 2. Document all helpers in `tests/Pest.php`
 3. Create examples in README or docs

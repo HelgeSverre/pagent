@@ -26,7 +26,7 @@
 
 ### The $50,000 Question
 
-It's Monday morning. Your phone buzzes. It's your CTO: *"Why did our LLM costs jump from $500 to $50,000 this weekend?"*
+It's Monday morning. Your phone buzzes. It's your CTO: _"Why did our LLM costs jump from $500 to $50,000 this weekend?"_
 
 You scramble to check your dashboards. Traditional APM shows everything green—response times are normal, error rates are low, throughput is steady. Yet somewhere in your multi-agent content generation pipeline, something is burning through tokens like wildfire.
 
@@ -37,6 +37,7 @@ But where? Which agent? Which requests? Which users?
 ### Why Traditional Monitoring Fails
 
 Traditional Application Performance Monitoring (APM) tools were built for a different era. They excel at tracking:
+
 - HTTP requests and response times
 - Database queries
 - Error rates and stack traces
@@ -45,24 +46,28 @@ Traditional Application Performance Monitoring (APM) tools were built for a diff
 But LLM applications introduce entirely new dimensions:
 
 **Token Economics:**
+
 - Input tokens vs. output tokens
 - Context window utilization
 - Tool use overhead
 - Multi-turn conversation costs
 
 **Multi-Step Workflows:**
+
 - Agent orchestration (pipelines, chains)
 - Conditional routing
 - Parallel execution
 - State management
 
 **Non-Determinism:**
+
 - Variable response lengths
 - Unpredictable tool use
 - Model-dependent behavior
 - Temperature and creativity settings
 
 **Latency Patterns:**
+
 - Streaming vs. blocking calls
 - Time-to-first-token
 - Tokens-per-second
@@ -101,16 +106,19 @@ Traditional metrics can't answer these questions. You need **distributed tracing
 #### 1. Traces: The Journey of a Request
 
 In traditional apps, a trace might look like:
+
 ```
 HTTP Request → Database Query → Cache Lookup → HTTP Response
 ```
 
 In LLM apps, traces are conversations:
+
 ```
 User Prompt → Agent Decision → Tool Call 1 → Tool Call 2 → LLM Response → Validation → Final Response
 ```
 
 Each step has unique attributes:
+
 - **Prompt:** User input, system instructions, context
 - **LLM Call:** Model, temperature, max tokens, actual usage
 - **Tools:** Function name, arguments, results
@@ -119,11 +127,13 @@ Each step has unique attributes:
 #### 2. Metrics: Beyond "Requests Per Second"
 
 Traditional metrics:
+
 - Requests per second
 - Average response time
 - Error rate
 
 LLM metrics that actually matter:
+
 - **Tokens per request** (input, output, total)
 - **Cost per request** (provider-specific pricing)
 - **Tool calls per request** (function invocations)
@@ -135,6 +145,7 @@ LLM metrics that actually matter:
 #### 3. Logs: Structured Context
 
 Traditional logs capture errors. LLM logs must capture:
+
 - **Prompts and completions** (for debugging and fine-tuning)
 - **Tool use patterns** (which functions, with what args)
 - **Validation failures** (schema mismatches, retries)
@@ -150,6 +161,7 @@ OpenTelemetry (OTel) is the industry standard for observability. It provides:
 4. **Future-Proof:** Backed by CNCF and major cloud providers
 
 For LLM applications, OpenTelemetry recently added **semantic conventions for GenAI**, defining standard attributes for:
+
 - Model selection (`gen_ai.request.model`)
 - Token usage (`gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`)
 - Temperature and settings (`gen_ai.request.temperature`)
@@ -284,11 +296,13 @@ public function ask(string $prompt): string
 ```
 
 **You write:**
+
 ```php
 $agent->ask('Hello');
 ```
 
 **Pagent automatically traces:**
+
 - The agent operation
 - The LLM API call with token usage
 - Any tool executions
@@ -356,6 +370,7 @@ echo $response; // "2+2 equals 4"
 Let's decode what we're seeing:
 
 **1. Span Hierarchy:**
+
 ```
 agent.prompt (parent)
   └── llm.request (child)
@@ -364,16 +379,19 @@ agent.prompt (parent)
 The parent span represents the entire agent operation. The child span represents the LLM API call.
 
 **2. Timing Information:**
+
 - **Total Duration:** 1.234s (agent.prompt)
 - **LLM Call:** 1.198s (llm.request)
 - **Overhead:** 0.036s (Pagent's processing)
 
 **3. Agent Attributes:**
+
 - `agent.name`: Your agent's identifier
 - `agent.operation`: What the agent is doing (prompt, stream, etc.)
 - `prompt.text`: The actual user input
 
 **4. GenAI Attributes (OpenTelemetry Standard):**
+
 - `gen_ai.system`: Provider (anthropic, openai, etc.)
 - `gen_ai.request.model`: Model being used
 - `gen_ai.usage.*`: Token consumption (key for cost tracking!)
@@ -387,6 +405,7 @@ telemetry_console(verbose: true);
 ```
 
 This adds:
+
 - Span IDs and Trace IDs
 - Start and end timestamps
 - All custom attributes
@@ -471,15 +490,15 @@ Without observability, you'd just see "one request". With observability, you und
 
 The right observability backend depends on your needs:
 
-| Backend | Best For | Pricing | LLM-Specific Features |
-|---------|----------|---------|----------------------|
-| **Jaeger (self-hosted)** | Development, staging | Free | None (general tracing) |
-| **Zipkin (self-hosted)** | Simple deployments | Free | None (general tracing) |
-| **Honeycomb** | High-cardinality queries | Pay-as-you-go | Query by token count, cost |
-| **Datadog APM** | Enterprise, all-in-one | Per-host | AI integrations |
-| **New Relic** | Enterprise observability | Per-user | None (general APM) |
-| **Phoenix (Arize)** | LLM-specific | Free tier | Prompt tracking, eval |
-| **Langfuse** | LLM ops & prompt mgmt | Free tier | Generations, scoring |
+| Backend                  | Best For                 | Pricing       | LLM-Specific Features      |
+| ------------------------ | ------------------------ | ------------- | -------------------------- |
+| **Jaeger (self-hosted)** | Development, staging     | Free          | None (general tracing)     |
+| **Zipkin (self-hosted)** | Simple deployments       | Free          | None (general tracing)     |
+| **Honeycomb**            | High-cardinality queries | Pay-as-you-go | Query by token count, cost |
+| **Datadog APM**          | Enterprise, all-in-one   | Per-host      | AI integrations            |
+| **New Relic**            | Enterprise observability | Per-user      | None (general APM)         |
+| **Phoenix (Arize)**      | LLM-specific             | Free tier     | Prompt tracking, eval      |
+| **Langfuse**             | LLM ops & prompt mgmt    | Free tier     | Generations, scoring       |
 
 ### Self-Hosted Jaeger (Development)
 
@@ -521,6 +540,7 @@ $response = $agent->ask('Help with billing');
 **4. View traces:**
 
 Open http://localhost:16686 in your browser. You'll see:
+
 - Service list
 - Trace timeline
 - Span details
@@ -665,6 +685,7 @@ telemetry_otlp(
 **3. View in Phoenix:**
 
 Open http://localhost:6006 to see:
+
 - **Traces:** LLM calls with prompts and completions
 - **Projects:** Organize by use case
 - **Evaluations:** Score outputs for quality
@@ -964,6 +985,7 @@ try {
 **Problem:**
 
 A customer support chatbot suddenly started giving irrelevant answers. Traditional logs showed:
+
 - HTTP 200 responses
 - Normal latency
 - No error rate increase
@@ -1045,6 +1067,7 @@ WHERE workflow.name = "content"
 ```
 
 Results:
+
 - Average Duration: 15.3s
 - Average Tokens: 4,200
 - Average Cost: $0.12 per article
@@ -1079,6 +1102,7 @@ $result = pipeline('content-v2')
 ```
 
 **Results:**
+
 - Duration: 10.1s (-34%)
 - Tokens: 3,100 (-26%)
 - Cost: $0.088 (-27%)
@@ -1101,6 +1125,7 @@ $result = pipeline('content-v3')
 ```
 
 **Final Results:**
+
 - Duration: 7.2s (-53% from baseline)
 - Tokens: 2,900 (-31%)
 - Cost: $0.078 (-35%)
@@ -1108,6 +1133,7 @@ $result = pipeline('content-v3')
 **ROI:**
 
 At 1,000 articles per day:
+
 - **Time Saved:** 8.1s × 1,000 = 2.25 hours per day
 - **Cost Saved:** $0.042 × 1,000 = $42 per day = $1,260/month
 - **Setup Time:** 2 hours
@@ -1119,6 +1145,7 @@ At 1,000 articles per day:
 **Challenge:**
 
 A SaaS LLM application needed to:
+
 - Track costs per customer
 - Identify expensive customers
 - Bill accurately for usage
@@ -1384,11 +1411,13 @@ $agent = agent('high-traffic')
 **Checklist:**
 
 1. **Is telemetry enabled on the agent?**
+
    ```php
    $agent->telemetry(true) // This is required!
    ```
 
 2. **Is the exporter configured correctly?**
+
    ```php
    // Check endpoint URL
    telemetry_otlp('http://collector:4318/v1/traces'); // Correct
@@ -1396,12 +1425,14 @@ $agent = agent('high-traffic')
    ```
 
 3. **Can you reach the collector?**
+
    ```bash
    curl http://collector:4318/v1/traces
    # Should return 405 Method Not Allowed (POST expected)
    ```
 
 4. **Check for export errors:**
+
    ```php
    // Enable debug logging
    telemetry_console(verbose: true);
@@ -1473,6 +1504,7 @@ echo "Total duration: {$duration}s\n";
 **Common Issues:**
 
 1. **Port already in use:**
+
    ```bash
    # Check what's using port 16686
    lsof -i :16686
@@ -1481,6 +1513,7 @@ echo "Total duration: {$duration}s\n";
    ```
 
 2. **Insufficient resources:**
+
    ```bash
    # Check Docker resources
    docker info | grep -i memory
@@ -1503,17 +1536,20 @@ echo "Total duration: {$duration}s\n";
 The field of LLM observability is evolving rapidly. Expect to see:
 
 **1. Standardization:**
+
 - More providers adopting OpenTelemetry semantic conventions
 - Industry-standard metrics for LLM performance
 - Common query languages (like PromQL for metrics)
 
 **2. LLM-Specific Tools:**
+
 - **Prompt versioning:** Track prompt changes like code changes
 - **Response caching:** Automatically cache identical prompts
 - **Cost optimization:** AI-driven suggestions for reducing costs
 - **Quality scoring:** Automatic evaluation of LLM responses
 
 **3. Regulatory Compliance:**
+
 - **Audit trails:** Immutable logs of LLM interactions
 - **Bias detection:** Automatic alerts for biased outputs
 - **Data governance:** Track data lineage through LLM pipelines
@@ -1521,18 +1557,21 @@ The field of LLM observability is evolving rapidly. Expect to see:
 ### Pagent Roadmap
 
 **v0.8.0 - Enhanced Observability** (Q1 2026):
+
 - Batch export for improved performance
 - Probabilistic sampling
 - OpenTelemetry Metrics support
 - Additional exporters (CloudWatch, Prometheus)
 
 **v0.9.0 - Advanced Analytics** (Q2 2026):
+
 - Built-in cost calculator
 - Performance profiler
 - Query builder for common analyses
 - Anomaly detection
 
 **v1.0.0 - Production Hardened** (Q3 2026):
+
 - Enterprise features (SSO, RBAC)
 - SLA monitoring and alerting
 - Multi-tenancy support
@@ -1595,21 +1634,24 @@ The insights you'll gain—from debugging production issues in minutes instead o
 ## Resources
 
 ### Documentation
+
 - [Pagent Observability Guide](../../docs/observability.md)
 - [OpenTelemetry Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/)
 - [W3C Trace Context](https://www.w3.org/TR/trace-context/)
 
 ### Tools
+
 - [Jaeger](https://www.jaegertracing.io/)
 - [Honeycomb](https://honeycomb.io/)
 - [Phoenix (Arize)](https://phoenix.arize.com/)
 - [Langfuse](https://langfuse.com/)
 
 ### Community
+
 - GitHub: https://github.com/helge/pagent
 - Discussions: https://github.com/helge/pagent/discussions
 - Twitter: @pagent_php
 
 ---
 
-*This article is part of the Pagent documentation. For updates and corrections, please contribute on GitHub.*
+_This article is part of the Pagent documentation. For updates and corrections, please contribute on GitHub._
