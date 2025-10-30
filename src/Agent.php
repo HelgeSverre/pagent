@@ -38,6 +38,7 @@ use function json_encode;
 use function levenshtein;
 use function sprintf;
 use function str_contains;
+use function strlen;
 use function ucfirst;
 
 final class Agent
@@ -68,6 +69,8 @@ final class Agent
     private ?ContextManager $contextManager = null;
 
     public bool $telemetryEnabled = false;
+
+    private ?array $cachedToolSchemas = null;
 
     public function __construct(
         private readonly string $name,
@@ -103,6 +106,12 @@ final class Agent
 
     public function temperature(float $temperature): self
     {
+        if ($temperature < 0.0 || $temperature > 2.0) {
+            throw new \InvalidArgumentException(
+                sprintf('Temperature must be between 0.0 and 2.0, got %.2f', $temperature)
+            );
+        }
+
         $this->config['temperature'] = $temperature;
 
         return $this;
@@ -110,6 +119,12 @@ final class Agent
 
     public function maxTokens(int $maxTokens): self
     {
+        if ($maxTokens < 1) {
+            throw new \InvalidArgumentException(
+                sprintf('Max tokens must be at least 1, got %d', $maxTokens)
+            );
+        }
+
         $this->config['max_tokens'] = $maxTokens;
 
         return $this;
@@ -439,6 +454,11 @@ final class Agent
         return $this->name;
     }
 
+    public function getProvider(): ?Provider
+    {
+        return $this->provider;
+    }
+
     /**
      * Add multiple tools at once for convenience.
      *
@@ -457,6 +477,7 @@ final class Agent
     {
         if ($nameOrTool instanceof ToolInterface) {
             $this->tools[] = $nameOrTool;
+            $this->cachedToolSchemas = null; // Invalidate cache
 
             return $this;
         }
@@ -466,6 +487,7 @@ final class Agent
         }
 
         $this->tools[] = Tool::fromClosure($nameOrTool, $description, $callable);
+        $this->cachedToolSchemas = null; // Invalidate cache
 
         return $this;
     }
@@ -516,6 +538,9 @@ final class Agent
 
             $anonymousGuard = new class($name, $check) implements Guard
             {
+                /**
+                 * @param  Closure(string, string): bool  $check
+                 */
                 public function __construct(
                     private readonly string $name,
                     private readonly Closure $check,
@@ -614,6 +639,7 @@ final class Agent
     public function clearTools(): self
     {
         $this->tools = [];
+        $this->cachedToolSchemas = null; // Invalidate cache
 
         return $this;
     }
@@ -652,6 +678,7 @@ final class Agent
         $this->memory = null;
         $this->sessionId = null;
         $this->contextManager = null;
+        $this->cachedToolSchemas = null; // Invalidate cache
 
         return $this;
     }
@@ -670,6 +697,7 @@ final class Agent
         $clone->fallback = $this->fallback;
         $clone->memory = $this->memory;
         $clone->contextManager = $this->contextManager;
+        $clone->telemetryEnabled = $this->telemetryEnabled;
         // Don't copy messages or sessionId - fresh conversation
 
         return $clone;
@@ -750,21 +778,24 @@ final class Agent
 
     private function getToolSchemas(): array
     {
+        // Return cached schemas if available
+        if ($this->cachedToolSchemas !== null) {
+            return $this->cachedToolSchemas;
+        }
+
         $provider = get_class($this->provider);
 
         if (str_contains($provider, 'Anthropic')) {
-            return array_map(fn ($tool) => $tool->toAnthropicSchema(), $this->tools);
+            $this->cachedToolSchemas = array_map(fn ($tool) => $tool->toAnthropicSchema(), $this->tools);
+        } elseif (str_contains($provider, 'OpenAI')) {
+            $this->cachedToolSchemas = array_map(fn ($tool) => $tool->toOpenAISchema(), $this->tools);
+        } elseif (str_contains($provider, 'Ollama')) {
+            $this->cachedToolSchemas = array_map(fn ($tool) => $tool->toOpenAISchema(), $this->tools);
+        } else {
+            $this->cachedToolSchemas = [];
         }
 
-        if (str_contains($provider, 'OpenAI')) {
-            return array_map(fn ($tool) => $tool->toOpenAISchema(), $this->tools);
-        }
-
-        if (str_contains($provider, 'Ollama')) {
-            return array_map(fn ($tool) => $tool->toOpenAISchema(), $this->tools);
-        }
-
-        return [];
+        return $this->cachedToolSchemas;
     }
 
     private function handleToolCalls(object $response): object
@@ -890,8 +921,16 @@ final class Agent
             return [];
         }
 
+        $needleLen = strlen($needle);
         $distances = [];
+
         foreach ($haystack as $toolName) {
+            // Early exit: if length difference > 3, skip levenshtein calculation
+            $lengthDiff = abs($needleLen - strlen($toolName));
+            if ($lengthDiff > 3) {
+                continue;
+            }
+
             $distances[$toolName] = levenshtein($needle, $toolName);
         }
 
