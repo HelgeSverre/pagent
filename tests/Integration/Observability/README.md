@@ -148,26 +148,31 @@ These run automatically before other tests and will fail fast if services aren't
 Each service has its own test file with specific functionality tests:
 
 **Jaeger** - Tests OTLP trace ingestion:
+
 ```bash
 composer test:observability -- --group=jaeger
 ```
 
 **Phoenix** - Tests LLM trace ingestion:
+
 ```bash
 composer test:observability -- --group=phoenix
 ```
 
 **Langfuse** - Tests authentication and trace creation:
+
 ```bash
 composer test:observability -- --group=langfuse
 ```
 
 **Helicone** - Tests gateway and authentication:
+
 ```bash
 composer test:observability -- --group=helicone
 ```
 
 **Opik** - Tests API and authentication:
+
 ```bash
 composer test:observability -- --group=opik
 ```
@@ -212,6 +217,7 @@ test('example test', function () {
 ```
 
 Available groups:
+
 - `observability` - All observability tests
 - `jaeger` - Jaeger-specific tests
 - `phoenix` - Phoenix-specific tests

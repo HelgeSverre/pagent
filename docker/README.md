@@ -4,13 +4,13 @@ This directory contains Docker Compose configuration for running a comprehensive
 
 ## Services Included
 
-| Service | Port(s) | Purpose | Status |
-|---------|---------|---------|--------|
-| **Jaeger** | 16686 (UI), 4317/4318 (OTLP) | Distributed tracing | ✅ Working |
-| **Phoenix** | 6006 (UI), 6007 (OTLP) | LLM observability (Arize) | ✅ Working |
-| **Langfuse** | 3000 | LLM monitoring & prompts | ✅ Working |
-| **Helicone** | 3001 (UI), 8585 (Gateway) | LLM cost tracking | ✅ Working |
-| **Opik** | 5173 (UI), 8080 (API) | LLM experiment tracking | ✅ Working |
+| Service      | Port(s)                      | Purpose                   | Status     |
+| ------------ | ---------------------------- | ------------------------- | ---------- |
+| **Jaeger**   | 16686 (UI), 4317/4318 (OTLP) | Distributed tracing       | ✅ Working |
+| **Phoenix**  | 6006 (UI), 6007 (OTLP)       | LLM observability (Arize) | ✅ Working |
+| **Langfuse** | 3000                         | LLM monitoring & prompts  | ✅ Working |
+| **Helicone** | 3001 (UI), 8585 (Gateway)    | LLM cost tracking         | ✅ Working |
+| **Opik**     | 5173 (UI), 8080 (API)        | LLM experiment tracking   | ✅ Working |
 
 ## Quick Start
 
@@ -67,12 +67,14 @@ docker compose -f docker-compose.observability.yml --env-file docker/.env.observ
 **Access**: http://localhost:3000
 
 **First-time setup:**
+
 1. Create an account through the UI
 2. Create an organization and project
 3. Copy the Public Key and Secret Key from project settings
 
 **Headless initialization** (for CI/CD):
 Set these environment variables before starting:
+
 ```bash
 LANGFUSE_INIT_ORG_NAME="My Organization"
 LANGFUSE_INIT_PROJECT_NAME="My Project"
@@ -83,6 +85,7 @@ LANGFUSE_INIT_PROJECT_SECRET_KEY="sk_xxx"
 ```
 
 **Integration in code:**
+
 ```php
 use Pagent\Agent;
 
@@ -101,10 +104,12 @@ $agent = Agent::build()
 **Access**: http://localhost:6006
 
 **Setup:**
+
 1. No initial account creation required
 2. Start sending traces via OTLP (port 6007) or HTTP (port 6006/v1/traces)
 
 **API Key generation** (for production):
+
 ```bash
 # Set admin secret
 PHOENIX_ADMIN_SECRET=your_secret
@@ -117,6 +122,7 @@ curl -X POST http://localhost:6006/v1/api_keys \
 ```
 
 **Integration:**
+
 ```php
 use Pagent\Agent;
 
@@ -132,22 +138,26 @@ $agent = Agent::build()
 ### Opik (Comet)
 
 **Access**:
+
 - UI: http://localhost:5173
 - API: http://localhost:8080
 
 **First-time setup:**
+
 1. Access http://localhost:5173
 2. Create an account
 3. Create a project
 4. Generate API keys from Settings
 
 **Local SDK configuration:**
+
 ```bash
 # Configure Opik CLI to use local instance
 opik configure --use_local
 ```
 
 This creates `~/.opik.config`:
+
 ```yaml
 api_key: null
 url: http://localhost:5173/api
@@ -155,6 +165,7 @@ workspace: default
 ```
 
 **Integration:**
+
 ```php
 use Pagent\Agent;
 
@@ -171,16 +182,19 @@ $agent = Agent::build()
 ### Helicone
 
 **Access**:
+
 - UI: http://localhost:3001
 - Gateway: http://localhost:8585
 
 **First-time setup:**
+
 1. Access http://localhost:3001
 2. Create an account
 3. Generate API key from Settings
 
 **Integration:**
 Use Helicone as a proxy for your LLM requests:
+
 ```php
 use Pagent\Agent;
 
@@ -198,10 +212,12 @@ $agent = Agent::build()
 **Access**: http://localhost:16686
 
 **Setup:**
+
 1. No account creation needed
 2. Send traces via OTLP HTTP (4318) or gRPC (4317)
 
 **Integration:**
+
 ```php
 use Pagent\Agent;
 
@@ -328,6 +344,7 @@ docker compose -f docker-compose.observability.yml logs <service-name>
 ### Cannot connect to service
 
 1. Verify service is running:
+
    ```bash
    docker ps --filter "name=pagent-"
    ```

@@ -27,12 +27,12 @@ docker-compose -f docker-compose.observability.yml restart [service-name]
 
 ## Service URLs
 
-| Service | UI URL | OTLP Endpoint |
-|---------|--------|---------------|
-| **Jaeger** | http://localhost:16686 | http://localhost:4318/v1/traces |
-| **Phoenix** | http://localhost:6006 | http://localhost:6007/v1/traces |
-| **Langfuse** | http://localhost:3000 | http://localhost:3000/api/public/ingestion |
-| **Opik** | http://localhost:5173 | http://localhost:8080/v1/traces |
+| Service      | UI URL                 | OTLP Endpoint                              |
+| ------------ | ---------------------- | ------------------------------------------ |
+| **Jaeger**   | http://localhost:16686 | http://localhost:4318/v1/traces            |
+| **Phoenix**  | http://localhost:6006  | http://localhost:6007/v1/traces            |
+| **Langfuse** | http://localhost:3000  | http://localhost:3000/api/public/ingestion |
+| **Opik**     | http://localhost:5173  | http://localhost:8080/v1/traces            |
 
 ## Pagent Configuration
 
@@ -76,6 +76,7 @@ OTEL_ENDPOINT=http://localhost:6007/v1/traces php your-script.php
 ## Common Issues
 
 ### Port Already in Use
+
 ```bash
 # Find what's using the port
 lsof -i :16686
@@ -84,6 +85,7 @@ lsof -i :16686
 ```
 
 ### Service Won't Start
+
 ```bash
 # Check logs
 docker-compose -f docker-compose.observability.yml logs [service-name]
@@ -97,6 +99,7 @@ docker-compose -f docker-compose.observability.yml up -d
 ```
 
 ### Traces Not Appearing
+
 ```bash
 # 1. Verify service is running
 docker-compose -f docker-compose.observability.yml ps
@@ -114,12 +117,14 @@ docker-compose -f docker-compose.observability.yml logs jaeger
 ## Recommended Workflow
 
 ### For Development (Low Resources)
+
 ```bash
 # Start only Jaeger + Phoenix
 docker-compose -f docker-compose.observability.yml up -d jaeger phoenix
 ```
 
 ### For Full Testing
+
 ```bash
 # Start everything
 docker-compose -f docker-compose.observability.yml up -d
@@ -131,21 +136,25 @@ bash docker/observability/test-integration.sh
 ### For Specific Use Cases
 
 **General Debugging**: Use Jaeger
+
 ```bash
 docker-compose -f docker-compose.observability.yml up -d jaeger
 ```
 
 **LLM Development**: Use Phoenix
+
 ```bash
 docker-compose -f docker-compose.observability.yml up -d phoenix
 ```
 
 **Experiment Tracking**: Use Opik
+
 ```bash
 docker-compose -f docker-compose.observability.yml up -d opik-clickhouse opik-backend opik-frontend
 ```
 
 **Production Testing**: Use Langfuse
+
 ```bash
 docker-compose -f docker-compose.observability.yml up -d langfuse-db langfuse
 # Visit http://localhost:3000 to create account
@@ -154,6 +163,7 @@ docker-compose -f docker-compose.observability.yml up -d langfuse-db langfuse
 ## Resource Usage
 
 Typical memory usage per service:
+
 - **Jaeger**: ~200MB
 - **Phoenix**: ~300MB
 - **Langfuse**: ~400MB (includes PostgreSQL)
@@ -164,6 +174,7 @@ Typical memory usage per service:
 ## Testing
 
 ### Quick Test Script
+
 ```bash
 # Create test file
 cat > test-otel.php << 'EOF'
@@ -185,6 +196,7 @@ open http://localhost:16686
 ```
 
 ### Run Pest Tests with Tracing
+
 ```bash
 # Start Jaeger
 docker-compose -f docker-compose.observability.yml up -d jaeger
@@ -198,24 +210,26 @@ open http://localhost:16686
 
 ## Comparison Table
 
-| Feature | Jaeger | Phoenix | Langfuse | Opik |
-|---------|:------:|:-------:|:--------:|:----:|
-| Setup Difficulty | Easy | Easy | Medium | Medium |
-| LLM-Specific | ❌ | ✅ | ✅ | ✅ |
-| No Auth Required | ✅ | ✅ | ❌ | ✅ |
-| Prompt Management | ❌ | ⚠️ | ✅ | ⚠️ |
-| Cost Tracking | ❌ | ⚠️ | ✅ | ⚠️ |
-| Memory Usage | Low | Low | Medium | High |
-| Best For | Debugging | Development | Production | Experiments |
+| Feature           |  Jaeger   |   Phoenix   |  Langfuse  |    Opik     |
+| ----------------- | :-------: | :---------: | :--------: | :---------: |
+| Setup Difficulty  |   Easy    |    Easy     |   Medium   |   Medium    |
+| LLM-Specific      |    ❌     |     ✅      |     ✅     |     ✅      |
+| No Auth Required  |    ✅     |     ✅      |     ❌     |     ✅      |
+| Prompt Management |    ❌     |     ⚠️      |     ✅     |     ⚠️      |
+| Cost Tracking     |    ❌     |     ⚠️      |     ✅     |     ⚠️      |
+| Memory Usage      |    Low    |     Low     |   Medium   |    High     |
+| Best For          | Debugging | Development | Production | Experiments |
 
 ## Integration Test
 
 Run the full integration test:
+
 ```bash
 bash docker/observability/test-integration.sh
 ```
 
 This will:
+
 1. Start all services
 2. Wait for health checks
 3. Run test traces to each backend

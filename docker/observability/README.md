@@ -5,26 +5,31 @@ This Docker Compose setup provides a complete local observability stack for test
 ## Quick Start
 
 1. **Copy the environment file** (optional, uses defaults if not present):
+
    ```bash
    cp docker/observability/.env.example docker/observability/.env
    ```
 
 2. **Start all services**:
+
    ```bash
    docker-compose -f docker-compose.observability.yml up -d
    ```
 
 3. **Wait for services to be healthy** (30-60 seconds):
+
    ```bash
    docker-compose -f docker-compose.observability.yml ps
    ```
 
 4. **Run the test integration script**:
+
    ```bash
    bash docker/observability/test-integration.sh
    ```
 
 5. **Stop all services**:
+
    ```bash
    docker-compose -f docker-compose.observability.yml down
    ```
@@ -41,17 +46,20 @@ This Docker Compose setup provides a complete local observability stack for test
 **Purpose**: Industry-standard distributed tracing visualization
 
 **Access**:
+
 - UI: http://localhost:16686
 - OTLP HTTP: http://localhost:4318
 - OTLP gRPC: http://localhost:4317
 
 **Features**:
+
 - Trace visualization
 - Service dependency graphs
 - Performance analysis
 - Search and filtering
 
 **Pagent Configuration**:
+
 ```php
 <?php
 
@@ -73,10 +81,12 @@ $response = $agent->ask('Explain quantum computing');
 **Purpose**: Specialized LLM observability with prompt tracking and evaluation
 
 **Access**:
+
 - UI: http://localhost:6006
 - OTLP Collector: http://localhost:6007
 
 **Features**:
+
 - LLM-specific span visualization
 - Prompt and completion tracking
 - Token usage monitoring
@@ -84,6 +94,7 @@ $response = $agent->ask('Explain quantum computing');
 - Embedding visualization
 
 **Pagent Configuration**:
+
 ```php
 <?php
 
@@ -101,6 +112,7 @@ $response = $agent->ask('Analyze this sentiment');
 ```
 
 **Notes**:
+
 - Phoenix automatically detects LLM-specific attributes in traces
 - Provides specialized views for prompt engineering
 - Supports evaluation datasets
@@ -110,10 +122,12 @@ $response = $agent->ask('Analyze this sentiment');
 **Purpose**: Production LLM monitoring with prompt versioning and cost tracking
 
 **Access**:
+
 - UI: http://localhost:3000
 - API: http://localhost:3000/api/public
 
 **Features**:
+
 - Prompt version management
 - Cost tracking and analytics
 - User session tracking
@@ -121,6 +135,7 @@ $response = $agent->ask('Analyze this sentiment');
 - Production monitoring dashboards
 
 **Initial Setup**:
+
 1. Visit http://localhost:3000
 2. Create an account (first user becomes admin)
 3. Create a project
@@ -129,6 +144,7 @@ $response = $agent->ask('Analyze this sentiment');
 **Pagent Configuration**:
 
 Using OpenTelemetry (native support):
+
 ```php
 <?php
 
@@ -142,6 +158,7 @@ $response = $agent->ask('Summarize this text');
 ```
 
 Using Langfuse SDK (alternative):
+
 ```php
 <?php
 
@@ -161,6 +178,7 @@ $trace = $langfuse->trace(['name' => 'agent-interaction']);
 ```
 
 **Notes**:
+
 - Langfuse requires account creation on first use
 - API keys needed for programmatic access
 - Excellent for tracking production usage and costs
@@ -170,10 +188,12 @@ $trace = $langfuse->trace(['name' => 'agent-interaction']);
 **Purpose**: LLM experiment tracking and evaluation with dataset management
 
 **Access**:
+
 - Frontend UI: http://localhost:5173
 - Backend API: http://localhost:8080
 
 **Features**:
+
 - Experiment tracking
 - Dataset management
 - Evaluation metrics
@@ -181,6 +201,7 @@ $trace = $langfuse->trace(['name' => 'agent-interaction']);
 - Trace visualization
 
 **Pagent Configuration**:
+
 ```php
 <?php
 
@@ -198,22 +219,23 @@ $response = $agent->ask('Classify this text');
 ```
 
 **Notes**:
+
 - Great for comparing different prompts/models
 - Supports evaluation datasets
 - Can track multiple experiments in parallel
 
 ## Comparing Tools
 
-| Feature | Jaeger | Phoenix | Langfuse | Opik |
-|---------|--------|---------|----------|------|
-| **Best For** | General tracing | LLM development | Production monitoring | Experimentation |
-| **LLM-Specific** | ❌ | ✅ | ✅ | ✅ |
-| **Prompt Management** | ❌ | ⚠️ | ✅ | ⚠️ |
-| **Cost Tracking** | ❌ | ⚠️ | ✅ | ⚠️ |
-| **Dataset Management** | ❌ | ✅ | ⚠️ | ✅ |
-| **A/B Testing** | ❌ | ❌ | ✅ | ✅ |
-| **Setup Complexity** | Low | Low | Medium | Medium |
-| **Auth Required** | ❌ | ❌ | ✅ | ❌ |
+| Feature                | Jaeger          | Phoenix         | Langfuse              | Opik            |
+| ---------------------- | --------------- | --------------- | --------------------- | --------------- |
+| **Best For**           | General tracing | LLM development | Production monitoring | Experimentation |
+| **LLM-Specific**       | ❌              | ✅              | ✅                    | ✅              |
+| **Prompt Management**  | ❌              | ⚠️              | ✅                    | ⚠️              |
+| **Cost Tracking**      | ❌              | ⚠️              | ✅                    | ⚠️              |
+| **Dataset Management** | ❌              | ✅              | ⚠️                    | ✅              |
+| **A/B Testing**        | ❌              | ❌              | ✅                    | ✅              |
+| **Setup Complexity**   | Low             | Low             | Medium                | Medium          |
+| **Auth Required**      | ❌              | ❌              | ✅                    | ❌              |
 
 **Legend**: ✅ Full support | ⚠️ Partial support | ❌ Not supported
 
@@ -279,11 +301,13 @@ echo "Opik:     http://localhost:5173"
 ### Services Not Starting
 
 **Check logs**:
+
 ```bash
 docker-compose -f docker-compose.observability.yml logs [service-name]
 ```
 
 **Common issues**:
+
 - Port conflicts: Another service using the same port
 - Resource limits: Docker needs more memory (increase in Docker Desktop)
 - Database initialization: Wait 30-60 seconds for PostgreSQL/ClickHouse
@@ -303,17 +327,20 @@ OPIK_FRONTEND_PORT=5174
 ### Traces Not Appearing
 
 1. **Check service health**:
+
    ```bash
    docker-compose -f docker-compose.observability.yml ps
    ```
 
 2. **Verify endpoint configuration**:
+
    ```php
    // Make sure the endpoint is correct
    telemetry_otlp('http://localhost:4318/v1/traces'); // Note /v1/traces path
    ```
 
 3. **Check logs**:
+
    ```bash
    docker-compose -f docker-compose.observability.yml logs jaeger
    ```
@@ -367,22 +394,26 @@ If services crash or are slow:
 ### Recommended Setup for Development
 
 **Start with Jaeger + Phoenix**:
+
 ```bash
 docker-compose -f docker-compose.observability.yml up -d jaeger phoenix
 ```
 
 These two provide:
+
 - General distributed tracing (Jaeger)
 - LLM-specific observability (Phoenix)
 - Low resource usage
 - No authentication required
 
 **Add Langfuse for Production Testing**:
+
 ```bash
 docker-compose -f docker-compose.observability.yml up -d langfuse-db langfuse
 ```
 
 **Add Opik for Experiment Tracking**:
+
 ```bash
 docker-compose -f docker-compose.observability.yml up -d opik-clickhouse opik-backend opik-frontend
 ```
@@ -405,18 +436,21 @@ telemetry_otlp($endpoint);
 ## Data Persistence
 
 All tools use Docker volumes for data persistence:
+
 - `pagent-jaeger-data`: Jaeger traces (temporary storage)
 - `pagent-phoenix-data`: Phoenix traces and datasets
 - `pagent-postgres-data`: Langfuse database
 - `pagent-clickhouse-data`: Opik database
 
 **Keep data between restarts**:
+
 ```bash
 docker-compose -f docker-compose.observability.yml down
 docker-compose -f docker-compose.observability.yml up -d
 ```
 
 **Reset all data**:
+
 ```bash
 docker-compose -f docker-compose.observability.yml down -v
 ```
@@ -483,6 +517,7 @@ Pagent includes comprehensive integration tests that automatically verify trace 
 ```
 
 **What the tests do**:
+
 - Automatically start and stop Docker containers
 - Wait for services to be healthy
 - Send test traces via Pagent
@@ -491,6 +526,7 @@ Pagent includes comprehensive integration tests that automatically verify trace 
 - Clean up containers after tests
 
 **Test coverage**:
+
 - ✅ Jaeger OTLP HTTP export and trace verification
 - ✅ Jaeger health checks and container lifecycle
 - ✅ Multiple agent operations with trace correlation
@@ -499,6 +535,7 @@ Pagent includes comprehensive integration tests that automatically verify trace 
 - ⚠️ Phoenix export (requires investigation of query API)
 
 **Requirements**:
+
 - Docker installed and running
 - Docker Compose available
 - Sufficient Docker resources (4GB+ RAM recommended)
@@ -532,23 +569,27 @@ Add to `phpunit.xml`:
 ## Resources
 
 ### Documentation
+
 - **Jaeger**: https://www.jaegertracing.io/docs/
 - **Phoenix**: https://phoenix.arize.com/
 - **Langfuse**: https://langfuse.com/docs/
 - **Opik**: https://www.comet.com/docs/opik/
 
 ### OpenTelemetry
+
 - **Specification**: https://opentelemetry.io/docs/specs/otel/
 - **PHP SDK**: https://github.com/open-telemetry/opentelemetry-php
 - **Semantic Conventions**: https://opentelemetry.io/docs/specs/semconv/
 
 ### Community
+
 - **OpenLLMetry**: https://github.com/traceloop/openllmetry
 - **OTEL PHP Examples**: https://github.com/open-telemetry/opentelemetry-php-contrib
 
 ## License
 
 This observability stack uses open-source tools with various licenses:
+
 - **Jaeger**: Apache 2.0
 - **Phoenix**: Elastic License 2.0
 - **Langfuse**: MIT

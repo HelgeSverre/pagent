@@ -20,13 +20,13 @@ just observability-down
 
 ## Services Overview
 
-| Service | UI Port | Purpose | Status |
-|---------|---------|---------|--------|
-| **Jaeger** | 16686 | Distributed tracing | ✅ Production Ready |
-| **Phoenix** | 6006 | LLM observability (Arize) | ✅ Production Ready |
-| **Langfuse** | 3000 | LLM monitoring & prompts | ✅ Production Ready |
-| **Helicone** | 3001 | LLM cost tracking | ⚠️ Beta (UI working) |
-| **Opik** | 5173 | LLM experiment tracking | ⚠️ Beta (Slow startup) |
+| Service      | UI Port | Purpose                   | Status                 |
+| ------------ | ------- | ------------------------- | ---------------------- |
+| **Jaeger**   | 16686   | Distributed tracing       | ✅ Production Ready    |
+| **Phoenix**  | 6006    | LLM observability (Arize) | ✅ Production Ready    |
+| **Langfuse** | 3000    | LLM monitoring & prompts  | ✅ Production Ready    |
+| **Helicone** | 3001    | LLM cost tracking         | ⚠️ Beta (UI working)   |
+| **Opik**     | 5173    | LLM experiment tracking   | ⚠️ Beta (Slow startup) |
 
 ## Available Commands
 
@@ -60,11 +60,13 @@ composer test:observability -- --filter=Setup  # Test service availability
 ### Running Tests
 
 1. **Start services** (if not already running):
+
    ```bash
    just observability-up
    ```
 
 2. **Run all tests**:
+
    ```bash
    composer test:observability
    ```
@@ -98,6 +100,7 @@ composer test:observability -- --filter=Setup  # Test service availability
 **No setup required** - works out of the box for local testing.
 
 **Send traces**:
+
 ```bash
 # OTLP HTTP endpoint
 http://localhost:4318/v1/traces
@@ -113,6 +116,7 @@ http://localhost:4317
 **No account required** for local testing.
 
 **Send traces**:
+
 ```bash
 # HTTP endpoint
 http://localhost:6006/v1/traces
@@ -126,12 +130,14 @@ http://localhost:6007
 **Access**: http://localhost:3000
 
 **First-time setup**:
+
 1. Create account
 2. Create organization and project
 3. Copy Public Key and Secret Key
 
 **For testing**:
 Set environment variables:
+
 ```bash
 TEST_LANGFUSE_PUBLIC_KEY=pk_xxx
 TEST_LANGFUSE_SECRET_KEY=sk_xxx
@@ -142,6 +148,7 @@ TEST_LANGFUSE_SECRET_KEY=sk_xxx
 **Access**: http://localhost:3001
 
 **First-time setup**:
+
 1. Create account
 2. Generate API key from settings
 
@@ -150,12 +157,14 @@ TEST_LANGFUSE_SECRET_KEY=sk_xxx
 ### Opik (Experiment Tracking)
 
 **Access**:
+
 - UI: http://localhost:5173
 - API: http://localhost:8080
 
 **Note**: Opik has a slow startup time (30-60s). Wait for the health endpoint to respond before testing.
 
 **First-time setup**:
+
 1. Create account at http://localhost:5173
 2. Create project
 3. Generate API key
@@ -201,21 +210,25 @@ TEST_OPIK_API_KEY=opik_xxx
 ### What's Tested
 
 ✅ **Service Availability**
+
 - All services respond to HTTP requests
 - Health endpoints are accessible
 - UI endpoints load correctly
 
 ✅ **Authentication**
+
 - Unauthenticated requests are rejected
 - API key authentication works (when configured)
 - Basic auth works (Langfuse)
 
 ✅ **Data Ingestion**
+
 - OTLP traces accepted (Jaeger, Phoenix)
 - JSON traces accepted (Langfuse)
 - Trace data structure validation
 
 ⚠️ **Partial Coverage**
+
 - Helicone gateway (endpoint issues)
 - Opik (slow startup time)
 
@@ -245,17 +258,20 @@ TEST_OPIK_API_KEY=opik_xxx
 ### Health Check Mismatches
 
 Some services show "unhealthy" but are functional:
+
 - Langfuse: UI works, health check may be timing out
 - Phoenix: Fully functional despite health check status
 
 ## Performance Notes
 
 **Resource Requirements**:
+
 - RAM: ~4GB minimum for all services
 - Disk: ~2GB for Docker images
 - CPU: 2+ cores recommended
 
 **Startup Times**:
+
 - Jaeger: < 5 seconds
 - Phoenix: < 10 seconds
 - Langfuse: 10-15 seconds
@@ -263,6 +279,7 @@ Some services show "unhealthy" but are functional:
 - Opik: 30-60 seconds
 
 **Test Duration**:
+
 - Setup tests: ~1 second
 - Service tests: 2-5 seconds each
 - Full suite: ~60 seconds (including retries)
@@ -298,6 +315,7 @@ composer test:observability
 ### Port Conflicts
 
 If ports are in use, either:
+
 1. Stop conflicting services
 2. Modify `docker-compose.observability.yml`
 3. Update test environment variables
