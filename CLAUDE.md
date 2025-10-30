@@ -2,6 +2,18 @@
 
 ## Commands
 
+### Quick Commands (Just)
+
+- **Setup**: `just setup` - Install dependencies and git hooks
+- **Test**: `just test` - Run all tests
+- **Coverage**: `just coverage` - Run tests with coverage
+- **Format**: `just format` - Fix code style (PHP + Markdown)
+- **Analyse**: `just analyse` - Run PHPStan static analysis
+- **Prepare PR**: `just pr` - Fix, analyse, and test everything
+- **Observability**: `just obs-up` / `just obs-down` - Manage observability stack
+
+### Manual Commands
+
 - **Test all**: `./vendor/bin/pest` or `composer test`
 - **Test single file**: `./vendor/bin/pest tests/Unit/AgentTest.php`
 - **Test unit only** (no API calls): `./vendor/bin/pest --exclude-group=api`

@@ -56,6 +56,7 @@ php examples/15-telemetry-console.php
 ```
 
 Features:
+
 - Console exporter with verbose mode
 - Single and multi-turn conversations
 - Span hierarchy visualization
@@ -80,6 +81,7 @@ docker run -d --name jaeger \
 View traces at: http://localhost:16686
 
 Features:
+
 - Jaeger OTLP exporter
 - Agent with tools tracking
 - Multi-agent traces
@@ -94,6 +96,7 @@ php examples/17-telemetry-workflow.php
 ```
 
 Features:
+
 - Pipeline workflow spans
 - Multiple agents coordination
 - Parent-child span relationships
@@ -108,6 +111,7 @@ php examples/18-telemetry-tools.php
 ```
 
 Features:
+
 - Tool execution spans
 - Arguments and result type tracking
 - Error handling in tools
@@ -123,6 +127,7 @@ php examples/19-telemetry-custom.php
 ```
 
 Features:
+
 - Custom OTLP endpoints
 - Authentication headers (Honeycomb, etc.)
 - Zipkin exporter

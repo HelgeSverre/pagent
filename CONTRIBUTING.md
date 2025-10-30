@@ -28,49 +28,39 @@ Thank you for considering contributing to Pagent! This document outlines the dev
 ### Quick Reference
 
 ```bash
-# Run tests
-just test
+# Setup
+just setup              # Install dependencies and git hooks
 
-# Fix code style
-just fix
+# Testing
+just test               # Run all tests
+just coverage           # Run tests with coverage
 
-# Run static analysis
-just analyse
+# Code Quality
+just format             # Fix code style (PHP + Markdown)
+just analyse            # Run PHPStan static analysis
+just pr                 # Prepare for PR (fix, analyse, test)
 
-# Run full quality suite
-just quality
-
-# Quick dev cycle (fix + test)
-just dev
-
-# Prepare for PR (format + analyse + test)
-just pr
+# Observability Stack
+just obs-up             # Start observability tools
+just obs-down           # Stop and remove observability stack
 ```
 
 ### Available Commands
 
 #### Just Commands (Recommended)
 
-- `just help` - Show all available commands
-- `just install` - Install dependencies
-- `just setup` - Complete initial setup
+Run `just --list` to see all available commands.
+
+**Main Commands:**
+
+- `just setup` - Install dependencies and setup git hooks
 - `just test` - Run all tests
-- `just test-coverage` - Run tests with coverage report
-- `just test-unit` - Run only unit tests
-- `just test-integration` - Run only integration tests
+- `just coverage` - Run tests with coverage report
+- `just format` - Fix code style (PHP + Markdown)
 - `just analyse` - Run PHPStan static analysis
-- `just baseline` - Generate PHPStan baseline
-- `just fix` - Auto-fix code style issues
-- `just format-check` - Check code style without fixing
-- `just check` - Run format check + analysis (no tests)
-- `just quality` - Run full quality suite (format + analyse + tests)
-- `just quality-fix` - Fix code style then run quality suite
-- `just insights` - Run PHP Insights for code quality metrics
-- `just clean` - Clean cache files
-- `just ci` - Run CI pipeline (check + test)
-- `just dev` - Quick dev cycle (fix + test)
-- `just pr` - Prepare for PR (full quality suite)
-- `just quick` - Quick check without tests
+- `just pr` - Prepare for PR (fix code, analyse, and test)
+- `just obs-up` - Start observability stack
+- `just obs-down` - Stop and remove observability stack
 
 #### Composer Commands
 
@@ -109,17 +99,9 @@ Key rules:
 **Auto-fix code style:**
 
 ```bash
-just fix
+just format
 # or
 composer format
-```
-
-**Check without fixing:**
-
-```bash
-just format-check
-# or
-composer format:check
 ```
 
 ### Static Analysis
@@ -144,14 +126,6 @@ just analyse
 composer analyse
 ```
 
-**Generate baseline for existing issues:**
-
-```bash
-just baseline
-# or
-composer analyse:baseline
-```
-
 ### Testing
 
 Pagent uses [Pest](https://pestphp.com/) for testing.
@@ -167,16 +141,9 @@ composer test
 **Run with coverage:**
 
 ```bash
-just test-coverage
+just coverage
 # or
 composer test:coverage
-```
-
-**Run specific test suites:**
-
-```bash
-composer test:unit
-composer test:integration
 ```
 
 ### Git Hooks
@@ -207,18 +174,12 @@ git commit --no-verify
 
 2. Make your changes and test frequently:
    ```bash
-   just dev  # Runs fix + test
+   just test
    ```
 
 ### Before Committing
 
-Run the pre-commit checks manually:
-
-```bash
-just quick  # Quick check without tests
-# or
-just check  # Check formatting and analysis
-```
+The git hooks will automatically check your code on commit.
 
 ### Before Creating a PR
 
@@ -226,14 +187,12 @@ just check  # Check formatting and analysis
 
    ```bash
    just pr
-   # or
-   just quality
    ```
 
 2. Check test coverage:
 
    ```bash
-   just test-coverage
+   just coverage
    ```
 
 3. Review your changes:
@@ -254,7 +213,7 @@ The CI pipeline runs:
 Local equivalent:
 
 ```bash
-just ci
+just pr
 ```
 
 ## Troubleshooting
@@ -264,21 +223,8 @@ just ci
 Clear the PHPStan cache:
 
 ```bash
-just clean
-# or
 composer analyse:clear
 ```
-
-### PHPStan Errors After Updating Code
-
-If PHPStan reports errors that you believe are false positives or will be fixed later:
-
-1. Review the error carefully
-2. If it's a legitimate issue, fix it
-3. If it's accepted technical debt, add to baseline:
-   ```bash
-   just baseline
-   ```
 
 ### Pint Conflicts
 
@@ -292,25 +238,8 @@ If Pint makes changes you disagree with, you can:
 Re-setup hooks:
 
 ```bash
-bash .githooks/setup.sh
-# or
-just hooks
+just setup
 ```
-
-## PHP Insights (Optional)
-
-For deeper code quality analysis:
-
-```bash
-just insights
-```
-
-This provides metrics on:
-
-- Code complexity
-- Architecture
-- Code style
-- Security
 
 ## Best Practices
 
@@ -318,7 +247,7 @@ This provides metrics on:
 2. **Keep methods small** - Single responsibility principle
 3. **Use type hints** - PHP 8.3 union types, intersection types
 4. **Document complex logic** - PHPDoc for arrays, generics
-5. **Run `just dev` frequently** - Catch issues early
+5. **Run `just test` frequently** - Catch issues early
 6. **Never commit without tests passing** - Quality first
 7. **Use descriptive commit messages** - Follow conventional commits
 
@@ -349,9 +278,7 @@ This provides metrics on:
 
 ### PR Checklist
 
-- [ ] All tests pass (`just test`)
-- [ ] Code style is correct (`just format-check`)
-- [ ] Static analysis passes (`just analyse`)
+- [ ] All quality checks pass (`just pr`)
 - [ ] New features have tests (unit + integration if applicable)
 - [ ] Documentation is updated (README, guides, PHPDoc)
 - [ ] CHANGELOG.md entry added

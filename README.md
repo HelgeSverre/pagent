@@ -334,17 +334,36 @@ agent('assistant')->tool(new DatabaseQuery());
 
 Both closure-based and class-based tools implement `ToolInterface` and work seamlessly with all providers.
 
-## Testing
+## Development
 
-The library includes comprehensive test suites:
+### Quick Commands
+
+```bash
+# Setup project
+just setup              # Install dependencies and git hooks
+
+# Testing
+just test               # Run all tests
+just coverage           # Run tests with coverage report
+
+# Code Quality
+just format             # Fix code style (PHP + Markdown)
+just analyse            # Run PHPStan static analysis
+just pr                 # Prepare for PR (fix, analyse, test)
+
+# Observability Stack
+just obs-up             # Start observability tools (Jaeger, Phoenix, Langfuse, etc.)
+just obs-down           # Stop and remove observability stack
+```
+
+### Manual Testing
 
 ```bash
 # Run unit tests (no API calls)
 ./vendor/bin/pest --exclude-group=api
 
 # Run API integration tests (requires API keys)
-# Copy .env.example to .env and add your keys
-cp .env.example .env
+cp .env.example .env    # Add your keys to .env
 ./vendor/bin/pest --group=api
 ```
 
