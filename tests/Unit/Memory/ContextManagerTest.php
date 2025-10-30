@@ -282,3 +282,52 @@ it('prunes large conversations efficiently', function (): void {
     expect(count($pruned))->toBeLessThan(count($messages));
     expect($manager->countTokens($pruned))->toBeLessThanOrEqual(100);
 });
+
+it('prunes handles empty messages gracefully', function (): void {
+    $manager = new ContextManager(maxTokens: 10, strategy: 'oldest');
+
+    $messages = [
+        ['role' => 'user', 'content' => ''],
+        ['role' => 'assistant', 'content' => ''],
+        ['role' => 'user', 'content' => 'Hello'],
+    ];
+
+    $pruned = $manager->prune($messages);
+
+    expect($pruned)->toBeArray();
+    expect($manager->countTokens($pruned))->toBeLessThanOrEqual(10);
+});
+
+it('prunes preserves system messages even when over token limit', function (): void {
+    $manager = new ContextManager(maxTokens: 1, strategy: 'oldest');
+
+    $messages = [
+        ['role' => 'system', 'content' => 'You are a helpful assistant with a very long system prompt that exceeds the token limit significantly'],
+        ['role' => 'user', 'content' => 'Hello'],
+        ['role' => 'assistant', 'content' => 'Hi there!'],
+    ];
+
+    $pruned = $manager->prune($messages);
+
+    // System message should always be preserved even if it exceeds token limit
+    expect($pruned[0]['role'])->toBe('system');
+    expect($pruned[0]['content'])->toBe('You are a helpful assistant with a very long system prompt that exceeds the token limit significantly');
+});
+
+it('handles very long single messages exceeding maxTokens', function (): void {
+    $manager = new ContextManager(maxTokens: 10, strategy: 'oldest');
+
+    $veryLongContent = str_repeat('This is a very long message that will definitely exceed the token limit. ', 100);
+
+    $messages = [
+        ['role' => 'user', 'content' => $veryLongContent],
+        ['role' => 'assistant', 'content' => 'Short reply'],
+    ];
+
+    $pruned = $manager->prune($messages);
+
+    // Should keep at least the most recent message even if it exceeds limit
+    expect($pruned)->toHaveCount(1);
+    expect($pruned[0]['content'])->toBe('Short reply');
+    expect($pruned[0]['role'])->toBe('assistant');
+});
