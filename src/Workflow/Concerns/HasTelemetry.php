@@ -15,17 +15,26 @@ trait HasTelemetry
     protected function shouldEnableTelemetry(): bool
     {
         foreach ($this->steps as $step) {
-            // Handle Chain format (Agent|Provider directly)
-            if ($step instanceof Agent && $step->telemetryEnabled) {
-                return true;
-            }
+            $agent = $this->extractAgentFromStep($step);
 
-            // Handle Pipeline format (array with 'handler' key)
-            if (is_array($step) && isset($step['handler']) && $step['handler'] instanceof Agent && $step['handler']->telemetryEnabled) {
+            if ($agent !== null && $agent->telemetryEnabled) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    private function extractAgentFromStep(mixed $step): ?Agent
+    {
+        if ($step instanceof Agent) {
+            return $step;
+        }
+
+        if (is_array($step) && isset($step['handler']) && $step['handler'] instanceof Agent) {
+            return $step['handler'];
+        }
+
+        return null;
     }
 }

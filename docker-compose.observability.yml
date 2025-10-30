@@ -228,7 +228,7 @@ services:
     profiles:
       - all
       - opik
-    command: bash -c "./run_db_migrations.sh && ./entrypoint.sh"
+    command: bash /opt/opik-entrypoint.sh
     ports:
       - "${OPIK_BACKEND_PORT:-8080}:8080"  # Backend API
     environment:
@@ -258,6 +258,8 @@ services:
         condition: service_healthy
       opik-redis:
         condition: service_healthy
+    volumes:
+      - ./docker/opik-entrypoint.sh:/opt/opik-entrypoint.sh:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "-s", "http://localhost:8080/health-check"]
       interval: 1s
