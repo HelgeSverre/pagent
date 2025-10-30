@@ -11,21 +11,13 @@ help:
 # === Setup ===
 
 [group('setup')]
-install:
+[doc('Install dependencies and setup git hooks')]
+setup:
     @echo "Installing PHP dependencies..."
     composer install
-
-[group('setup')]
-hooks:
     @echo "Setting up git hooks..."
     bash .githooks/setup.sh
-
-[group('setup')]
-[doc('Complete initial setup (install + hooks)')]
-setup: install hooks
     @echo "Setup complete!"
-    @echo ""
-    @echo "Try running: just quality"
 
 # === Testing ===
 
@@ -37,7 +29,7 @@ test:
 
 [group('test')]
 [doc('Run tests with coverage report')]
-test-coverage:
+coverage:
     #!/usr/bin/env bash
     set -euo pipefail
     if command -v herd &> /dev/null; then
@@ -49,34 +41,25 @@ test-coverage:
         composer test:coverage
     fi
 
-[group('test')]
-[doc('Run only unit tests')]
+[private]
 test-unit:
     @echo "Running unit tests..."
     composer test:unit
 
-[group('test')]
-[doc('Run only integration tests')]
+[private]
 test-integration:
     @echo "Running integration tests..."
     composer test:integration
 
-[group('test')]
-[doc('Watch files and run tests on change (requires entr)')]
-watch-test:
-    @echo "Watching for changes... (press Ctrl+C to stop)"
-    @find src tests -name '*.php' | entr -c composer test
-
 # === Static Analysis ===
 
-[group('analyse')]
+[group('quality')]
 [doc('Run PHPStan static analysis')]
 analyse:
     @echo "Running PHPStan analysis..."
     composer analyse
 
-[group('analyse')]
-[doc('Generate PHPStan baseline')]
+[private]
 baseline:
     @echo "Generating PHPStan baseline..."
     composer analyse:baseline
@@ -84,20 +67,15 @@ baseline:
 
 # === Code Style ===
 
-[group('format')]
-[doc('Auto-fix code style issues (PHP + Markdown)')]
-fix:
+[group('quality')]
+[doc('Fix code style (PHP + Markdown)')]
+format:
     @echo "Fixing PHP code style..."
     composer format
     @echo "Formatting markdown files..."
     @just _format-markdown write
 
-[group('format')]
-[doc('Alias for fix')]
-format: fix
-
-[group('format')]
-[doc('Check code style without fixing (PHP + Markdown)')]
+[private]
 format-check:
     @echo "Checking PHP code style..."
     composer format:check
@@ -142,39 +120,22 @@ _format-markdown mode:
 # === Quality Checks ===
 
 [group('quality')]
-[doc('Run all checks (format + analyse) without tests')]
+[doc('Prepare for PR: fix code, analyse, and test')]
+pr:
+    @echo "Fixing code and running quality checks..."
+    composer quality:fix
+
+[private]
 check:
     @echo "Running all checks..."
     composer check
 
-[group('quality')]
-[doc('Run full quality suite (format + analyse + tests)')]
+[private]
 quality:
     @echo "Running full quality checks..."
     composer quality
 
-[group('quality')]
-[doc('Fix code style then run full quality suite')]
-quality-fix:
-    @echo "Fixing code and running quality checks..."
-    composer quality:fix
-
-[group('quality')]
-[doc('Run PHP Insights for code quality metrics')]
-insights:
-    @echo "Running PHP Insights..."
-    composer insights
-
-[group('quality')]
-[doc('Run PHP Insights with auto-fix')]
-insights-fix:
-    @echo "Running PHP Insights with auto-fix..."
-    composer insights:fix
-
-# === Cleanup ===
-
-[group('workflow')]
-[doc('Clean cache and generated files')]
+[private]
 clean:
     @echo "Cleaning cache files..."
     composer analyse:clear
@@ -182,38 +143,25 @@ clean:
     @rm -rf .phpunit.cache
     @echo "Cache cleaned!"
 
-# === CI/CD ===
-
-[group('ci')]
-[doc('Run CI pipeline (check + test)')]
-ci: check test
-    @echo "CI pipeline complete!"
-
 # === Observability Stack ===
 
 [group('observability')]
-[doc('Start observability stack (Jaeger, Phoenix, Langfuse, Opik, Helicone)')]
-observability-up:
+[doc('Start observability stack')]
+obs-up:
     @echo "Starting observability stack..."
-    docker compose -f docker-compose.observability.yml up -d
+    docker compose -f docker-compose.observability.yml --profile all up -d
     @echo ""
-    @just observability-urls
+    @just _obs-urls
 
 [group('observability')]
-[doc('Stop observability stack')]
-observability-down:
+[doc('Stop and remove observability stack')]
+obs-down:
     @echo "Stopping observability stack..."
-    docker compose -f docker-compose.observability.yml down
-    @echo "Observability stack stopped!"
+    docker compose -f docker-compose.observability.yml --profile all down -v
+    @echo "Observability stack stopped and volumes removed!"
 
-[group('observability')]
-[doc('View observability stack logs')]
-observability-logs:
-    docker compose -f docker-compose.observability.yml logs -f
-
-[group('observability')]
-[doc('Show observability service URLs')]
-observability-urls:
+[private]
+_obs-urls:
     #!/usr/bin/env bash
     echo ""
     echo "╔════════════════════════════════════════════════════════════════╗"
@@ -239,36 +187,3 @@ observability-urls:
     echo "║   API:     http://localhost:8080                              ║"
     echo "╚════════════════════════════════════════════════════════════════╝"
     echo ""
-
-[group('observability')]
-[doc('Restart observability stack')]
-observability-restart:
-    @just observability-down
-    @just observability-up
-
-[group('observability')]
-[doc('Run observability integration tests')]
-observability-test:
-    @echo "Starting observability stack..."
-    @just observability-up
-    @echo "Waiting for services to be ready..."
-    @sleep 10
-    @echo "Running observability tests..."
-    composer test:observability
-
-# === Development Workflows ===
-
-[group('workflow')]
-[doc('Quick dev cycle: fix code style and run tests')]
-dev: fix test
-    @echo "Development cycle complete!"
-
-[group('workflow')]
-[doc('Prepare for PR: run full quality suite')]
-pr: quality
-    @echo "Ready for PR!"
-
-[group('workflow')]
-[doc('Quick check without running tests')]
-quick: format-check analyse
-    @echo "Quick check complete!"
