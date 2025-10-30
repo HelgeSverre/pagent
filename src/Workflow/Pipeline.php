@@ -113,7 +113,7 @@ final class Pipeline
                         name: $step['name'],
                         output: $current,
                         input: $step['type'] === 'agent' ? ($stepResults[count($stepResults) - 1]->output ?? $input) : $current,
-                        agent: $step['type'] === 'agent' ? ($step['handler']->name ?? $step['name']) : 'transform',
+                        agent: $step['type'] === 'agent' ? ($step['handler'] instanceof Agent ? $step['handler']->getName() : $step['name']) : 'transform',
                         meta: StepMetadata::create(
                             tokens: $stepTokens,
                             duration: $stepDuration / 1000 // Convert back to seconds for StepMetadata

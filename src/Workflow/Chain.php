@@ -9,12 +9,15 @@ use Pagent\Contracts\Provider;
 use Pagent\Observability\NullSpan;
 use Pagent\Observability\Span;
 use Pagent\Observability\TelemetryManager;
+use Pagent\Workflow\Concerns\HasTelemetry;
 use Throwable;
 
 use function microtime;
 
 final class Chain
 {
+    use HasTelemetry;
+
     /** @var array<Agent|Provider> */
     protected array $steps = [];
 
@@ -92,7 +95,7 @@ final class Chain
                         name: $stepName,
                         output: $response->content,
                         input: $current,
-                        agent: $agent->name ?? "agent_{$index}",
+                        agent: $agent instanceof Agent ? $agent->getName() : "agent_{$index}",
                         meta: StepMetadata::create(
                             tokens: $stepTokens,
                             duration: $stepDuration / 1000 // Convert back to seconds for StepMetadata
@@ -149,17 +152,5 @@ final class Chain
         } finally {
             $workflowSpan->end();
         }
-    }
-
-    private function shouldEnableTelemetry(): bool
-    {
-        // Check if any agent has telemetry enabled
-        foreach ($this->steps as $agent) {
-            if ($agent instanceof Agent && $agent->telemetryEnabled) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
