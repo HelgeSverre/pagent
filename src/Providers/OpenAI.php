@@ -4,22 +4,16 @@ declare(strict_types=1);
 
 namespace Pagent\Providers;
 
-use Generator;
 use Pagent\Contracts\Provider;
+use Pagent\Http\CurlTransport;
+use Pagent\Http\HttpClientInterface;
 use Pagent\Streaming\OpenAIStreamParser;
 use Pagent\Streaming\StreamResponse;
 use RuntimeException;
 
 use function array_unshift;
-use function curl_close;
-use function curl_exec;
-use function curl_getinfo;
-use function curl_init;
-use function curl_setopt_array;
-use function fopen;
 use function getenv;
 use function json_decode;
-use function json_encode;
 
 final class OpenAI implements Provider
 {
@@ -27,12 +21,16 @@ final class OpenAI implements Provider
 
     private string $baseUrl = 'https://api.openai.com/v1';
 
-    public function __construct(array $config = [])
+    private HttpClientInterface $httpClient;
+
+    public function __construct(array $config = [], ?HttpClientInterface $httpClient = null)
     {
         $this->apiKey = $config['api_key'] ?? $_ENV['OPENAI_API_KEY'] ?? getenv('OPENAI_API_KEY') ?: '';
         if (empty($this->apiKey)) {
             throw new RuntimeException('OpenAI API key not configured');
         }
+
+        $this->httpClient = $httpClient ?? new CurlTransport;
     }
 
     public function prompt(string $message, array $options = []): object
@@ -75,35 +73,25 @@ final class OpenAI implements Provider
             }
         }
 
-        // TODO: replace with Guzzle or Symfony HttpClient later
-        // Make API call
-        $ch = curl_init($this->baseUrl.'/chat/completions');
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Authorization: Bearer '.$this->apiKey,
+        // Make API call using HttpClient
+        $response = $this->httpClient->requestJson(
+            method: 'POST',
+            url: $this->baseUrl.'/chat/completions',
+            headers: [
+                'Content-Type' => 'application/json',
+                'Authorization' => 'Bearer '.$this->apiKey,
             ],
-            CURLOPT_POSTFIELDS => json_encode($body),
-            CURLOPT_TIMEOUT => 30,
-        ]);
+            json: $body,
+            options: ['timeout' => 30]
+        );
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($response === false) {
-            throw new RuntimeException('OpenAI API request failed');
-        }
-
-        $data = json_decode($response, true);
-
-        if ($httpCode !== 200) {
+        if (! $response->isSuccessful()) {
+            $data = $response->json();
             $error = $data['error']['message'] ?? 'Unknown error';
-
             throw new RuntimeException("OpenAI API error: {$error}");
         }
+
+        $data = $response->json();
 
         $message = $data['choices'][0]['message'] ?? [];
         $toolCalls = [];
@@ -174,55 +162,26 @@ final class OpenAI implements Provider
             }
         }
 
-        // Create a memory stream for cURL to write to
-        $stream = fopen('php://temp', 'w+b');
-        if ($stream === false) {
-            throw new RuntimeException('Failed to create stream buffer');
-        }
-
-        // Make streaming API call
-        $ch = curl_init($this->baseUrl.'/chat/completions');
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Authorization: Bearer '.$this->apiKey,
+        // Make streaming API call using HttpClient
+        $transport = $this->httpClient->streamJson(
+            method: 'POST',
+            url: $this->baseUrl.'/chat/completions',
+            headers: [
+                'Content-Type' => 'application/json',
+                'Authorization' => 'Bearer '.$this->apiKey,
             ],
-            CURLOPT_POSTFIELDS => json_encode($body),
-            CURLOPT_TIMEOUT => 0, // No timeout for streaming
-            CURLOPT_WRITEFUNCTION => function ($ch, $data) use ($stream) {
-                fwrite($stream, $data);
+            json: $body,
+            options: ['timeout' => 0]
+        );
 
-                return strlen($data);
-            },
-        ]);
-
-        // Execute request
-        $execResult = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-        if ($execResult === false) {
-            curl_close($ch);
-            fclose($stream);
-            throw new RuntimeException('OpenAI streaming API request failed');
-        }
-
-        if ($httpCode !== 200) {
-            curl_close($ch);
-            rewind($stream);
-            $response = stream_get_contents($stream);
-            fclose($stream);
-
-            $data = json_decode($response, true);
+        if (! ($transport->status() >= 200 && $transport->status() < 300)) {
+            $content = $transport->getContent();
+            $data = json_decode($content, true);
             $error = $data['error']['message'] ?? 'Unknown error';
-
             throw new RuntimeException("OpenAI API error: {$error}");
         }
 
-        curl_close($ch);
-
-        // Rewind stream to beginning for parsing
-        rewind($stream);
+        $stream = $transport->resource();
 
         // Create generator that parses the stream
         $parser = new OpenAIStreamParser;

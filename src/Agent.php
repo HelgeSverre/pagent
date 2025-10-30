@@ -41,6 +41,18 @@ use function str_contains;
 use function strlen;
 use function ucfirst;
 
+/**
+ * Agent represents a conversational AI agent in Pagent.
+ *
+ * Responsibilities:
+ * - Holds conversation state (messages, optional Memory, session id).
+ * - Configures provider, model and generation parameters.
+ * - Registers and executes tools, guards and middleware.
+ * - Orchestrates prompt/stream lifecycles, automatic tool-calling and retries.
+ * - Integrates context windowing and optional telemetry for observability.
+ *
+ * Lightweight, framework-agnostic API for building LLM-driven assistants.
+ */
 final class Agent
 {
     private const MAX_TOOL_CALL_DEPTH = 10;

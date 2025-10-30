@@ -203,3 +203,63 @@ if (! function_exists('telemetry_zipkin')) {
         ]);
     }
 }
+
+if (! function_exists('search')) {
+    /**
+     * Create a SearchTool with flexible configuration.
+     *
+     * @param  array<int, array<string, mixed>>|null  $documents  Array of documents to index
+     * @param  string|null  $indexPath  Path to pre-built index file
+     * @param  string|null  $query  SQL query to fetch documents
+     * @param  array<string>|null  $paths  File or directory paths to index
+     * @param  array<string, mixed>  $config  Additional configuration options
+     */
+    function search(
+        ?array $documents = null,
+        ?string $indexPath = null,
+        ?string $query = null,
+        ?array $paths = null,
+        array $config = []
+    ): Pagent\Tools\SearchTool {
+        /** @var array<string, mixed> $params */
+        $params = array_merge([
+            'indexPath' => $indexPath,
+            'documents' => $documents,
+            'query' => $query,
+            'paths' => $paths,
+        ], $config);
+
+        /** @phpstan-ignore-next-line */
+        return new Pagent\Tools\SearchTool(...$params);
+    }
+}
+
+if (! function_exists('searchIndex')) {
+    /**
+     * Create a SearchTool for a pre-built index file.
+     */
+    function searchIndex(string $indexPath, bool $returnContent = false): Pagent\Tools\SearchTool
+    {
+        return new Pagent\Tools\SearchTool(
+            indexPath: $indexPath,
+            returnContent: $returnContent
+        );
+    }
+}
+
+if (! function_exists('searchDocuments')) {
+    /**
+     * Create an in-memory SearchTool for a collection of documents.
+     *
+     * @param  array<int, array<string, mixed>>  $documents  Array of documents (each must have 'id' field)
+     * @param  bool  $returnContent  Whether to return full content or just IDs
+     */
+    function searchDocuments(array $documents, bool $returnContent = true): Pagent\Tools\SearchTool
+    {
+        return new Pagent\Tools\SearchTool(
+            documents: $documents,
+            storage: ':memory:',
+            returnContent: $returnContent
+        );
+    }
+}

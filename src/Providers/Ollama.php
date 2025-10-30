@@ -4,22 +4,16 @@ declare(strict_types=1);
 
 namespace Pagent\Providers;
 
-use Generator;
 use Pagent\Contracts\Provider;
+use Pagent\Http\CurlTransport;
+use Pagent\Http\HttpClientInterface;
 use Pagent\Streaming\OllamaStreamParser;
 use Pagent\Streaming\StreamResponse;
 use RuntimeException;
 
 use function array_unshift;
-use function curl_close;
-use function curl_exec;
-use function curl_getinfo;
-use function curl_init;
-use function curl_setopt_array;
-use function fopen;
 use function getenv;
 use function json_decode;
-use function json_encode;
 
 final class Ollama implements Provider
 {
@@ -27,7 +21,9 @@ final class Ollama implements Provider
 
     private int $timeout;
 
-    public function __construct(array $config = [])
+    private HttpClientInterface $httpClient;
+
+    public function __construct(array $config = [], ?HttpClientInterface $httpClient = null)
     {
         $this->baseUrl = $config['base_url']
             ?? $_ENV['OLLAMA_HOST']
@@ -38,6 +34,8 @@ final class Ollama implements Provider
 
         // Remove trailing slash from base URL
         $this->baseUrl = rtrim($this->baseUrl, '/');
+
+        $this->httpClient = $httpClient ?? new CurlTransport;
     }
 
     public function prompt(string $message, array $options = []): object
@@ -82,33 +80,24 @@ final class Ollama implements Provider
             }
         }
 
-        // Make API call
-        $ch = curl_init($this->baseUrl.'/api/chat');
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
+        // Make API call using HttpClient
+        $response = $this->httpClient->requestJson(
+            method: 'POST',
+            url: $this->baseUrl.'/api/chat',
+            headers: [
+                'Content-Type' => 'application/json',
             ],
-            CURLOPT_POSTFIELDS => json_encode($body),
-            CURLOPT_TIMEOUT => $this->timeout,
-        ]);
+            json: $body,
+            options: ['timeout' => $this->timeout]
+        );
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($response === false) {
-            throw new RuntimeException('Ollama API request failed. Is the Ollama server running at '.$this->baseUrl.'?');
-        }
-
-        $data = json_decode($response, true);
-
-        if ($httpCode !== 200) {
+        if (! $response->isSuccessful()) {
+            $data = $response->json();
             $error = $data['error'] ?? 'Unknown error';
-
             throw new RuntimeException("Ollama API error: {$error}");
         }
+
+        $data = $response->json();
 
         // Check if the response has an error field (even with 200 status)
         if (isset($data['error'])) {
@@ -200,54 +189,25 @@ final class Ollama implements Provider
             }
         }
 
-        // Create a memory stream for cURL to write to
-        $stream = fopen('php://temp', 'w+b');
-        if ($stream === false) {
-            throw new RuntimeException('Failed to create stream buffer');
-        }
-
-        // Make streaming API call
-        $ch = curl_init($this->baseUrl.'/api/chat');
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
+        // Make streaming API call using HttpClient
+        $transport = $this->httpClient->streamJson(
+            method: 'POST',
+            url: $this->baseUrl.'/api/chat',
+            headers: [
+                'Content-Type' => 'application/json',
             ],
-            CURLOPT_POSTFIELDS => json_encode($body),
-            CURLOPT_TIMEOUT => 0, // No timeout for streaming
-            CURLOPT_WRITEFUNCTION => function ($ch, $data) use ($stream) {
-                fwrite($stream, $data);
+            json: $body,
+            options: ['timeout' => 0]
+        );
 
-                return strlen($data);
-            },
-        ]);
-
-        // Execute request
-        $execResult = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-        if ($execResult === false) {
-            curl_close($ch);
-            fclose($stream);
-            throw new RuntimeException('Ollama streaming API request failed. Is the Ollama server running at '.$this->baseUrl.'?');
-        }
-
-        if ($httpCode !== 200) {
-            curl_close($ch);
-            rewind($stream);
-            $response = stream_get_contents($stream);
-            fclose($stream);
-
-            $data = json_decode($response, true);
+        if (! ($transport->status() >= 200 && $transport->status() < 300)) {
+            $content = $transport->getContent();
+            $data = json_decode($content, true);
             $error = $data['error'] ?? 'Unknown error';
-
             throw new RuntimeException("Ollama API error: {$error}");
         }
 
-        curl_close($ch);
-
-        // Rewind stream to beginning for parsing
-        rewind($stream);
+        $stream = $transport->resource();
 
         // Create generator that parses the stream
         $parser = new OllamaStreamParser;
