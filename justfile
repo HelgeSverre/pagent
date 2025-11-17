@@ -143,6 +143,37 @@ clean:
     @rm -rf .phpunit.cache
     @echo "Cache cleaned!"
 
+# === GitHub Actions ===
+
+[group('ci')]
+[doc('List all GitHub Actions workflows')]
+actions-list:
+    @echo "Available workflows:"
+    @act -l --container-architecture linux/amd64
+
+[group('ci')]
+[doc('Test GitHub Actions workflows locally (dry-run)')]
+actions-test:
+    @echo "Testing GitHub Actions workflows locally..."
+    @echo ""
+    @echo "Testing tests workflow (push event)..."
+    act push -n -W .github/workflows/tests.yml --container-architecture linux/amd64 || true
+    @echo ""
+    @echo "Testing release-drafter workflow (push event)..."
+    act push -n -W .github/workflows/release-drafter.yml --container-architecture linux/amd64 || true
+
+[group('ci')]
+[doc('Run GitHub Actions tests workflow locally')]
+actions-run-tests:
+    @echo "Running tests workflow locally..."
+    act push -W .github/workflows/tests.yml --container-architecture linux/amd64
+
+[group('ci')]
+[doc('Run specific GitHub Actions job')]
+actions-run job:
+    @echo "Running job: {{job}}"
+    act -j {{job}} --container-architecture linux/amd64
+
 # === Observability Stack ===
 
 [group('observability')]
