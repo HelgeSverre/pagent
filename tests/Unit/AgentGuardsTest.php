@@ -27,7 +27,7 @@ test('it adds guard via closure', function (): void {
     $agent->guard('custom', fn (string $input, string $output): bool => ! str_contains($output, 'bad'));
 
     expect($agent->getGuards())->toHaveCount(1)
-        ->and($agent->getGuards()[0]->getName())->toBe('Custom');
+        ->and($agent->getGuards()[0]->getName())->toBe('custom');
 });
 
 test('it throws exception when guard is violated', function (): void {

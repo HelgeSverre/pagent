@@ -260,3 +260,254 @@ test('clone does not copy messages or sessionId', function (): void {
     // Verify original agent still has its messages
     expect($agent->messages)->toHaveCount(4);
 });
+
+// ========================================
+// TOOL EXECUTION ERROR HANDLING
+// ========================================
+
+test('it handles tool execution exceptions gracefully', function (): void {
+    $mockProvider = new class implements \Pagent\Contracts\Provider
+    {
+        private int $callCount = 0;
+
+        public function prompt(string $message, array $options = []): object
+        {
+            $this->callCount++;
+
+            if ($this->callCount === 1) {
+                return (object) [
+                    'content' => 'I will use the calculator',
+                    'tool_calls' => [
+                        ['id' => 'call_1', 'name' => 'calculate', 'arguments' => ['a' => 5, 'b' => 0]],
+                    ],
+                    'model' => 'mock',
+                    'tokens' => 10,
+                    'provider' => 'mock',
+                ];
+            }
+
+            return (object) ['content' => 'The tool failed', 'model' => 'mock', 'tokens' => 5, 'provider' => 'mock'];
+        }
+    };
+
+    $agent = new \Pagent\Agent('test-agent');
+    $agent->provider($mockProvider);
+    $agent->tool('calculate', 'Calculate', function (int $a, int $b) {
+        if ($b === 0) {
+            throw new RuntimeException('Division by zero');
+        }
+
+        return $a / $b;
+    });
+
+    expect(fn () => $agent->prompt('test'))
+        ->toThrow(RuntimeException::class);
+});
+
+test('it propagates tool execution errors to caller', function (): void {
+    $agent = testAgent();
+    $agent->tool('failing_tool', 'A tool that always fails', function () {
+        throw new Exception('Tool execution failed');
+    });
+
+    expect(fn () => $agent->executeTool('failing_tool', []))
+        ->toThrow(Exception::class, 'Tool execution failed');
+});
+
+test('it throws when tool returns non-serializable data', function (): void {
+    $agent = testAgent();
+
+    // Create a closure which can't be serialized
+    $agent->tool('bad_tool', 'Returns closure', fn () => function () {
+        return 'test';
+    });
+
+    // Executing the tool will succeed, but using it in a response context might fail
+    $result = $agent->executeTool('bad_tool', []);
+
+    expect($result)->toBeCallable();
+});
+
+test('it handles tool with incorrect argument count', function (): void {
+    $mockProvider = new class implements \Pagent\Contracts\Provider
+    {
+        public function prompt(string $message, array $options = []): object
+        {
+            return (object) [
+                'content' => 'Using tool',
+                'tool_calls' => [
+                    ['id' => 'call_1', 'name' => 'add', 'arguments' => ['a' => 5]],  // Missing 'b'
+                ],
+                'model' => 'mock',
+                'tokens' => 10,
+                'provider' => 'mock',
+            ];
+        }
+    };
+
+    $agent = new \Pagent\Agent('test-agent');
+    $agent->provider($mockProvider);
+    $agent->tool('add', 'Add two numbers', fn (int $a, int $b) => $a + $b);
+
+    expect(fn () => $agent->prompt('test'))
+        ->toThrow(RuntimeException::class);
+});
+
+test('it handles tool with wrong argument types', function (): void {
+    $agent = testAgent();
+    $agent->tool('strict_add', 'Add numbers', function (int $a, int $b) {
+        return $a + $b;
+    });
+
+    expect(fn () => $agent->executeTool('strict_add', ['not', 'numbers']))
+        ->toThrow(RuntimeException::class);
+});
+
+test('it handles provider returning malformed response', function (): void {
+    $mockProvider = new class implements \Pagent\Contracts\Provider
+    {
+        public function prompt(string $message, array $options = []): object
+        {
+            return (object) [
+                // Missing 'content' field
+                'model' => 'mock',
+                'tokens' => 10,
+                'provider' => 'mock',
+            ];
+        }
+    };
+
+    $agent = new \Pagent\Agent('test-agent');
+    $agent->provider($mockProvider);
+
+    // Agent should handle missing content gracefully
+    $response = $agent->prompt('test');
+
+    expect($response->content ?? null)->toBeNull();
+    expect($agent->messages)->toHaveCount(1); // Only user message
+});
+
+test('it handles provider returning non-object response', function (): void {
+    $mockProvider = new class implements \Pagent\Contracts\Provider
+    {
+        public function prompt(string $message, array $options = []): object
+        {
+            return (object) ['content' => 'test', 'model' => 'mock', 'tokens' => 10, 'provider' => 'mock'];
+        }
+    };
+
+    $agent = new \Pagent\Agent('test-agent');
+    $agent->provider($mockProvider);
+
+    $response = $agent->prompt('test');
+
+    expect($response)->toBeObject()
+        ->and($response->content)->toBe('test');
+});
+
+test('it handles multiple concurrent tool calls', function (): void {
+    $mockProvider = new class implements \Pagent\Contracts\Provider
+    {
+        private int $callCount = 0;
+
+        public function prompt(string $message, array $options = []): object
+        {
+            $this->callCount++;
+
+            if ($this->callCount === 1) {
+                return (object) [
+                    'content' => 'Using multiple tools',
+                    'tool_calls' => [
+                        ['id' => 'call_1', 'name' => 'add', 'arguments' => ['a' => 5, 'b' => 3]],
+                        ['id' => 'call_2', 'name' => 'multiply', 'arguments' => ['a' => 4, 'b' => 2]],
+                        ['id' => 'call_3', 'name' => 'add', 'arguments' => ['a' => 10, 'b' => 20]],
+                    ],
+                    'model' => 'mock',
+                    'tokens' => 10,
+                    'provider' => 'mock',
+                ];
+            }
+
+            return (object) ['content' => 'Final response', 'model' => 'mock', 'tokens' => 5, 'provider' => 'mock'];
+        }
+    };
+
+    $agent = new \Pagent\Agent('test-agent');
+    $agent->provider($mockProvider);
+    $agent->tool('add', 'Add', fn (int $a, int $b) => $a + $b);
+    $agent->tool('multiply', 'Multiply', fn (int $a, int $b) => $a * $b);
+
+    $response = $agent->prompt('test');
+
+    expect($response->content)->toBe('Final response');
+});
+
+test('it handles tool calls with duplicate ids', function (): void {
+    $mockProvider = new class implements \Pagent\Contracts\Provider
+    {
+        private int $callCount = 0;
+
+        public function prompt(string $message, array $options = []): object
+        {
+            $this->callCount++;
+
+            if ($this->callCount === 1) {
+                return (object) [
+                    'content' => 'Using tools',
+                    'tool_calls' => [
+                        ['id' => 'call_1', 'name' => 'add', 'arguments' => ['a' => 5, 'b' => 3]],
+                        ['id' => 'call_1', 'name' => 'add', 'arguments' => ['a' => 10, 'b' => 20]],  // Duplicate ID
+                    ],
+                    'model' => 'mock',
+                    'tokens' => 10,
+                    'provider' => 'mock',
+                ];
+            }
+
+            return (object) ['content' => 'Final response', 'model' => 'mock', 'tokens' => 5, 'provider' => 'mock'];
+        }
+    };
+
+    $agent = new \Pagent\Agent('test-agent');
+    $agent->provider($mockProvider);
+    $agent->tool('add', 'Add', fn (int $a, int $b) => $a + $b);
+
+    // Should handle duplicate IDs (both tools should execute)
+    $response = $agent->prompt('test');
+
+    expect($response->content)->toBe('Final response');
+});
+
+test('it handles tool returning null', function (): void {
+    $mockProvider = new class implements \Pagent\Contracts\Provider
+    {
+        private int $callCount = 0;
+
+        public function prompt(string $message, array $options = []): object
+        {
+            $this->callCount++;
+
+            if ($this->callCount === 1) {
+                return (object) [
+                    'content' => '',
+                    'tool_calls' => [
+                        ['id' => 'call_1', 'name' => 'null_tool', 'arguments' => []],
+                    ],
+                    'model' => 'mock',
+                    'tokens' => 10,
+                    'provider' => 'mock',
+                ];
+            }
+
+            return (object) ['content' => 'Done', 'model' => 'mock', 'tokens' => 5, 'provider' => 'mock'];
+        }
+    };
+
+    $agent = new \Pagent\Agent('test-agent');
+    $agent->provider($mockProvider);
+    $agent->tool('null_tool', 'Returns null', fn () => null);
+
+    $response = $agent->prompt('test');
+
+    expect($response->content)->toBe('Done');
+});

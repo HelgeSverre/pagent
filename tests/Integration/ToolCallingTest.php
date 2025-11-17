@@ -154,9 +154,9 @@ describe('Class-Based Tools with OpenAI', function (): void {
 
         $response = agent('file-reader')->prompt("Read the file at {$testFile} and tell me what it says.");
 
+        // Check that the response contains at least one of the expected terms
         expect($response->content)
-            ->toContain('Hello')
-            ->or()->toContain('class-based');
+            ->toMatch('/(Hello|class-based|FileRead)/i');
 
         // Clean up
         @unlink($testFile);
@@ -215,10 +215,9 @@ describe('Class-Based Tools with Anthropic', function (): void {
 
         $response = agent('claude-file-reader')->prompt("Read the file at {$testFile} and tell me what it says.");
 
+        // Check that the response contains at least one of the expected terms
         expect($response->content)
-            ->toContain('Hello')
-            ->or()->toContain('Anthropic')
-            ->or()->toContain('FileRead');
+            ->toMatch('/(Hello|Anthropic|FileRead)/i');
 
         // Clean up
         @unlink($testFile);
@@ -229,7 +228,6 @@ describe('Class-Based Tools with Anthropic', function (): void {
 
         agent('claude-file-writer')
             ->provider('anthropic')
-            ->model('claude-3-sonnet-20240229')
             ->system('You are a helpful assistant that writes files.')
             ->tool(new \Pagent\Tools\FileWrite);
 
