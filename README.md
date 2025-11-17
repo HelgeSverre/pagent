@@ -410,6 +410,7 @@ new SearchTool(
 ```
 
 Perfect for building:
+
 - RAG (Retrieval-Augmented Generation) systems
 - Documentation search agents
 - Knowledge base assistants
