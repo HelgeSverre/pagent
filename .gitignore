@@ -28,6 +28,9 @@ branding
 # temporary memory
 storage/
 
+# Work in progress
+wip/
+
 # Docker observability environment
 docker/observability/.env
 
