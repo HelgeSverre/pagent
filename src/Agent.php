@@ -567,7 +567,7 @@ final class Agent
 
                 public function getName(): string
                 {
-                    return ucfirst($this->name);
+                    return $this->name;
                 }
 
                 public function getViolationMessage(): string

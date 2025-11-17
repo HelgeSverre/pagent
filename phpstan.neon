@@ -14,6 +14,9 @@ parameters:
     # PHP version compatibility
     phpVersion: 80300
 
+    parallel:
+        maximumNumberOfProcesses: 0
+
     # Treat PHPDoc types as certain (set to false for more lenient analysis)
     treatPhpDocTypesAsCertain: true
 

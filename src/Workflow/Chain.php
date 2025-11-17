@@ -55,7 +55,7 @@ final class Chain
 
         // Start workflow span if any agent has telemetry enabled
         $workflowSpan = $this->shouldEnableTelemetry()
-            ? TelemetryManager::instance()->startSpan('workflow.chain', [
+            ? TelemetryManager::instance()->startSpan('workflow.chain.run', [
                 'workflow.name' => $this->name,
                 'workflow.type' => 'chain',
                 'workflow.steps' => count($this->steps),
@@ -121,7 +121,7 @@ final class Chain
                 'workflow.duration' => $totalDuration,
                 'workflow.total_tokens' => $totalTokens,
                 'workflow.success' => $success,
-                'workflow.steps_completed' => count($stepResults),
+                'workflow.steps_executed' => count($stepResults),
             ]);
 
             $workflowSpan->setStatus('ok');
@@ -145,7 +145,7 @@ final class Chain
                 'workflow.duration' => $totalDuration,
                 'workflow.total_tokens' => $totalTokens,
                 'workflow.success' => false,
-                'workflow.steps_completed' => count($stepResults),
+                'workflow.steps_executed' => count($stepResults),
             ]);
 
             throw $e;

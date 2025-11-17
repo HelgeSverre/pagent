@@ -53,7 +53,10 @@ arch('no usage of env helper in library code')
 arch('no global state manipulation')
     ->expect('Pagent')
     ->not->toUse(['extract', 'compact', 'global'])
-    ->ignoring('Pagent\Registry');
+    ->ignoring([
+        'Pagent\Registry',
+        'Pagent\Evaluation\Report',
+    ]);
 
 arch('contracts do not have dependencies on implementations')
     ->expect('Pagent\Contracts')

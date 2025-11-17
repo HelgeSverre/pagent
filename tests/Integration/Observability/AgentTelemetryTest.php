@@ -298,7 +298,7 @@ describe('Agent Telemetry Integration', function () {
         $response = $agent->prompt('Test');
 
         expect($response->content)->toBe('Fallback response')
-            ->and($response->guard_triggered)->toBe('Length');
+            ->and($response->guard_triggered)->toBe('length');
 
         TelemetryManager::instance()->shutdown();
 
