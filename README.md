@@ -264,7 +264,7 @@ Type hints are automatically converted to JSON schema types:
 
 ### Class-Based Tools
 
-Pagent includes 8 production-ready class-based tools in the `Pagent\Tools` namespace:
+Pagent includes 9 production-ready class-based tools in the `Pagent\Tools` namespace:
 
 ```php
 use Pagent\Tools\FileRead;
@@ -275,6 +275,7 @@ use Pagent\Tools\Grep;
 use Pagent\Tools\Glob;
 use Pagent\Tools\PdfReader;
 use Pagent\Tools\DataExtract;
+use Pagent\Tools\SearchTool;
 
 // Use class-based tools with agents
 $agent = agent('assistant')
@@ -333,6 +334,87 @@ agent('assistant')->tool(new DatabaseQuery());
 ```
 
 Both closure-based and class-based tools implement `ToolInterface` and work seamlessly with all providers.
+
+### SearchTool - Full-Text Search
+
+The `SearchTool` provides powerful full-text search capabilities powered by TNTSearch, enabling agents to search through documents, files, and databases:
+
+```php
+use Pagent\Tools\SearchTool;
+
+// Search through an array of documents (RAG pattern)
+$documents = [
+    ['id' => 1, 'title' => 'PHP Guide', 'content' => 'Learn PHP programming...'],
+    ['id' => 2, 'title' => 'Laravel Tutorial', 'content' => 'Build web apps with Laravel...'],
+];
+
+agent('docs-assistant')
+    ->tools([searchDocuments($documents)])
+    ->prompt('Find information about PHP');
+
+// Search through files in a directory
+agent('codebase-helper')
+    ->tools([new SearchTool(paths: ['docs/', 'src/'])])
+    ->prompt('Find all documentation about API endpoints');
+
+// Use a pre-built search index
+agent('knowledge-bot')
+    ->tools([searchIndex('knowledge/docs.index')])
+    ->prompt('Search the knowledge base for deployment guides');
+
+// Database-backed search
+agent('db-search')
+    ->tools([
+        new SearchTool(
+            query: 'SELECT id, title, content FROM articles',
+            connection: ['driver' => 'mysql', 'host' => 'localhost', 'database' => 'mydb']
+        )
+    ])
+    ->prompt('Find articles about Laravel');
+```
+
+**Key Features:**
+
+- **Multiple Document Sources**: Arrays, files, directories, databases, or pre-built indexes
+- **Fuzzy Matching**: Handles typos and approximate matches
+- **BM25 Ranking**: Industry-standard relevance scoring
+- **Flexible Returns**: Get just IDs or full document content
+- **Fast Performance**: Sub-millisecond to millisecond search times
+- **UTF-8 Support**: Works with international characters
+
+**Configuration Options:**
+
+```php
+new SearchTool(
+    documents: $docs,           // Array of documents to index
+    returnContent: true,        // Return full documents vs just IDs
+    fuzzy: true,                // Enable fuzzy search
+    fuzziness: 2,               // Levenshtein distance (1-3)
+    maxResults: 20,             // Max results to return
+    storage: ':memory:',        // Index storage location
+    stemmer: PorterStemmer::class  // Custom stemmer class
+);
+```
+
+**Search Results:**
+
+```php
+[
+    'hits' => 3,
+    'execution_time' => '1.5ms',
+    'results' => [
+        ['id' => 1, 'score' => 4.2, 'document' => [...]],
+        ['id' => 2, 'score' => 3.8, 'document' => [...]],
+    ]
+]
+```
+
+Perfect for building:
+- RAG (Retrieval-Augmented Generation) systems
+- Documentation search agents
+- Knowledge base assistants
+- Semantic code search
+- Content discovery tools
 
 ## Development
 
