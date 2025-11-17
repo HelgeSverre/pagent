@@ -21,7 +21,34 @@ final readonly class HttpResponse
 
     public function json(): array
     {
-        $decoded = json_decode($this->body, true, 512, JSON_THROW_ON_ERROR);
+        // Check if response body is empty
+        if (trim($this->body) === '') {
+            throw new UnexpectedValueException(
+                'Cannot decode JSON from empty response body. HTTP status: '.$this->status
+            );
+        }
+
+        // Check if Content-Type suggests non-JSON response
+        $contentType = $this->headers['content-type'] ?? $this->headers['Content-Type'] ?? '';
+        if ($contentType !== '' && ! str_contains(strtolower($contentType), 'json')) {
+            throw new UnexpectedValueException(
+                'Response Content-Type is "'.$contentType.'", expected JSON. '.
+                'HTTP status: '.$this->status.'. '.
+                'Body preview: '.substr($this->body, 0, 200)
+            );
+        }
+
+        try {
+            $decoded = json_decode($this->body, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw new UnexpectedValueException(
+                'Failed to decode JSON response: '.$e->getMessage().'. '.
+                'HTTP status: '.$this->status.'. '.
+                'Body preview: '.substr($this->body, 0, 200),
+                0,
+                $e
+            );
+        }
 
         if (! is_array($decoded)) {
             throw new UnexpectedValueException('JSON response did not decode to an array.');

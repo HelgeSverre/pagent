@@ -19,11 +19,12 @@ final class OTLPExporter implements ExporterInterface
         $headers = $config['headers'] ?? [];
         $compression = $config['compression'] ?? null;
         $timeout = $config['timeout'] ?? 10.0;
+        $contentType = $config['content_type'] ?? 'application/x-protobuf';
 
         $transportFactory = new OtlpHttpTransportFactory;
         $transport = $transportFactory->create(
             $endpoint,
-            'application/json',
+            $contentType,
             $headers,
             $compression,
             $timeout

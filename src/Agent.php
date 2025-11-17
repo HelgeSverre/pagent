@@ -200,11 +200,27 @@ final class Agent
         try {
             // Auto-load from memory if configured and messages are empty
             if ($this->memory && $this->sessionId && empty($this->messages)) {
-                $loaded = $this->memory->load($this->sessionId);
-                $this->messages = $loaded;
+                $memorySpan = $this->telemetryEnabled
+                    ? TelemetryManager::instance()->startSpan('memory.load', [
+                        'session_id' => $this->sessionId,
+                    ])
+                    : new NullSpan;
 
-                if ($span instanceof Span) {
-                    $span->addEvent('memory.loaded', ['count' => count($loaded)]);
+                try {
+                    $loaded = $this->memory->load($this->sessionId);
+                    $this->messages = $loaded;
+
+                    $memorySpan->setAttributes([
+                        'message_count' => count($loaded),
+                    ]);
+                    $memorySpan->setStatus('ok');
+                } catch (Throwable $e) {
+                    $memorySpan->recordException($e);
+                    $memorySpan->setStatus('error', $e->getMessage());
+
+                    throw $e;
+                } finally {
+                    $memorySpan->end();
                 }
             }
 
@@ -281,10 +297,26 @@ final class Agent
 
             // Auto-save to memory if configured
             if ($this->memory && $this->sessionId) {
-                $this->memory->save($this->sessionId, $this->messages);
+                $memorySpan = $this->telemetryEnabled
+                    ? TelemetryManager::instance()->startSpan('memory.save', [
+                        'session_id' => $this->sessionId,
+                    ])
+                    : new NullSpan;
 
-                if ($span instanceof Span) {
-                    $span->addEvent('memory.saved', ['count' => count($this->messages)]);
+                try {
+                    $this->memory->save($this->sessionId, $this->messages);
+
+                    $memorySpan->setAttributes([
+                        'message_count' => count($this->messages),
+                    ]);
+                    $memorySpan->setStatus('ok');
+                } catch (Throwable $e) {
+                    $memorySpan->recordException($e);
+                    $memorySpan->setStatus('error', $e->getMessage());
+
+                    throw $e;
+                } finally {
+                    $memorySpan->end();
                 }
             }
 
@@ -389,11 +421,27 @@ final class Agent
         try {
             // Auto-load from memory if configured and messages are empty
             if ($this->memory && $this->sessionId && empty($this->messages)) {
-                $loaded = $this->memory->load($this->sessionId);
-                $this->messages = $loaded;
+                $memorySpan = $this->telemetryEnabled
+                    ? TelemetryManager::instance()->startSpan('memory.load', [
+                        'session_id' => $this->sessionId,
+                    ])
+                    : new NullSpan;
 
-                if ($span instanceof Span) {
-                    $span->addEvent('memory.loaded', ['count' => count($loaded)]);
+                try {
+                    $loaded = $this->memory->load($this->sessionId);
+                    $this->messages = $loaded;
+
+                    $memorySpan->setAttributes([
+                        'message_count' => count($loaded),
+                    ]);
+                    $memorySpan->setStatus('ok');
+                } catch (Throwable $e) {
+                    $memorySpan->recordException($e);
+                    $memorySpan->setStatus('error', $e->getMessage());
+
+                    throw $e;
+                } finally {
+                    $memorySpan->end();
                 }
             }
 
@@ -416,10 +464,26 @@ final class Agent
 
             // Auto-save to memory if configured
             if ($this->memory && $this->sessionId) {
-                $this->memory->save($this->sessionId, $this->messages);
+                $memorySpan = $this->telemetryEnabled
+                    ? TelemetryManager::instance()->startSpan('memory.save', [
+                        'session_id' => $this->sessionId,
+                    ])
+                    : new NullSpan;
 
-                if ($span instanceof Span) {
-                    $span->addEvent('memory.saved', ['count' => count($this->messages)]);
+                try {
+                    $this->memory->save($this->sessionId, $this->messages);
+
+                    $memorySpan->setAttributes([
+                        'message_count' => count($this->messages),
+                    ]);
+                    $memorySpan->setStatus('ok');
+                } catch (Throwable $e) {
+                    $memorySpan->recordException($e);
+                    $memorySpan->setStatus('error', $e->getMessage());
+
+                    throw $e;
+                } finally {
+                    $memorySpan->end();
                 }
             }
 
@@ -1030,15 +1094,21 @@ final class Agent
 
         if (property_exists($response, 'tokens') && isset($response->tokens)) {
             $span->setAttribute('gen_ai.usage.total_tokens', $response->tokens);
+            // For mock provider and simple token responses, also set completion_tokens
+            $span->setAttribute('gen_ai.usage.completion_tokens', $response->tokens);
         }
 
         if (property_exists($response, 'usage') && isset($response->usage) && is_array($response->usage)) {
             if (isset($response->usage['input_tokens'])) {
                 $span->setAttribute('gen_ai.usage.input_tokens', $response->usage['input_tokens']);
+                // OpenAI uses 'prompt_tokens' attribute name
+                $span->setAttribute('gen_ai.usage.prompt_tokens', $response->usage['input_tokens']);
             }
 
             if (isset($response->usage['output_tokens'])) {
                 $span->setAttribute('gen_ai.usage.output_tokens', $response->usage['output_tokens']);
+                // OpenAI/GenAI standard uses 'completion_tokens' attribute name
+                $span->setAttribute('gen_ai.usage.completion_tokens', $response->usage['output_tokens']);
             }
 
             if (isset($response->usage['total_tokens'])) {

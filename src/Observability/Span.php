@@ -6,6 +6,7 @@ namespace Pagent\Observability;
 
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\StatusCode;
+use OpenTelemetry\Context\ScopeInterface;
 use Throwable;
 
 final class Span
@@ -13,7 +14,8 @@ final class Span
     private const ALLOWED_TYPES = ['array', 'bool', 'float', 'int', 'string', 'null'];
 
     public function __construct(
-        private readonly SpanInterface $span
+        private readonly SpanInterface $span,
+        private readonly ?ScopeInterface $scope = null
     ) {}
 
     public function setAttribute(string $key, mixed $value): self
@@ -67,6 +69,11 @@ final class Span
     public function end(): void
     {
         $this->span->end();
+
+        // Detach context scope to restore previous context
+        if ($this->scope !== null) {
+            $this->scope->detach();
+        }
     }
 
     public function getContext(): SpanContext

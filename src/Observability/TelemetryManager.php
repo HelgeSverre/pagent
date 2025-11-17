@@ -90,15 +90,19 @@ final class TelemetryManager
         /** @phpstan-ignore argument.type */
         $builder = $this->tracer->spanBuilder($name);
 
+        // Explicitly set parent from current context to ensure proper span hierarchy
+        $builder->setParent(Context::getCurrent());
+
         foreach ($attributes as $key => $value) {
             $builder->setAttribute($key, $value);
         }
 
         $otelSpan = $builder->startSpan();
 
-        Context::storage()->attach($otelSpan->storeInContext(Context::getCurrent()));
+        // Activate the span in context for children and save scope for later detachment
+        $scope = Context::storage()->attach($otelSpan->storeInContext(Context::getCurrent()));
 
-        return new Span($otelSpan);
+        return new Span($otelSpan, $scope);
     }
 
     public function startAgentSpan(string $operation, string $agentName, array $attributes = []): Span|NullSpan
@@ -197,7 +201,10 @@ final class TelemetryManager
             'console' => new ConsoleExporter($this->config['verbose'] ?? false),
             'otlp' => new OTLPExporter($this->config['otlp'] ?? []),
             'jaeger' => new JaegerExporter($this->config['jaeger'] ?? []),
-            'zipkin' => new ZipkinExporter($this->config['zipkin'] ?? []),
+            'zipkin' => new ZipkinExporter(array_merge(
+                $this->config['zipkin'] ?? [],
+                ['service_name' => $this->config['service_name']]
+            )),
             default => throw new \InvalidArgumentException("Unknown exporter: {$exporterType}"),
         };
     }
