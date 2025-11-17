@@ -397,13 +397,13 @@ $comparison = toon_compare($tool->toOpenAISchema());
 
 ## Timeline
 
-| Phase               | Duration | Target Date |
-| ------------------- | -------- | ----------- |
-| Core Integration    | 1 hour   | Week 1 Day 1|
-| Tool Schema         | 1 hour   | Week 1 Day 1|
-| Memory/Context      | 0.5 hour | Week 1 Day 2|
-| Docs & Examples     | 1 hour   | Week 1 Day 2|
-| **Total**           | **3.5h** | **Week 1**  |
+| Phase            | Duration | Target Date  |
+| ---------------- | -------- | ------------ |
+| Core Integration | 1 hour   | Week 1 Day 1 |
+| Tool Schema      | 1 hour   | Week 1 Day 1 |
+| Memory/Context   | 0.5 hour | Week 1 Day 2 |
+| Docs & Examples  | 1 hour   | Week 1 Day 2 |
+| **Total**        | **3.5h** | **Week 1**   |
 
 ---
 
@@ -419,6 +419,7 @@ To achieve the roadmap's vision of attribute-based tools, we'd need:
    - Reflection-based schema generator
 
 2. **Schema Generator from Attributes**
+
    ```php
    #[Tool(name: 'get_weather', description: 'Get weather data')]
    class GetWeatherTool extends Tool

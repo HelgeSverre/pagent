@@ -1,6 +1,6 @@
 # Pagent Features Tracking
 
-**Last Updated:** 2025-10-29
+**Last Updated:** 2025-10-30
 
 This document tracks all features mentioned in documentation, proposals, and the codebase - showing what's implemented, what's planned, and what's just ideas.
 
@@ -18,7 +18,7 @@ This document tracks all features mentioned in documentation, proposals, and the
 
 ### Statistics
 
-- **Implemented**: 62 features (+3 Ollama, +1 tools(), +6 new metrics)
+- **Implemented**: 63 features (+3 Ollama, +1 tools(), +6 new metrics, +1 SearchTool)
 - **Partially Implemented**: 8 features
 - **Planned/Proposed**: 15 features
 - **Future Ideas**: 13 features (+1 Toolkit pattern)
@@ -88,6 +88,7 @@ This document tracks all features mentioned in documentation, proposals, and the
 | Built-in Glob               | ✅     | `src/Tools/Glob.php`                 | Tools      | File pattern matching                                  |
 | Built-in PdfReader          | ✅     | `src/Tools/PdfReader.php`            | Tools      | PDF extraction                                         |
 | Built-in DataExtract        | ✅     | `src/Tools/DataExtract.php`          | Tools      | Structured extraction                                  |
+| Built-in SearchTool         | ✅     | `src/Tools/SearchTool.php`           | Tools      | Full-text search with TNTSearch (BM25, fuzzy matching) |
 | Parameter Validation        | ✅     | `src/Tool/ToolValidator.php`         | Core       | JSON schema validation                                 |
 | Tool Argument Parser        | ✅     | `src/Tool/ToolArgument.php`          | Core       | Type inference                                         |
 | Bulk Tool Addition          | ✅     | `Agent::tools()`                     | Core       | Add multiple tools at once                             |

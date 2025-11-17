@@ -99,55 +99,96 @@ This roadmap provides a chronological view of Pagent's feature development, orga
 ## 🚧 v0.7.0 - Observability & Usage Tracking (In Planning)
 
 **Status:** Planning
-**Effort:** 24-33 hours
+**Effort:** 49-66 hours (adjusted after cohesion review)
 **Timeline:** Month 2-3
-**Plan:** See `ai-docs/plans/`
+**Plan:** See `ai-docs/plans/` and **[API Cohesion Review](plans/api-cohesion-review.md)**
+
+> **⚠️ IMPLEMENTATION NOTE:** After API cohesion review, Events/Hooks System has been **moved from v0.8.0 → v0.7.0** to serve as the foundation for observability. This ensures clean architecture from day one.
+
+### Recommended Implementation Order
+
+**Phase 1: Foundation (Week 1-2)**
+
+1. HTTP Client Migration (4-6 hrs) - Technical debt
+2. **Events/Hooks System (6-8 hrs)** - **FOUNDATION** ← Moved from v0.8.0
+3. TOON Integration (3-4 hrs) - Independent
+4. Attribute-Based Tools (6-8 hrs) - Builds on TOON
+
+**Phase 2: Observability (Week 3-4)** 5. OpenTelemetry Exporters (3-4 hrs) - Uses events 6. Cost & Token Tracking (18-24 hrs) - Integrates with OpenTelemetry 7. MCP Server Support (6-8 hrs) - Independent
+
+**Total:** ~49-66 hours
 
 ### Features
 
-#### 1. OpenTelemetry Observability
+#### 1. Events/Hooks System (**NEW - Foundation**)
 
-**Effort:** 10-15 hours | **Plan:** [`ai-docs/plans/opentelemetry-observability-plan.md`](plans/opentelemetry-observability-plan.md)
+**Effort:** 6-8 hours | **Plan:** [`ai-docs/plans/events-hooks-system-plan.md`](plans/events-hooks-system-plan.md)
 
-- [ ] OpenTelemetry SDK integration
-- [ ] Automatic span creation for:
-  - Agent prompt/response cycles
-  - Tool execution with timing
-  - Guard validation checks
-  - Middleware processing
-  - Multi-agent handoffs
-- [ ] Platform integrations:
-  - Langfuse (LLM observability)
-  - Langsmith (LangChain ecosystem)
-  - Phoenix (Arize AI)
-  - Generic OTLP exporters
-- [ ] Metadata enrichment (user ID, session ID, tags)
-- [ ] Error attribution with stack traces
-- [ ] Performance profiling
+- [ ] Event infrastructure (Event, EventListener, EventDispatcher)
+- [ ] EventManager singleton for global events
+- [ ] 18 event classes (Agent, LLM, Tool, Guard, Memory, Workflow, Stream)
+- [ ] TelemetryEventBridge for automatic span creation
+- [ ] Per-agent and global event listeners
+- [ ] Priority system and propagation control
 
 **API Preview:**
 
 ```php
-agent('bot')
-    ->observability('langfuse', [
-        'public_key' => env('LANGFUSE_KEY'),
-        'trace_id' => 'session-' . uniqid(),
-    ])
-    ->prompt('Hello'); // Automatically traced
-
-agent('bot')->withSpan('database-query', function() {
-    return DB::query('SELECT ...');
+// Global event listener
+EventManager::instance()->on('after_prompt', function (AfterPromptEvent $e) {
+    Log::info("Prompt completed in {$e->duration}s");
 });
 
-agent('bot')->logEvent('user-feedback', [
-    'rating' => 5,
-    'comment' => 'Excellent',
-]);
+// Per-agent listener
+agent('bot')
+    ->on('tool_executed', fn($e) => logToolMetrics($e))
+    ->prompt('Calculate 5 + 3');
+
+// TelemetryEventBridge creates spans automatically from events
+EventManager::instance()->listen(new TelemetryEventBridge());
 ```
 
-#### 2. Cost & Token Usage Tracking
+**Why First:** Events system provides foundation for observability, replacing manual span creation with event-driven architecture.
 
-**Effort:** 4-6 hours | **Plan:** [`ai-docs/plans/cost-token-tracking-plan.md`](plans/cost-token-tracking-plan.md)
+#### 2. OpenTelemetry Observability
+
+**Effort:** 3-4 hours (reduced - only exporters) | **Plan:** [`ai-docs/plans/opentelemetry-observability-plan.md`](plans/opentelemetry-observability-plan.md)
+
+- [x] Event system foundation (implemented in Events/Hooks)
+- [x] TelemetryEventBridge for automatic span creation from events
+- [ ] OpenTelemetry exporters:
+  - ConsoleExporter (development)
+  - OTLPExporter (generic)
+  - JaegerExporter
+  - ZipkinExporter
+- [ ] Future: Langfuse, Langsmith, Phoenix adapters (v0.9.0+)
+
+**API Preview:**
+
+```php
+// Initialize telemetry
+TelemetryManager::instance()->initialize([
+    'exporter' => 'jaeger',
+    'jaeger' => ['endpoint' => 'http://localhost:14268/api/traces'],
+]);
+
+// Register event bridge (spans created automatically from events)
+EventManager::instance()->listen(new TelemetryEventBridge());
+
+// All operations automatically traced via events
+agent('bot')->prompt('Hello'); // Creates spans: agent.prompt, llm.request
+
+// Custom observability via events
+agent('bot')
+    ->on('after_prompt', function($e) {
+        // Custom metrics, logging, etc.
+    })
+    ->prompt('Hello');
+```
+
+#### 3. Cost & Token Usage Tracking
+
+**Effort:** 18-24 hours | **Plan:** [`ai-docs/plans/cost-token-tracking-plan.md`](plans/cost-token-tracking-plan.md)
 
 - [ ] Track token usage (input, output, cached, total)
 - [ ] Calculate costs based on provider pricing
@@ -182,7 +223,78 @@ UsageTracker::byAgent(); // Grouped by agent
 UsageTracker::bySession(); // Grouped by session
 ```
 
-#### 3. MCP Server Support (Consumer)
+#### 4. TOON Integration (Token Optimization)
+
+**Effort:** 3-4 hours | **Plan:** [`ai-docs/plans/toon-integration-plan.md`](plans/toon-integration-plan.md)
+
+- [ ] TOON encoder wrapper class
+- [ ] Configuration option to use TOON for tool schemas (opt-in)
+- [ ] TOON support for memory/context serialization (opt-in)
+- [ ] Performance comparison tests (JSON vs TOON)
+- [ ] Documentation and examples
+
+**API Preview:**
+
+```php
+// Use TOON format for tool schemas (30-60% token savings)
+agent('bot')
+    ->useToon(true)
+    ->toonOptions(EncodeOptions::compact())
+    ->tool(new FileRead())
+    ->prompt('Read config.json');
+
+// Works with both manual and attribute-based tools
+agent('bot')
+    ->useToon(true)
+    ->tool(new CalculatorTool()) // Attribute-based
+    ->prompt('Calculate 5 + 3');
+```
+
+**Integration:** Works seamlessly with attribute-based tools (auto-generates schema, then encodes in TOON).
+
+#### 5. Attribute-Based Tool Definition
+
+**Effort:** 6-8 hours | **Plan:** [`ai-docs/plans/attribute-based-tools-plan.md`](plans/attribute-based-tools-plan.md)
+
+- [ ] Attribute classes (`#[Tool]`, `#[Parameter]`, `#[Returns]`)
+- [ ] Schema generator using reflection
+- [ ] Type mapping (PHP types → JSON schema types)
+- [ ] Support for scalars, arrays, enums, unions, nullable, defaults
+- [ ] AttributeTool base class
+- [ ] Integration with existing Tool system
+- [ ] Comprehensive test suite (30+ tests)
+
+**API Preview:**
+
+```php
+use Pagent\Attributes\Tool;
+use Pagent\Attributes\Parameter;
+
+#[Tool(
+    name: 'get_weather',
+    description: 'Get weather forecast for a location'
+)]
+class GetWeatherTool extends AttributeTool
+{
+    public function __invoke(
+        #[Parameter(description: 'City name or coordinates')]
+        string $location,
+
+        #[Parameter(description: 'Include 7-day forecast')]
+        bool $includeForecast = false
+    ): array {
+        // Implementation - type-safe!
+    }
+}
+
+agent('weather-bot')
+    ->tool(new GetWeatherTool())
+    ->prompt('What's the weather in Oslo?');
+```
+
+**Integration:** Works with TOON encoding for maximum token efficiency.
+
+#### 6. MCP Server Support (Consumer)
 
 **Effort:** 6-8 hours | **Plan:** TBD
 
