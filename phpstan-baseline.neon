@@ -366,6 +366,11 @@ parameters:
 			path: src/Observability/Exporters/OTLPExporter.php
 
 		-
+			message: "#^Parameter \\#1 \\$object of method ReflectionProperty\\:\\:getValue\\(\\) expects object\\|null, class\\-string\\|object given\\.$#"
+			count: 1
+			path: src/Observability/TelemetryEventBridge.php
+
+		-
 			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
 			count: 4
 			path: src/Orchestration/Delegation.php
