@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Pagent\Streaming\OllamaStreamParser;
-use Pagent\Streaming\StreamChunk;
 
 /**
  * Helper to create a mock stream from Ollama NDJSON

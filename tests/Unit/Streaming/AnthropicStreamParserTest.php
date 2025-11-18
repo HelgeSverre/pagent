@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Pagent\Streaming\AnthropicStreamParser;
-use Pagent\Streaming\StreamChunk;
 
 /**
  * Helper to create a mock stream from SSE events
