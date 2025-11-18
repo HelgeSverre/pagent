@@ -1,357 +1,309 @@
 # Observability Integration Tests
 
-This directory contains integration tests for the observability stack used with Pagent.
-
-## Overview
-
-These tests verify that all observability services are running correctly and can accept data from the Pagent framework. They test:
-
-- **Jaeger**: Distributed tracing with OTLP
-- **Phoenix (Arize)**: LLM observability
-- **Langfuse**: LLM monitoring and prompt management
-- **Helicone**: LLM cost tracking and proxy
-- **Opik (Comet)**: LLM experiment tracking
+This directory contains integration tests for Pagent's observability features, including OpenTelemetry/OTLP tracing with various backends.
 
 ## Quick Start
 
-### 1. Start the Observability Stack
-
-```bash
-# Using just (recommended)
-just observability-up
-
-# Or using docker compose directly
-docker compose -f docker-compose.observability.yml up -d
-```
-
-### 2. Run the Tests
+### Running All Tests
 
 ```bash
 # Run all observability tests
-composer test:observability
+./vendor/bin/pest tests/Integration/Observability/
 
-# Or using just (starts services + runs tests)
-just observability-test
-
-# Run specific service tests
-composer test:observability -- --filter=Jaeger
-composer test:observability -- --filter=Phoenix
-composer test:observability -- --filter=Langfuse
-composer test:observability -- --filter=Helicone
-composer test:observability -- --filter=Opik
+# Run with Docker services
+just obs-up  # Start observability stack
+./vendor/bin/pest tests/Integration/Observability/
+just obs-down  # Stop services when done
 ```
 
-### 3. Stop the Services
+### Running Specific Backend Tests
 
 ```bash
-just observability-down
+# Test specific backends
+./vendor/bin/pest --group=jaeger
+./vendor/bin/pest --group=phoenix
+./vendor/bin/pest --group=zipkin
+./vendor/bin/pest --group=langfuse
+./vendor/bin/pest --group=opik
+./vendor/bin/pest --group=helicone
 ```
 
 ## Test Structure
 
-```
-tests/Integration/Observability/
-├── README.md                    # This file
-├── ObservabilityTestHelper.php  # Helper class for tests
-├── SetupTest.php                # Verifies all services are running
-├── JaegerTest.php               # Jaeger-specific tests
-├── PhoenixTest.php              # Phoenix-specific tests
-├── LangfuseTest.php             # Langfuse-specific tests
-├── HeliconeTest.php             # Helicone-specific tests
-└── OpikTest.php                 # Opik-specific tests
-```
+### Infrastructure Tests
 
-## Configuration
+Each backend has 3-4 basic infrastructure tests that verify:
+- Container health and startup
+- UI/API accessibility
+- Database dependencies (if applicable)
 
-### Environment Variables
+**These tests do NOT require API keys** and should always pass when Docker services are running.
 
-Create a `.env` file in the project root or set these environment variables:
+### OTLP Integration Tests
 
-```bash
-# Jaeger
-TEST_JAEGER_UI_URL=http://localhost:16686
-TEST_JAEGER_OTLP_HTTP=http://localhost:4318
-TEST_JAEGER_OTLP_GRPC=http://localhost:4317
+Backends supporting OTLP have additional tests that verify:
+- Traces are exported via OTLP
+- LLM-specific attributes are captured
+- Multiple operations are tracked correctly
 
-# Phoenix
-TEST_PHOENIX_BASE_URL=http://localhost:6006
-TEST_PHOENIX_API_KEY=phoenix_xxx  # Optional
+**OTLP tests have different requirements per backend:**
 
-# Langfuse
-TEST_LANGFUSE_BASE_URL=http://localhost:3000
-TEST_LANGFUSE_PUBLIC_KEY=pk_xxx   # Required for auth tests
-TEST_LANGFUSE_SECRET_KEY=sk_xxx   # Required for auth tests
+## Backend-Specific Setup
 
-# Helicone
-TEST_HELICONE_BASE_URL=http://localhost:3001
-TEST_HELICONE_GATEWAY_URL=http://localhost:8585
-TEST_HELICONE_API_KEY=sk_helicone_xxx  # Optional
+### Jaeger (Fully Supported ✅)
 
-# Opik
-TEST_OPIK_URL=http://localhost:8080
-TEST_OPIK_API_KEY=opik_xxx        # Optional
-TEST_OPIK_WORKSPACE=default
-```
-
-### Setup API Keys
-
-Most services require API keys for authenticated tests. Here's how to set them up:
-
-#### Langfuse
-
-1. Visit http://localhost:3000
-2. Create an account
-3. Create a project
-4. Copy the Public Key and Secret Key from project settings
-5. Set `TEST_LANGFUSE_PUBLIC_KEY` and `TEST_LANGFUSE_SECRET_KEY`
-
-#### Phoenix
-
-1. API keys are optional for local testing
-2. To generate:
-   ```bash
-   curl -X POST http://localhost:6006/v1/api_keys \
-     -H "admin-secret: your_secret" \
-     -H "Content-Type: application/json" \
-     -d '{"name": "test-key"}'
-   ```
-3. Set `TEST_PHOENIX_API_KEY`
-
-#### Opik
-
-1. Visit http://localhost:5173
-2. Create an account and project
-3. Generate API key from Settings
-4. Set `TEST_OPIK_API_KEY`
-
-#### Helicone
-
-1. Visit http://localhost:3001
-2. Create an account
-3. Generate API key from Settings
-4. Set `TEST_HELICONE_API_KEY`
-
-## Test Categories
-
-### Setup Tests (`SetupTest.php`)
-
-Basic connectivity tests that verify each service is accessible:
+**Infrastructure**: Always available
+**OTLP**: Fully working
 
 ```bash
-composer test:observability -- --filter=Setup
+# No setup needed - just run the tests
+./vendor/bin/pest --group=jaeger
 ```
 
-These run automatically before other tests and will fail fast if services aren't running.
+### Phoenix (Fully Supported ✅)
 
-### Service-Specific Tests
-
-Each service has its own test file with specific functionality tests:
-
-**Jaeger** - Tests OTLP trace ingestion:
+**Infrastructure**: Always available
+**OTLP**: Fully working
 
 ```bash
-composer test:observability -- --group=jaeger
+# No setup needed
+./vendor/bin/pest --group=phoenix
 ```
 
-**Phoenix** - Tests LLM trace ingestion:
+### Zipkin (Fully Supported ✅)
+
+**Infrastructure**: Always available
+**OTLP**: Fully working
 
 ```bash
-composer test:observability -- --group=phoenix
+# No setup needed
+./vendor/bin/pest --group=zipkin
 ```
 
-**Langfuse** - Tests authentication and trace creation:
+### Langfuse (Infrastructure Working, OTLP Needs Config ⏸️)
+
+**Infrastructure**: 3 tests passing
+**OTLP**: 3 tests skip (need API keys)
 
 ```bash
-composer test:observability -- --group=langfuse
+# Infrastructure tests (no auth needed)
+./vendor/bin/pest tests/Integration/Observability/LangfuseBackendTest.php
+
+# Enable OTLP tests - set these environment variables:
+export TEST_LANGFUSE_PUBLIC_KEY="your-public-key"
+export TEST_LANGFUSE_SECRET_KEY="your-secret-key"
+
+# Then run OTLP tests
+./vendor/bin/pest --group=langfuse --group=otlp
 ```
 
-**Helicone** - Tests gateway and authentication:
+**Requirements for OTLP:**
+- Langfuse v3.22.0+ (local deployment)
+- API keys from Langfuse instance
+- Endpoint: `http://localhost:3000/api/public/otel/v1/traces`
+- Auth: HTTP Basic Auth with `base64(publicKey:secretKey)`
+
+### Opik (Infrastructure Working, OTLP Has Known Issues ⚠️)
+
+**Infrastructure**: 3 tests passing
+**OTLP**: 3 tests passing but exports fail (known backend issue)
 
 ```bash
-composer test:observability -- --group=helicone
+# Infrastructure tests always work
+./vendor/bin/pest tests/Integration/Observability/OpikBackendTest.php
+
+# OTLP tests run but see export errors (expected)
+./vendor/bin/pest --group=opik --group=otlp
 ```
 
-**Opik** - Tests API and authentication:
+**Known Issue:**
+Opik's self-hosted OTLP endpoint returns 404 (see [GitHub #2566](https://github.com/comet-ml/opik/issues/2566)). The tests verify infrastructure but OTLP exports fail. This is a known Opik limitation.
+
+**Optional API Key:**
+```bash
+export TEST_OPIK_API_KEY="your-api-key"  # Optional for production instances
+```
+
+### Helicone (Infrastructure Only ✅)
+
+**Infrastructure**: 4 tests passing
+**OTLP**: Not applicable (proxy architecture)
 
 ```bash
-composer test:observability -- --group=opik
+# Helicone is a proxy/gateway, not an OTLP receiver
+./vendor/bin/pest --group=helicone
 ```
 
-## Writing New Tests
+Helicone tests verify the gateway and database connectivity but do not test OTLP since Helicone is designed as an LLM API proxy, not a telemetry backend.
 
-### Using the Test Helper
+## Docker Services
 
-```php
-<?php
+### Managing the Observability Stack
 
-use Tests\Integration\Observability\ObservabilityTestHelper;
+```bash
+# Start all services
+just obs-up
 
-test('my observability test', function () {
-    // Check if service is available
-    $isAvailable = ObservabilityTestHelper::isServiceAvailable('http://localhost:3000');
-    expect($isAvailable)->toBeTrue();
+# Start specific backend
+docker compose -f docker-compose.observability.yml up jaeger -d
+docker compose -f docker-compose.observability.yml up phoenix -d
 
-    // Get service configuration
-    $config = ObservabilityTestHelper::getTestConfig('langfuse');
+# Check service health
+docker compose -f docker-compose.observability.yml ps
 
-    // Send HTTP request
-    $response = ObservabilityTestHelper::sendRequest(
-        'http://localhost:3000/api/endpoint',
-        'POST',
-        ['data' => 'value'],
-        ['Authorization' => 'Bearer token']
-    );
+# View logs
+docker compose -f docker-compose.observability.yml logs jaeger
+docker compose -f docker-compose.observability.yml logs langfuse
 
-    expect($response['status'])->toBe(200);
-})->group('observability', 'my-service');
+# Stop all services
+just obs-down
 ```
 
-### Test Groups
+### Service Endpoints
 
-Always tag observability tests with appropriate groups:
+| Service   | UI/API Endpoint                  | OTLP Endpoint                           |
+|-----------|----------------------------------|-----------------------------------------|
+| Jaeger    | http://localhost:16686           | http://localhost:4318/v1/traces         |
+| Phoenix   | http://localhost:6006            | http://localhost:4317 (gRPC)            |
+| Zipkin    | http://localhost:9411            | http://localhost:9411/api/v2/spans      |
+| Langfuse  | http://localhost:3000            | http://localhost:3000/api/public/otel/v1/traces |
+| Opik      | http://localhost:5173 (frontend) | http://localhost:8080/v1/traces (404)   |
+|           | http://localhost:8080 (backend)  |                                         |
+| Helicone  | http://localhost:8788 (UI)       | N/A (proxy architecture)                |
+|           | http://localhost:8585 (gateway)  |                                         |
 
-```php
-test('example test', function () {
-    // test code
-})->group('observability', 'servicename');
-```
+## Test Coverage Summary
 
-Available groups:
+| Backend   | Infrastructure | OTLP    | Total | Status                    |
+|-----------|---------------|---------|-------|---------------------------|
+| Jaeger    | 1 passing     | 4 passing | 5     | ✅ Excellent             |
+| Phoenix   | 1 passing     | 4 passing | 5     | ✅ Excellent             |
+| Zipkin    | 1 passing     | 2 passing | 3     | ✅ Excellent             |
+| Langfuse  | 3 passing     | 3 skip  | 6     | ⏸️ Needs API keys        |
+| Opik      | 3 passing     | 3 passing* | 6   | ⚠️ OTLP endpoint broken   |
+| Helicone  | 4 passing     | N/A     | 4     | ✅ Infrastructure only   |
+| **Total** | **13**        | **13 + 3 skip** | **29** | **26 passing, 3 skip** |
 
-- `observability` - All observability tests
-- `jaeger` - Jaeger-specific tests
-- `phoenix` - Phoenix-specific tests
-- `langfuse` - Langfuse-specific tests
-- `helicone` - Helicone-specific tests
-- `opik` - Opik-specific tests
-
-### Skipping Tests
-
-Tests that require API keys will automatically skip if keys aren't configured:
-
-```php
-test('authenticated endpoint', function () {
-    $config = ObservabilityTestHelper::getTestConfig('langfuse');
-
-    if (empty($config['public_key'])) {
-        $this->markTestSkipped('Langfuse API keys not configured');
-    }
-
-    // test code
-})->group('observability', 'langfuse');
-```
+*Opik OTLP tests pass infrastructure checks but OTLP exports fail (expected due to backend bug).
 
 ## Troubleshooting
 
-### Services Not Starting
+### Tests Timing Out
 
-```bash
-# Check service status
-docker ps --filter "name=pagent-"
+If tests timeout waiting for services:
 
-# View service logs
-docker compose -f docker-compose.observability.yml logs langfuse
+1. Check Docker services are running: `docker ps`
+2. Check service health: `docker compose -f docker-compose.observability.yml ps`
+3. Increase timeout in test if service is slow to start
+4. Check Docker logs for errors
 
-# Restart specific service
-docker compose -f docker-compose.observability.yml restart langfuse
-```
+### OTLP Tests Failing
+
+**Langfuse OTLP tests skipping:**
+- Set `TEST_LANGFUSE_PUBLIC_KEY` and `TEST_LANGFUSE_SECRET_KEY`
+- Ensure Langfuse v3.22.0+ is running
+
+**Opik OTLP exports failing (404 errors):**
+- This is expected due to [known issue](https://github.com/comet-ml/opik/issues/2566)
+- Tests verify infrastructure but acknowledge OTLP endpoint doesn't work
 
 ### Port Conflicts
 
-If ports are already in use:
-
-1. Stop conflicting services
-2. Or modify ports in `docker-compose.observability.yml`
-3. Update test environment variables to match
-
-### Test Timeouts
-
-Some services (especially Opik) can be slow to start. The tests include retry logic, but you may need to:
+If services fail to start due to port conflicts:
 
 ```bash
-# Wait longer before running tests
-just observability-up
-sleep 30
-composer test:observability
+# Check what's using the port
+lsof -i :16686  # Jaeger UI
+lsof -i :6006   # Phoenix
+lsof -i :9411   # Zipkin
+
+# Either stop the conflicting service or change ports in docker-compose.observability.yml
 ```
 
-### Database Issues
+### Cleaning Up Old Data
 
-Reset all data if services behave unexpectedly:
+Observability backends accumulate traces across test runs. This is normal and shouldn't affect tests, but you can reset by:
 
 ```bash
-# WARNING: This deletes all observability data
-docker compose -f docker-compose.observability.yml down -v
-just observability-up
+# Stop services
+just obs-down
+
+# Remove volumes (deletes all trace data)
+docker volume rm $(docker volume ls -q | grep observability)
+
+# Restart services
+just obs-up
 ```
 
 ## CI/CD Integration
 
-### GitHub Actions Example
+### GitHub Actions
+
+To run these tests in CI with full OTLP coverage:
 
 ```yaml
-name: Observability Tests
+# .github/workflows/test.yml
+- name: Start Observability Services
+  run: docker compose -f docker-compose.observability.yml up -d
 
-on: [push, pull_request]
+- name: Run Observability Tests
+  env:
+    TEST_LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+    TEST_LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+    TEST_OPIK_API_KEY: ${{ secrets.OPIK_API_KEY }}
+  run: ./vendor/bin/pest tests/Integration/Observability/
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.3
-          extensions: curl
-
-      - name: Install dependencies
-        run: composer install
-
-      - name: Start observability stack
-        run: docker compose -f docker-compose.observability.yml up -d
-
-      - name: Wait for services
-        run: sleep 30
-
-      - name: Run observability tests
-        run: composer test:observability
-
-      - name: Stop services
-        if: always()
-        run: docker compose -f docker-compose.observability.yml down
+- name: Cleanup
+  if: always()
+  run: docker compose -f docker-compose.observability.yml down
 ```
 
-## Performance Considerations
+### Required Secrets
 
-- **Parallel Execution**: These tests should NOT be run in parallel as they share Docker services
-- **Resource Usage**: All 5 services + databases require ~4GB RAM minimum
-- **Startup Time**: Cold start can take 20-30 seconds
-- **Test Duration**: Full suite typically runs in 30-60 seconds
+Add these to your CI environment (GitHub Secrets, etc.):
+- `LANGFUSE_PUBLIC_KEY` - For Langfuse OTLP tests
+- `LANGFUSE_SECRET_KEY` - For Langfuse OTLP tests
+- `OPIK_API_KEY` - Optional, for production Opik instances
 
-## Best Practices
+## Test File Overview
 
-1. **Always start services first**: Tests will fail if services aren't running
-2. **Use test groups**: Run specific service tests when debugging
-3. **Check service health**: Use setup tests to verify connectivity
-4. **Clean data regularly**: Use `down -v` to reset state between major test runs
-5. **Mock for unit tests**: Only use these for integration testing
-6. **Document API keys**: Keep track of test credentials separately
+### Helper Files
 
-## Next Steps
+- **ObservabilityDockerHelpers.php** - Docker service management, trace querying
+- **ObservabilityTestHelper.php** - Service availability checks, HTTP requests
 
-- Add more comprehensive trace validation tests
-- Test multi-service scenarios (sending same trace to multiple services)
-- Add performance benchmarks
-- Test error handling and retry logic
-- Add tests for actual Pagent agent integration with each service
+### Test Files
 
-## References
+- **AgentTelemetryTest.php** - Core agent telemetry functionality
+- **WorkflowTelemetryTest.php** - Pipeline and workflow tracing
+- **ObservabilityInfrastructureTest.php** - Docker compose configuration
+- **SetupTest.php** - Service availability checks
 
-- [Jaeger Documentation](https://www.jaegertracing.io/docs/)
-- [Phoenix Documentation](https://docs.arize.com/phoenix)
-- [Langfuse API Documentation](https://langfuse.com/docs/api)
-- [Helicone Documentation](https://docs.helicone.ai/)
-- [Opik Documentation](https://www.comet.com/docs/opik)
+### Backend Test Files
+
+- **JaegerBackendTest.php** + **JaegerTest.php**
+- **PhoenixBackendTest.php**
+- **ZipkinBackendTest.php**
+- **LangfuseBackendTest.php** + **LangfuseTest.php**
+- **OpikBackendTest.php** + **OpikTest.php**
+- **HeliconeBackendTest.php** + **HeliconeTest.php**
+
+Each `*BackendTest.php` uses Docker and tests OTLP integration.
+Each `*Test.php` (without Backend) contains lighter infrastructure checks.
+
+## Contributing
+
+When adding new observability backend tests:
+
+1. Follow the pattern established by Jaeger/Phoenix/Zipkin tests
+2. Add both infrastructure tests (no auth) and OTLP tests (with auth handling)
+3. Use `ObservabilityDockerHelpers::startService()` for Docker management
+4. Implement graceful skipping when credentials aren't available
+5. Document any backend-specific requirements in this README
+6. Add service configuration to `docker-compose.observability.yml`
+
+## Further Reading
+
+- [Pagent Observability Guide](../../../docs/observability.md)
+- [OpenTelemetry PHP Documentation](https://opentelemetry.io/docs/languages/php/)
+- [Report: Observability Test Enhancement](../../../ai-docs/reports/2025-11-18-observability-test-enhancement.md)
