@@ -114,7 +114,11 @@ This roadmap provides a chronological view of Pagent's feature development, orga
 3. TOON Integration (3-4 hrs) - Independent
 4. Attribute-Based Tools (6-8 hrs) - Builds on TOON
 
-**Phase 2: Observability (Week 3-4)** 5. OpenTelemetry Exporters (3-4 hrs) - Uses events 6. Cost & Token Tracking (18-24 hrs) - Integrates with OpenTelemetry 7. MCP Server Support (6-8 hrs) - Independent
+**Phase 2: Observability (Week 3-4)**
+
+5. ✅ **OpenTelemetry Exporters (3-4 hrs)** - Uses events ← COMPLETED 2025-11-18
+6. Cost & Token Tracking (18-24 hrs) - Integrates with OpenTelemetry
+7. MCP Server Support (6-8 hrs) - Independent
 
 **Total:** ~49-66 hours
 
@@ -131,7 +135,7 @@ This roadmap provides a chronological view of Pagent's feature development, orga
 - [x] Per-agent and global event listeners
 - [x] Priority system and propagation control
 - [x] 36 passing tests (117 assertions)
-- [ ] TelemetryEventBridge for automatic span creation (Optional - v0.8.0)
+- [x] **TelemetryEventBridge for automatic span creation** ✅ **COMPLETED 2025-11-18**
 - [ ] StreamChunkEvent implementation (Optional - requires StreamResponse refactor)
 
 **API Preview:**
@@ -153,17 +157,24 @@ EventManager::instance()->listen(new TelemetryEventBridge());
 
 **Why First:** Events system provides foundation for observability, replacing manual span creation with event-driven architecture.
 
-#### 2. OpenTelemetry Observability
+#### 2. OpenTelemetry Observability (**COMPLETED** ✅)
 
 **Effort:** 3-4 hours (reduced - only exporters) | **Plan:** [`ai-docs/plans/opentelemetry-observability-plan.md`](plans/opentelemetry-observability-plan.md)
+**Status:** COMPLETED 2025-11-18
 
 - [x] Event system foundation (implemented in Events/Hooks)
-- [x] TelemetryEventBridge for automatic span creation from events
-- [ ] OpenTelemetry exporters:
-  - ConsoleExporter (development)
-  - OTLPExporter (generic)
-  - JaegerExporter
-  - ZipkinExporter
+- [x] **TelemetryEventBridge for automatic span creation from events** ✅
+  - [x] LLM operations (request/response)
+  - [x] Tool execution (before/after/error)
+  - [x] Guard checks (checking/passed/violated/fallback)
+  - [x] Memory operations (loading/loaded)
+  - [x] Stream operations (started/completed)
+  - [x] 20 passing tests (116 assertions)
+- [x] OpenTelemetry exporters:
+  - [x] ConsoleExporter (development) ✅
+  - [x] OTLPExporter (generic) ✅
+  - [x] JaegerExporter ✅
+  - [x] ZipkinExporter ✅
 - [ ] Future: Langfuse, Langsmith, Phoenix adapters (v0.9.0+)
 
 **API Preview:**
@@ -188,6 +199,38 @@ agent('bot')
     })
     ->prompt('Hello');
 ```
+
+---
+
+### v0.7.0 Progress Summary (Updated 2025-11-18)
+
+**Completed:**
+- ✅ Events/Hooks System (6-8 hours)
+  - 36 passing tests (117 assertions)
+  - 19 event classes, 17 integrated
+  - EventManager singleton with per-agent and global listeners
+- ✅ TelemetryEventBridge (2-3 hours)
+  - 20 passing tests (116 assertions)
+  - Automatic span creation for LLM, Tool, Guard, Memory, Stream operations
+  - Configurable tracing per operation type
+- ✅ OpenTelemetry Exporters (3-4 hours)
+  - 82 total observability tests (196 assertions)
+  - ConsoleExporter, OTLPExporter, JaegerExporter, ZipkinExporter
+  - Helper methods in TelemetryManager for all operation types
+  - 1 working example
+
+**Total Completed:** ~11-15 hours of ~49-66 hours (23% complete)
+
+**Remaining:**
+- Cost & Token Tracking (18-24 hours) - Major remaining work
+- TOON Integration (3-4 hours)
+- Attribute-Based Tools (6-8 hours)
+- MCP Server Support (6-8 hours)
+- HTTP Client Migration (4-6 hours)
+
+**Next Steps:** Cost & Token Tracking is the largest remaining piece and should be prioritized next.
+
+---
 
 #### 3. Cost & Token Usage Tracking
 
