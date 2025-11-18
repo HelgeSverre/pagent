@@ -317,7 +317,7 @@ services:
       - all
       - opik
     ports:
-      - "${OPIK_FRONTEND_PORT:-5173}:5173"  # Frontend UI
+      - "${OPIK_FRONTEND_PORT:-5173}:8080"  # Frontend UI (nginx listens on 8080 inside container)
     environment:
       OPIK_BACKEND_URL: http://opik-backend:8080
       VITE_BACKEND_URL: http://localhost:${OPIK_BACKEND_PORT:-8080}
@@ -328,7 +328,7 @@ services:
       opik-backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5173/"]
+      test: ["CMD", "curl", "-f", "-s", "http://localhost:8080/"]
       interval: 10s
       timeout: 5s
       retries: 5
