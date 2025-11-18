@@ -2,17 +2,7 @@ parameters:
 	ignoreErrors:
 		-
 			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
-			count: 3
-			path: src/Agent.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$model\\.$#"
-			count: 1
-			path: src/Agent.php
-
-		-
-			message: "#^Access to an undefined property object\\:\\:\\$provider\\.$#"
-			count: 1
+			count: 4
 			path: src/Agent.php
 
 		-
@@ -36,7 +26,22 @@ parameters:
 			path: src/Agent.php
 
 		-
+			message: "#^Cannot call method load\\(\\) on Pagent\\\\Contracts\\\\Memory\\|null\\.$#"
+			count: 2
+			path: src/Agent.php
+
+		-
 			message: "#^Cannot call method prompt\\(\\) on Pagent\\\\Contracts\\\\Provider\\|null\\.$#"
+			count: 3
+			path: src/Agent.php
+
+		-
+			message: "#^Cannot call method save\\(\\) on Pagent\\\\Contracts\\\\Memory\\|null\\.$#"
+			count: 2
+			path: src/Agent.php
+
+		-
+			message: "#^Cannot call method streamPrompt\\(\\) on Pagent\\\\Contracts\\\\Provider\\|null\\.$#"
 			count: 1
 			path: src/Agent.php
 
@@ -61,17 +66,22 @@ parameters:
 			path: src/Agent.php
 
 		-
+			message: "#^Method Pagent\\\\Agent\\:\\:on\\(\\) has parameter \\$listener with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
+			message: "#^Method Pagent\\\\Agent\\:\\:once\\(\\) has parameter \\$listener with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Agent.php
+
+		-
 			message: "#^Method Pagent\\\\Agent\\:\\:streamTo\\(\\) has parameter \\$callback with no signature specified for callable\\.$#"
 			count: 1
 			path: src/Agent.php
 
 		-
 			message: "#^Method Pagent\\\\Agent\\:\\:tool\\(\\) has parameter \\$callable with no signature specified for Closure\\.$#"
-			count: 1
-			path: src/Agent.php
-
-		-
-			message: "#^Method class@anonymous/Agent\\.php\\:398\\:\\:__construct\\(\\) has parameter \\$check with no signature specified for Closure\\.$#"
 			count: 1
 			path: src/Agent.php
 
@@ -83,6 +93,16 @@ parameters:
 		-
 			message: "#^Parameter \\#1 \\$object of function get_class expects object, Pagent\\\\Contracts\\\\Provider\\|null given\\.$#"
 			count: 3
+			path: src/Agent.php
+
+		-
+			message: "#^Parameter \\#2 \\$key of class Pagent\\\\Events\\\\Events\\\\Memory\\\\MemoryLoadedEvent constructor expects string, string\\|null given\\.$#"
+			count: 2
+			path: src/Agent.php
+
+		-
+			message: "#^Parameter \\#2 \\$key of class Pagent\\\\Events\\\\Events\\\\Memory\\\\MemorySavedEvent constructor expects string, string\\|null given\\.$#"
+			count: 2
 			path: src/Agent.php
 
 		-
@@ -106,6 +126,11 @@ parameters:
 			path: src/Agent.php
 
 		-
+			message: "#^Trying to invoke Closure\\|null but it might not be a callable\\.$#"
+			count: 2
+			path: src/Agent.php
+
+		-
 			message: "#^Method Pagent\\\\Evaluation\\\\Dataset\\:\\:filter\\(\\) has parameter \\$callback with no signature specified for callable\\.$#"
 			count: 1
 			path: src/Evaluation/Dataset.php
@@ -122,16 +147,6 @@ parameters:
 
 		-
 			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|false given\\.$#"
-			count: 1
-			path: src/Evaluation/Dataset.php
-
-		-
-			message: "#^Parameter \\#1 \\$stream of function fclose expects resource, resource\\|false given\\.$#"
-			count: 1
-			path: src/Evaluation/Dataset.php
-
-		-
-			message: "#^Parameter \\#1 \\$stream of function fgetcsv expects resource, resource\\|false given\\.$#"
 			count: 1
 			path: src/Evaluation/Dataset.php
 
@@ -236,6 +251,41 @@ parameters:
 			path: src/Evaluation/Templates/layout.html.php
 
 		-
+			message: "#^Method Pagent\\\\Events\\\\EventDispatcher\\:\\:on\\(\\) has parameter \\$listener with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Events/EventDispatcher.php
+
+		-
+			message: "#^Method Pagent\\\\Events\\\\EventDispatcher\\:\\:once\\(\\) has parameter \\$listener with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Events/EventDispatcher.php
+
+		-
+			message: "#^Method Pagent\\\\Events\\\\EventDispatcher\\:\\:wrapClosure\\(\\) has parameter \\$closure with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Events/EventDispatcher.php
+
+		-
+			message: "#^Method class@anonymous/Events/EventDispatcher\\.php\\:175\\:\\:__construct\\(\\) has parameter \\$closure with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Events/EventDispatcher.php
+
+		-
+			message: "#^Strict comparison using \\!\\=\\= between null and null will always evaluate to false\\.$#"
+			count: 1
+			path: src/Events/EventDispatcher.php
+
+		-
+			message: "#^Method Pagent\\\\Events\\\\EventManager\\:\\:on\\(\\) has parameter \\$listener with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Events/EventManager.php
+
+		-
+			message: "#^Method Pagent\\\\Events\\\\EventManager\\:\\:once\\(\\) has parameter \\$listener with no signature specified for Closure\\.$#"
+			count: 1
+			path: src/Events/EventManager.php
+
+		-
 			message: "#^Cannot access offset 'messages' on mixed\\.$#"
 			count: 1
 			path: src/Memory/Adapters/FileAdapter.php
@@ -311,6 +361,11 @@ parameters:
 			path: src/Middleware/MetricsMiddleware.php
 
 		-
+			message: "#^Parameter \\#1 \\$transport of class OpenTelemetry\\\\Contrib\\\\Otlp\\\\SpanExporter constructor expects OpenTelemetry\\\\SDK\\\\Common\\\\Export\\\\TransportInterface\\<'application/json'\\|'application/x\\-ndjson'\\|'application/x…'\\>, OpenTelemetry\\\\SDK\\\\Common\\\\Export\\\\TransportInterface\\<CONTENT_TYPE of string\\> given\\.$#"
+			count: 1
+			path: src/Observability/Exporters/OTLPExporter.php
+
+		-
 			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
 			count: 4
 			path: src/Orchestration/Delegation.php
@@ -381,273 +436,53 @@ parameters:
 			path: src/Orchestration/Pipeline.php
 
 		-
-			message: "#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\\.$#"
-			count: 1
-			path: src/Providers/Anthropic.php
-
-		-
-			message: "#^Cannot access offset 'content' on mixed\\.$#"
-			count: 2
-			path: src/Providers/Anthropic.php
-
-		-
 			message: "#^Cannot access offset 'error' on mixed\\.$#"
-			count: 4
-			path: src/Providers/Anthropic.php
-
-		-
-			message: "#^Cannot access offset 'id' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Anthropic.php
-
-		-
-			message: "#^Cannot access offset 'input' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Anthropic.php
-
-		-
-			message: "#^Cannot access offset 'input_tokens' on mixed\\.$#"
-			count: 1
+			count: 2
 			path: src/Providers/Anthropic.php
 
 		-
 			message: "#^Cannot access offset 'message' on mixed\\.$#"
-			count: 2
-			path: src/Providers/Anthropic.php
-
-		-
-			message: "#^Cannot access offset 'model' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Anthropic.php
-
-		-
-			message: "#^Cannot access offset 'name' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Anthropic.php
-
-		-
-			message: "#^Cannot access offset 'output_tokens' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Anthropic.php
-
-		-
-			message: "#^Cannot access offset 'stop_reason' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Anthropic.php
-
-		-
-			message: "#^Cannot access offset 'text' on mixed\\.$#"
 			count: 1
 			path: src/Providers/Anthropic.php
 
 		-
 			message: "#^Cannot access offset 'type' on mixed\\.$#"
-			count: 3
-			path: src/Providers/Anthropic.php
-
-		-
-			message: "#^Cannot access offset 'usage' on mixed\\.$#"
-			count: 3
-			path: src/Providers/Anthropic.php
-
-		-
-			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|false given\\.$#"
-			count: 1
-			path: src/Providers/Anthropic.php
-
-		-
-			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|true given\\.$#"
 			count: 1
 			path: src/Providers/Anthropic.php
 
 		-
 			message: "#^Part \\$error \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
-			count: 2
+			count: 1
 			path: src/Providers/Anthropic.php
 
 		-
 			message: "#^Part \\$type \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
-			count: 2
+			count: 1
 			path: src/Providers/Anthropic.php
 
 		-
-			message: "#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\\.$#"
-			count: 1
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Cannot access offset 'arguments' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Cannot access offset 'content' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Cannot access offset 'done' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Ollama.php
-
-		-
 			message: "#^Cannot access offset 'error' on mixed\\.$#"
-			count: 3
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Cannot access offset 'eval_count' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Cannot access offset 'function' on mixed\\.$#"
-			count: 2
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Cannot access offset 'id' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Cannot access offset 'message' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Cannot access offset 'model' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Cannot access offset 'name' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Cannot access offset 'prompt_eval_count' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Cannot access offset 'tool_calls' on mixed\\.$#"
-			count: 1
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|false given\\.$#"
-			count: 1
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|true given\\.$#"
-			count: 1
-			path: src/Providers/Ollama.php
-
-		-
-			message: "#^Part \\$data\\['error'\\] \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
 			count: 1
 			path: src/Providers/Ollama.php
 
 		-
 			message: "#^Part \\$error \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
-			count: 2
+			count: 1
 			path: src/Providers/Ollama.php
 
 		-
-			message: "#^Argument of an invalid type mixed supplied for foreach, only iterables are supported\\.$#"
-			count: 1
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Cannot access offset 'arguments' on mixed\\.$#"
-			count: 1
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Cannot access offset 'choices' on mixed\\.$#"
-			count: 2
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Cannot access offset 'content' on mixed\\.$#"
-			count: 1
-			path: src/Providers/OpenAI.php
-
-		-
 			message: "#^Cannot access offset 'error' on mixed\\.$#"
-			count: 2
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Cannot access offset 'finish_reason' on mixed\\.$#"
-			count: 1
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Cannot access offset 'function' on mixed\\.$#"
-			count: 2
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Cannot access offset 'id' on mixed\\.$#"
 			count: 1
 			path: src/Providers/OpenAI.php
 
 		-
 			message: "#^Cannot access offset 'message' on mixed\\.$#"
-			count: 3
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Cannot access offset 'model' on mixed\\.$#"
-			count: 1
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Cannot access offset 'name' on mixed\\.$#"
-			count: 1
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Cannot access offset 'tool_calls' on mixed\\.$#"
-			count: 1
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Cannot access offset 'total_tokens' on mixed\\.$#"
-			count: 1
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Cannot access offset 'usage' on mixed\\.$#"
-			count: 2
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Cannot access offset 0 on mixed\\.$#"
-			count: 2
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Parameter \\#1 \\$json of function json_decode expects string, mixed given\\.$#"
-			count: 1
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|false given\\.$#"
-			count: 1
-			path: src/Providers/OpenAI.php
-
-		-
-			message: "#^Parameter \\#1 \\$json of function json_decode expects string, string\\|true given\\.$#"
 			count: 1
 			path: src/Providers/OpenAI.php
 
 		-
 			message: "#^Part \\$error \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
-			count: 2
+			count: 1
 			path: src/Providers/OpenAI.php
 
 		-
@@ -761,11 +596,6 @@ parameters:
 			path: src/Tools/WebFetch.php
 
 		-
-			message: "#^Access to an undefined property Pagent\\\\Agent\\|Pagent\\\\Contracts\\\\Provider\\:\\:\\$name\\.$#"
-			count: 1
-			path: src/Workflow/Chain.php
-
-		-
 			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"
 			count: 2
 			path: src/Workflow/Chain.php
@@ -774,11 +604,6 @@ parameters:
 			message: "#^Access to an undefined property object\\:\\:\\$usage\\.$#"
 			count: 1
 			path: src/Workflow/Chain.php
-
-		-
-			message: "#^Access to an undefined property \\(callable\\)\\|Pagent\\\\Agent\\|Pagent\\\\Contracts\\\\Provider\\:\\:\\$name\\.$#"
-			count: 1
-			path: src/Workflow/Pipeline.php
 
 		-
 			message: "#^Access to an undefined property object\\:\\:\\$content\\.$#"

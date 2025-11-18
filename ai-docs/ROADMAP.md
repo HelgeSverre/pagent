@@ -110,7 +110,7 @@ This roadmap provides a chronological view of Pagent's feature development, orga
 **Phase 1: Foundation (Week 1-2)**
 
 1. HTTP Client Migration (4-6 hrs) - Technical debt
-2. **Events/Hooks System (6-8 hrs)** - **FOUNDATION** ← Moved from v0.8.0
+2. ✅ **Events/Hooks System (6-8 hrs)** - **FOUNDATION** ← COMPLETED 2025-11-18
 3. TOON Integration (3-4 hrs) - Independent
 4. Attribute-Based Tools (6-8 hrs) - Builds on TOON
 
@@ -120,16 +120,19 @@ This roadmap provides a chronological view of Pagent's feature development, orga
 
 ### Features
 
-#### 1. Events/Hooks System (**NEW - Foundation**)
+#### 1. Events/Hooks System (**COMPLETED** ✅)
 
 **Effort:** 6-8 hours | **Plan:** [`ai-docs/plans/events-hooks-system-plan.md`](plans/events-hooks-system-plan.md)
+**Status:** COMPLETED 2025-11-18
 
-- [ ] Event infrastructure (Event, EventListener, EventDispatcher)
-- [ ] EventManager singleton for global events
-- [ ] 18 event classes (Agent, LLM, Tool, Guard, Memory, Workflow, Stream)
-- [ ] TelemetryEventBridge for automatic span creation
-- [ ] Per-agent and global event listeners
-- [ ] Priority system and propagation control
+- [x] Event infrastructure (Event, EventListener, EventDispatcher)
+- [x] EventManager singleton for global events
+- [x] 19 event classes (Agent, LLM, Tool, Guard, Memory, Stream) - 17 integrated
+- [x] Per-agent and global event listeners
+- [x] Priority system and propagation control
+- [x] 36 passing tests (117 assertions)
+- [ ] TelemetryEventBridge for automatic span creation (Optional - v0.8.0)
+- [ ] StreamChunkEvent implementation (Optional - requires StreamResponse refactor)
 
 **API Preview:**
 

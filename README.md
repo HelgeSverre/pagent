@@ -22,7 +22,8 @@ Build intelligent agents with automatic tool calling, multi-provider support, sa
 - **🛡️ Safety Guards** - PII detection, content filtering, prompt injection prevention
 - **📊 Evaluation Framework** - Test datasets with automated metrics and reports
 - **🔄 Multi-Agent Orchestration** - Pipeline, handoff, and delegation patterns
-- **⚡ Production Ready** - 265+ tests, PHPStan level 9, PHP 8.3+ type safety
+- **📡 Observability & Tracing** - OpenTelemetry instrumentation with Jaeger, Zipkin, OTLP support
+- **⚡ Production Ready** - 630+ tests, PHPStan level 9, PHP 8.3+ type safety
 
 ---
 
@@ -416,6 +417,102 @@ Perfect for building:
 - Knowledge base assistants
 - Semantic code search
 - Content discovery tools
+
+## Observability & Distributed Tracing
+
+Pagent includes comprehensive OpenTelemetry instrumentation for monitoring and debugging your LLM agents in production.
+
+### Quick Start
+
+```php
+use function Pagent\{agent, telemetry_console};
+
+// Enable console telemetry for debugging
+telemetry_console(verbose: true);
+
+agent('assistant')
+    ->provider('anthropic')
+    ->telemetry(true)  // Enable tracing for this agent
+    ->prompt('Hello!');
+
+// Console shows:
+// ┌─ Span: agent.prompt
+// │  Duration: 1.23s
+// │  Attributes:
+// │    - gen_ai.system: anthropic
+// │    - gen_ai.usage.total_tokens: 125
+// └─
+```
+
+### Production Monitoring
+
+Connect to Jaeger, Zipkin, or any OpenTelemetry-compatible platform:
+
+```php
+use function Pagent\{agent, telemetry_jaeger};
+
+// Export to Jaeger
+telemetry_jaeger('http://localhost:14268/api/traces');
+
+// All operations automatically traced
+agent('support')
+    ->telemetry(true)
+    ->tool('search', 'Search knowledge base', $searchFn)
+    ->prompt('Help me find documentation');
+
+// View traces at http://localhost:16686
+```
+
+### What Gets Traced
+
+- **Agent Operations** - Every prompt, stream, and tool execution
+- **LLM Requests** - Provider calls with token usage
+- **Tool Executions** - Arguments, results, and duration
+- **Guard Checks** - Security validations
+- **Memory Operations** - Load/save operations
+- **Workflows** - Multi-agent pipeline orchestration
+
+### Supported Platforms
+
+- **Jaeger** - Open-source distributed tracing
+- **Zipkin** - Distributed tracing system
+- **OTLP** - Generic protocol (Datadog, New Relic, Honeycomb, etc.)
+- **Console** - Local debugging output
+
+### Multi-Agent Workflow Tracing
+
+```php
+use function Pagent\{agent, pipeline, telemetry_jaeger};
+
+telemetry_jaeger('http://localhost:14268/api/traces');
+
+// Enable telemetry on agents
+agent('researcher')->provider('anthropic')->telemetry(true);
+agent('writer')->provider('anthropic')->telemetry(true);
+
+// Run workflow - creates hierarchical trace
+pipeline('content-creation')
+    ->step('research', agent('researcher'))
+    ->step('write', agent('writer'))
+    ->run('Write article about PHP');
+
+// Trace shows:
+// workflow.pipeline
+//   ├─ workflow.step (research)
+//   │  └─ agent.prompt → llm.request → tool.execute
+//   └─ workflow.step (write)
+//      └─ agent.prompt → llm.request
+```
+
+### Benefits
+
+- **Debug Complex Workflows** - Visualize multi-agent interactions
+- **Performance Monitoring** - Track latency and bottlenecks
+- **Token Usage Tracking** - Real-time token consumption
+- **Cost Visibility** - Understand API usage patterns
+- **Compliance** - Complete audit trail
+
+**📖 Full Guide:** [Observability Documentation](docs/observability.md)
 
 ## Development
 
