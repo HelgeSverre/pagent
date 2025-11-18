@@ -204,6 +204,35 @@ if (! function_exists('telemetry_zipkin')) {
     }
 }
 
+if (! function_exists('telemetry_bridge')) {
+    /**
+     * Create and register a TelemetryEventBridge for automatic span creation from events.
+     *
+     * This bridge listens to agent events and automatically creates OpenTelemetry spans,
+     * eliminating the need for manual span creation in your code.
+     *
+     * @param  array{enabled?: bool, trace_llm?: bool, trace_tools?: bool, trace_memory?: bool, trace_guards?: bool, trace_streams?: bool}  $config  Bridge configuration
+     *
+     * @example
+     * ```php
+     * // Enable automatic span creation from events
+     * telemetry_bridge();
+     *
+     * // Now all LLM operations automatically create spans
+     * agent('bot')->prompt('Hello');
+     * ```
+     */
+    function telemetry_bridge(array $config = []): Pagent\Observability\TelemetryEventBridge
+    {
+        $bridge = new Pagent\Observability\TelemetryEventBridge($config);
+
+        // Register with EventManager to receive all events
+        Pagent\Events\EventManager::instance()->listen($bridge);
+
+        return $bridge;
+    }
+}
+
 if (! function_exists('search')) {
     /**
      * Create a SearchTool with flexible configuration.
