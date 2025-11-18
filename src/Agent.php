@@ -26,7 +26,6 @@ use Pagent\Events\Events\Memory\MemoryLoadedEvent;
 use Pagent\Events\Events\Memory\MemoryLoadingEvent;
 use Pagent\Events\Events\Memory\MemorySavedEvent;
 use Pagent\Events\Events\Memory\MemorySavingEvent;
-use Pagent\Events\Events\Stream\StreamChunkEvent;
 use Pagent\Events\Events\Stream\StreamCompletedEvent;
 use Pagent\Events\Events\Stream\StreamStartedEvent;
 use Pagent\Events\Events\Tool\ToolErrorEvent;
@@ -215,9 +214,9 @@ final class Agent
     /**
      * Register an event listener.
      *
-     * @param string $eventName Event name (e.g., 'before_prompt')
-     * @param Closure|EventListener $listener The listener
-     * @param int $priority Priority (higher = executed first)
+     * @param  string  $eventName  Event name (e.g., 'before_prompt')
+     * @param  Closure|EventListener  $listener  The listener
+     * @param  int  $priority  Priority (higher = executed first)
      * @return string Listener ID for removal
      */
     public function on(string $eventName, Closure|EventListener $listener, int $priority = 0): string
@@ -228,9 +227,9 @@ final class Agent
     /**
      * Register a one-time event listener.
      *
-     * @param string $eventName Event name
-     * @param Closure|EventListener $listener The listener
-     * @param int $priority Priority (higher = executed first)
+     * @param  string  $eventName  Event name
+     * @param  Closure|EventListener  $listener  The listener
+     * @param  int  $priority  Priority (higher = executed first)
      * @return string Listener ID
      */
     public function once(string $eventName, Closure|EventListener $listener, int $priority = 0): string
@@ -241,8 +240,8 @@ final class Agent
     /**
      * Remove a listener by ID.
      *
-     * @param string $eventName Event name
-     * @param string $listenerId Listener ID
+     * @param  string  $eventName  Event name
+     * @param  string  $listenerId  Listener ID
      */
     public function off(string $eventName, string $listenerId): void
     {
@@ -252,8 +251,8 @@ final class Agent
     /**
      * Register a class-based listener for multiple events.
      *
-     * @param EventListener $listener The listener instance
-     * @param int $priority Priority for all events
+     * @param  EventListener  $listener  The listener instance
+     * @param  int  $priority  Priority for all events
      */
     public function listen(EventListener $listener, int $priority = 0): void
     {
@@ -1467,7 +1466,7 @@ final class Agent
     /**
      * Fire an event to all registered listeners.
      *
-     * @param Event $event The event to fire
+     * @param  Event  $event  The event to fire
      */
     private function fireEvent(Event $event): void
     {
