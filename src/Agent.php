@@ -10,6 +10,28 @@ use Pagent\Contracts\Memory;
 use Pagent\Contracts\Middleware;
 use Pagent\Contracts\Provider;
 use Pagent\Contracts\ToolInterface;
+use Pagent\Events\Event;
+use Pagent\Events\EventDispatcher;
+use Pagent\Events\EventListener;
+use Pagent\Events\Events\Agent\AfterPromptEvent;
+use Pagent\Events\Events\Agent\BeforePromptEvent;
+use Pagent\Events\Events\Agent\ContextPrunedEvent;
+use Pagent\Events\Events\Guard\GuardCheckingEvent;
+use Pagent\Events\Events\Guard\GuardFallbackEvent;
+use Pagent\Events\Events\Guard\GuardPassedEvent;
+use Pagent\Events\Events\Guard\GuardViolatedEvent;
+use Pagent\Events\Events\LLM\AfterLLMResponseEvent;
+use Pagent\Events\Events\LLM\BeforeLLMRequestEvent;
+use Pagent\Events\Events\Memory\MemoryLoadedEvent;
+use Pagent\Events\Events\Memory\MemoryLoadingEvent;
+use Pagent\Events\Events\Memory\MemorySavedEvent;
+use Pagent\Events\Events\Memory\MemorySavingEvent;
+use Pagent\Events\Events\Stream\StreamChunkEvent;
+use Pagent\Events\Events\Stream\StreamCompletedEvent;
+use Pagent\Events\Events\Stream\StreamStartedEvent;
+use Pagent\Events\Events\Tool\ToolErrorEvent;
+use Pagent\Events\Events\Tool\ToolExecutedEvent;
+use Pagent\Events\Events\Tool\ToolExecutingEvent;
 use Pagent\Exceptions\GuardException;
 use Pagent\Memory\ContextManager;
 use Pagent\Observability\NullSpan;
@@ -84,9 +106,13 @@ final class Agent
 
     private ?array $cachedToolSchemas = null;
 
+    private EventDispatcher $eventDispatcher;
+
     public function __construct(
         private readonly string $name,
-    ) {}
+    ) {
+        $this->eventDispatcher = new EventDispatcher;
+    }
 
     public function provider(Provider $provider): self
     {
@@ -186,6 +212,54 @@ final class Agent
         return $this;
     }
 
+    /**
+     * Register an event listener.
+     *
+     * @param string $eventName Event name (e.g., 'before_prompt')
+     * @param Closure|EventListener $listener The listener
+     * @param int $priority Priority (higher = executed first)
+     * @return string Listener ID for removal
+     */
+    public function on(string $eventName, Closure|EventListener $listener, int $priority = 0): string
+    {
+        return $this->eventDispatcher->on($eventName, $listener, $priority);
+    }
+
+    /**
+     * Register a one-time event listener.
+     *
+     * @param string $eventName Event name
+     * @param Closure|EventListener $listener The listener
+     * @param int $priority Priority (higher = executed first)
+     * @return string Listener ID
+     */
+    public function once(string $eventName, Closure|EventListener $listener, int $priority = 0): string
+    {
+        return $this->eventDispatcher->once($eventName, $listener, $priority);
+    }
+
+    /**
+     * Remove a listener by ID.
+     *
+     * @param string $eventName Event name
+     * @param string $listenerId Listener ID
+     */
+    public function off(string $eventName, string $listenerId): void
+    {
+        $this->eventDispatcher->off($eventName, $listenerId);
+    }
+
+    /**
+     * Register a class-based listener for multiple events.
+     *
+     * @param EventListener $listener The listener instance
+     * @param int $priority Priority for all events
+     */
+    public function listen(EventListener $listener, int $priority = 0): void
+    {
+        $this->eventDispatcher->listen($listener, $priority);
+    }
+
     public function prompt(string $message, array $options = []): object
     {
         if (! $this->provider) {
@@ -207,8 +281,12 @@ final class Agent
                     : new NullSpan;
 
                 try {
+                    $this->fireEvent(new MemoryLoadingEvent($this, $this->sessionId));
+
                     $loaded = $this->memory->load($this->sessionId);
                     $this->messages = $loaded;
+
+                    $this->fireEvent(new MemoryLoadedEvent($this, $this->sessionId, $loaded));
 
                     $memorySpan->setAttributes([
                         'message_count' => count($loaded),
@@ -227,6 +305,9 @@ final class Agent
             // Add to message history
             $this->messages[] = ['role' => 'user', 'content' => $message];
 
+            // Fire before prompt event
+            $this->fireEvent(new BeforePromptEvent($this, $message, $options));
+
             // Merge agent config with prompt options
             $mergedOptions = array_merge($this->config, $options);
 
@@ -237,11 +318,21 @@ final class Agent
                 $messagesToSend = $this->contextManager->prune($this->messages);
                 $prunedCount = count($messagesToSend);
 
-                if ($span instanceof Span && $originalCount !== $prunedCount) {
-                    $span->addEvent('context.pruned', [
-                        'from' => $originalCount,
-                        'to' => $prunedCount,
-                    ]);
+                if ($originalCount !== $prunedCount) {
+                    // Fire context pruned event
+                    $this->fireEvent(new ContextPrunedEvent(
+                        $this,
+                        $originalCount,
+                        $prunedCount,
+                        ($originalCount - $prunedCount) * 100 // Rough estimate: 100 tokens per message
+                    ));
+
+                    if ($span instanceof Span) {
+                        $span->addEvent('context.pruned', [
+                            'from' => $originalCount,
+                            'to' => $prunedCount,
+                        ]);
+                    }
                 }
             }
 
@@ -304,7 +395,11 @@ final class Agent
                     : new NullSpan;
 
                 try {
+                    $this->fireEvent(new MemorySavingEvent($this, $this->sessionId, $this->messages));
+
                     $this->memory->save($this->sessionId, $this->messages);
+
+                    $this->fireEvent(new MemorySavedEvent($this, $this->sessionId, $this->messages));
 
                     $memorySpan->setAttributes([
                         'message_count' => count($this->messages),
@@ -325,6 +420,14 @@ final class Agent
                 $span->setStatus('ok');
             }
 
+            // Fire after prompt event
+            $this->fireEvent(new AfterPromptEvent(
+                $this,
+                $message,
+                $response->content ?? '',
+                $options
+            ));
+
             return $response;
         } catch (GuardException $e) {
             if ($span instanceof Span) {
@@ -333,6 +436,14 @@ final class Agent
             }
 
             if ($this->fallback) {
+                // Fire guard fallback event
+                $this->fireEvent(new GuardFallbackEvent(
+                    $this,
+                    $e->guardName,
+                    1, // attemptNumber
+                    1  // maxAttempts (no retry logic currently)
+                ));
+
                 $fallbackContent = ($this->fallback)($e);
 
                 if ($span instanceof Span) {
@@ -402,6 +513,23 @@ final class Agent
             $mergedOptions = $mw->before($message, $mergedOptions);
         }
 
+        // Get provider info for events
+        $provider = get_class($this->provider);
+        $providerName = 'mock';
+
+        if (str_contains($provider, 'Anthropic')) {
+            $providerName = 'anthropic';
+        } elseif (str_contains($provider, 'OpenAI')) {
+            $providerName = 'openai';
+        } elseif (str_contains($provider, 'Ollama')) {
+            $providerName = 'ollama';
+        }
+
+        $model = $mergedOptions['model'] ?? $this->config['model'] ?? 'unknown';
+
+        // Fire stream started event
+        $this->fireEvent(new StreamStartedEvent($this, $providerName, $model));
+
         // Call provider's streaming method
         $streamResponse = $this->provider->streamPrompt($message, $mergedOptions);
 
@@ -418,6 +546,8 @@ final class Agent
             'agent.session_id' => $this->sessionId ?? 'none',
         ]);
 
+        $startTime = microtime(true);
+
         try {
             // Auto-load from memory if configured and messages are empty
             if ($this->memory && $this->sessionId && empty($this->messages)) {
@@ -428,8 +558,12 @@ final class Agent
                     : new NullSpan;
 
                 try {
+                    $this->fireEvent(new MemoryLoadingEvent($this, $this->sessionId));
+
                     $loaded = $this->memory->load($this->sessionId);
                     $this->messages = $loaded;
+
+                    $this->fireEvent(new MemoryLoadedEvent($this, $this->sessionId, $loaded));
 
                     $memorySpan->setAttributes([
                         'message_count' => count($loaded),
@@ -471,7 +605,11 @@ final class Agent
                     : new NullSpan;
 
                 try {
+                    $this->fireEvent(new MemorySavingEvent($this, $this->sessionId, $this->messages));
+
                     $this->memory->save($this->sessionId, $this->messages);
+
+                    $this->fireEvent(new MemorySavedEvent($this, $this->sessionId, $this->messages));
 
                     $memorySpan->setAttributes([
                         'message_count' => count($this->messages),
@@ -487,6 +625,20 @@ final class Agent
                 }
             }
 
+            // Calculate duration and fire stream completed event
+            $durationMs = (microtime(true) - $startTime) * 1000;
+
+            // Note: We don't have access to total chunks without modifying StreamResponse
+            // For now, we'll estimate based on content length or set to 0
+            $totalChunks = 0; // Could be enhanced in future
+
+            $this->fireEvent(new StreamCompletedEvent(
+                $this,
+                $fullContent,
+                $totalChunks,
+                $durationMs
+            ));
+
             // Set span status to ok
             if ($span instanceof Span) {
                 $span->setStatus('ok');
@@ -500,6 +652,14 @@ final class Agent
             }
 
             if ($this->fallback) {
+                // Fire guard fallback event
+                $this->fireEvent(new GuardFallbackEvent(
+                    $this,
+                    $e->guardName,
+                    1, // attemptNumber
+                    1  // maxAttempts (no retry logic currently)
+                ));
+
                 $fallbackContent = ($this->fallback)($e);
 
                 if ($span instanceof Span) {
@@ -578,27 +738,53 @@ final class Agent
 
     public function executeTool(string $name, array $arguments): mixed
     {
-        foreach ($this->tools as $tool) {
-            if ($tool->name() === $name) {
-                return $tool->execute($arguments);
+        // Fire tool executing event
+        $this->fireEvent(new ToolExecutingEvent($this, $name, $arguments));
+
+        $startTime = microtime(true);
+
+        try {
+            foreach ($this->tools as $tool) {
+                if ($tool->name() === $name) {
+                    $result = $tool->execute($arguments);
+
+                    // Calculate duration
+                    $durationMs = (microtime(true) - $startTime) * 1000;
+
+                    // Fire tool executed event
+                    $this->fireEvent(new ToolExecutedEvent(
+                        $this,
+                        $name,
+                        $arguments,
+                        $result,
+                        $durationMs
+                    ));
+
+                    return $result;
+                }
             }
+
+            // Better error message with suggestions
+            $available = array_map(fn ($t) => $t->name(), $this->tools);
+            $suggestions = $this->findSimilarToolNames($name, $available);
+
+            $message = "Tool '{$name}' not found";
+
+            if (! empty($suggestions)) {
+                $message .= '. Did you mean: '.implode(', ', $suggestions).'?';
+            }
+
+            if (! empty($available)) {
+                $message .= ' Available tools: '.implode(', ', $available);
+            }
+
+            throw new RuntimeException($message);
+        } catch (Throwable $e) {
+            // Fire tool error event
+            $this->fireEvent(new ToolErrorEvent($this, $name, $arguments, $e));
+
+            throw $e;
         }
-
-        // Better error message with suggestions
-        $available = array_map(fn ($t) => $t->name(), $this->tools);
-        $suggestions = $this->findSimilarToolNames($name, $available);
-
-        $message = "Tool '{$name}' not found";
-
-        if (! empty($suggestions)) {
-            $message .= '. Did you mean: '.implode(', ', $suggestions).'?';
-        }
-
-        if (! empty($available)) {
-            $message .= ' Available tools: '.implode(', ', $available);
-        }
-
-        throw new RuntimeException($message);
     }
 
     public function guard(string|Guard $guard, ?Closure $check = null): self
@@ -841,13 +1027,34 @@ final class Agent
     private function runGuards(string $input, string $output): void
     {
         foreach ($this->guards as $guard) {
-            if (! $guard->check($input, $output)) {
-                throw new GuardException(
-                    $guard->getViolationMessage(),
-                    $guard->getName(),
-                    $input,
-                    $output,
-                );
+            $guardName = get_class($guard);
+
+            // Fire guard checking event
+            $this->fireEvent(new GuardCheckingEvent($this, $guardName, $output));
+
+            try {
+                if (! $guard->check($input, $output)) {
+                    // Fire guard violated event
+                    $this->fireEvent(new GuardViolatedEvent(
+                        $this,
+                        $guardName,
+                        $output,
+                        $guard->getViolationMessage()
+                    ));
+
+                    throw new GuardException(
+                        $guard->getViolationMessage(),
+                        $guard->getName(),
+                        $input,
+                        $output,
+                    );
+                }
+
+                // Fire guard passed event
+                $this->fireEvent(new GuardPassedEvent($this, $guardName, $output));
+            } catch (GuardException $e) {
+                // Re-throw GuardException after firing event
+                throw $e;
             }
         }
     }
@@ -1033,7 +1240,42 @@ final class Agent
                 throw new RuntimeException("No provider set for agent '{$this->name}'");
             }
 
-            return $this->provider->prompt($message, $options);
+            $provider = get_class($this->provider);
+            $providerName = 'mock';
+
+            if (str_contains($provider, 'Anthropic')) {
+                $providerName = 'anthropic';
+            } elseif (str_contains($provider, 'OpenAI')) {
+                $providerName = 'openai';
+            } elseif (str_contains($provider, 'Ollama')) {
+                $providerName = 'ollama';
+            }
+
+            $model = $options['model'] ?? $this->config['model'] ?? 'unknown';
+
+            $startTime = microtime(true);
+
+            // Fire before LLM request event
+            $this->fireEvent(new BeforeLLMRequestEvent(
+                $this,
+                $providerName,
+                $model,
+                $options
+            ));
+
+            $response = $this->provider->prompt($message, $options);
+
+            // Fire after LLM response event
+            $duration = (microtime(true) - $startTime) * 1000; // Convert to milliseconds
+            $this->fireEvent(new AfterLLMResponseEvent(
+                $this,
+                $providerName,
+                $model,
+                (array) $response,
+                $duration
+            ));
+
+            return $response;
         }
 
         if (! $this->provider) {
@@ -1058,10 +1300,30 @@ final class Agent
             'gen_ai.request.max_tokens' => $options['max_tokens'] ?? $this->config['max_tokens'] ?? null,
         ]);
 
+        $startTime = microtime(true);
+
         try {
+            // Fire before LLM request event
+            $this->fireEvent(new BeforeLLMRequestEvent(
+                $this,
+                $providerName,
+                $model,
+                $options
+            ));
+
             $response = $this->provider->prompt($message, $options);
 
             $this->addLLMSpanAttributes($llmSpan, $response);
+
+            // Fire after LLM response event
+            $duration = (microtime(true) - $startTime) * 1000; // Convert to milliseconds
+            $this->fireEvent(new AfterLLMResponseEvent(
+                $this,
+                $providerName,
+                $model,
+                (array) $response,
+                $duration
+            ));
 
             if ($llmSpan instanceof Span) {
                 $llmSpan->setStatus('ok');
@@ -1200,5 +1462,15 @@ final class Agent
                 $toolSpan->end();
             }
         }
+    }
+
+    /**
+     * Fire an event to all registered listeners.
+     *
+     * @param Event $event The event to fire
+     */
+    private function fireEvent(Event $event): void
+    {
+        $this->eventDispatcher->dispatch($event);
     }
 }
