@@ -145,6 +145,49 @@ final class TelemetryManager
         );
     }
 
+    public function startGuardSpan(string $guardName, array $attributes = []): Span|NullSpan
+    {
+        $defaultAttributes = [
+            'guard.name' => $guardName,
+        ];
+
+        return $this->startSpan(
+            'guard.check',
+            array_merge($defaultAttributes, $attributes)
+        );
+    }
+
+    public function startMemorySpan(string $operation, string $key, ?string $namespace = null, array $attributes = []): Span|NullSpan
+    {
+        $defaultAttributes = [
+            'memory.operation' => $operation,
+            'memory.key' => $key,
+        ];
+
+        if ($namespace !== null) {
+            $defaultAttributes['memory.namespace'] = $namespace;
+        }
+
+        return $this->startSpan(
+            "memory.{$operation}",
+            array_merge($defaultAttributes, $attributes)
+        );
+    }
+
+    public function startStreamSpan(string $provider, string $model, array $attributes = []): Span|NullSpan
+    {
+        $defaultAttributes = [
+            'gen_ai.system' => $provider,
+            'gen_ai.request.model' => $model,
+            'stream.enabled' => true,
+        ];
+
+        return $this->startSpan(
+            'llm.stream',
+            array_merge($defaultAttributes, $attributes)
+        );
+    }
+
     public function clearContext(): void
     {
         if ($this->enabled) {
