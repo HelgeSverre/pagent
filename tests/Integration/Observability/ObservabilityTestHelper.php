@@ -58,7 +58,7 @@ final class ObservabilityTestHelper
                 'timeout' => 5,
             ],
             'Opik' => [
-                'url' => getenv('TEST_OPIK_URL') ?: 'http://localhost:8080',
+                'url' => (getenv('TEST_OPIK_URL') ?: 'http://localhost:8080').'/health-check',
                 'timeout' => 5,
             ],
         ];

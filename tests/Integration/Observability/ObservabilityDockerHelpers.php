@@ -251,4 +251,60 @@ class ObservabilityDockerHelpers
 
         return 'default';
     }
+
+    /**
+     * Query Langfuse for traces.
+     */
+    public static function queryLangfuseTraces(int $limit = 10): array
+    {
+        // Langfuse REST API endpoint for traces
+        $url = "http://localhost:3000/api/public/traces?limit={$limit}";
+
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 5,
+                'ignore_errors' => true,
+            ],
+        ]);
+
+        $response = @file_get_contents($url, false, $context);
+        if ($response === false) {
+            return [];
+        }
+
+        $data = json_decode($response, true);
+        if (! is_array($data) || ! isset($data['data'])) {
+            return [];
+        }
+
+        return $data['data'];
+    }
+
+    /**
+     * Query Opik for traces.
+     */
+    public static function queryOpikTraces(string $workspace = 'default', int $limit = 10): array
+    {
+        // Opik REST API endpoint for traces
+        $url = "http://localhost:8080/api/traces?workspace={$workspace}&limit={$limit}";
+
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 5,
+                'ignore_errors' => true,
+            ],
+        ]);
+
+        $response = @file_get_contents($url, false, $context);
+        if ($response === false) {
+            return [];
+        }
+
+        $data = json_decode($response, true);
+        if (! is_array($data)) {
+            return [];
+        }
+
+        return $data;
+    }
 }

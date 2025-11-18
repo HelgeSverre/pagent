@@ -75,7 +75,7 @@ test('helicone UI is accessible', function () {
 
 test('opik backend health endpoint responds', function () {
     $config = ObservabilityTestHelper::getTestConfig('opik');
-    $url = $config['url'].'/health';
+    $url = $config['url'].'/health-check';
 
     // Opik may take longer to start
     $isAvailable = ObservabilityTestHelper::waitForService($url, 10, 2);

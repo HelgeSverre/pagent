@@ -23,10 +23,11 @@ test('helicone gateway is running', function () {
     $config = ObservabilityTestHelper::getTestConfig('helicone');
     $gatewayUrl = $config['gateway_url'];
 
-    // Gateway should be accessible
-    $isAvailable = ObservabilityTestHelper::isServiceAvailable($gatewayUrl);
+    // Gateway should be accessible (may return 401 unauthorized, which is fine)
+    $response = ObservabilityTestHelper::sendRequest($gatewayUrl);
 
-    expect($isAvailable)->toBeTrue('Helicone gateway should be running at '.$gatewayUrl);
+    // Accept any response that shows the gateway is running (including 401 unauthorized)
+    expect($response['status'])->toBeGreaterThan(0, 'Helicone gateway should be running at '.$gatewayUrl);
 })->group('observability', 'helicone');
 
 test('helicone gateway requires authentication', function () {

@@ -61,23 +61,25 @@ describe('Jaeger Backend Integration', function () {
         $traces = ObservabilityDockerHelpers::queryJaegerTraces('pagent-test');
         expect($traces)->not->toBeEmpty('Expected to find traces in Jaeger');
 
-        $firstTrace = $traces[0];
-        expect($firstTrace)->toHaveKey('spans');
-        expect($firstTrace['spans'])->not->toBeEmpty();
+        // Find trace with agent spans (search through all traces to avoid pollution from other tests)
+        $foundTrace = null;
+        foreach ($traces as $trace) {
+            if (! isset($trace['spans']) || empty($trace['spans'])) {
+                continue;
+            }
 
-        // Verify span has expected attributes
-        $span = $firstTrace['spans'][0];
-        expect($span)->toHaveKey('operationName');
-
-        // Check that we have agent-related spans
-        $hasAgentSpan = false;
-        foreach ($firstTrace['spans'] as $span) {
-            if (str_contains($span['operationName'], 'agent')) {
-                $hasAgentSpan = true;
-                break;
+            // Check if this trace has agent-related spans
+            foreach ($trace['spans'] as $span) {
+                if (str_contains(strtolower($span['operationName'] ?? ''), 'agent')) {
+                    $foundTrace = $trace;
+                    break 2; // Break both loops
+                }
             }
         }
-        expect($hasAgentSpan)->toBeTrue('Expected to find agent span in trace');
+
+        expect($foundTrace)->not->toBeNull('Expected to find trace with agent span');
+        expect($foundTrace)->toHaveKey('spans');
+        expect($foundTrace['spans'])->not->toBeEmpty();
     })->group('docker', 'observability', 'jaeger');
 
     it('verifies Jaeger container health check', function () {

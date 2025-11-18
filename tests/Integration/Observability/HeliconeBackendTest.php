@@ -91,4 +91,4 @@ describe('Helicone Backend Integration', function () {
         $outputStr = implode("\n", $output);
         expect($outputStr)->toContain('pagent-helicone');
     })->group('docker', 'observability', 'helicone');
-})->skip('Helicone integration tests require API key configuration and are not yet fully implemented');
+});
