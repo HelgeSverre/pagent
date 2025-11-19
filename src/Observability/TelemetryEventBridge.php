@@ -14,6 +14,13 @@ use Pagent\Events\Events\LLM\AfterLLMResponseEvent;
 use Pagent\Events\Events\LLM\BeforeLLMRequestEvent;
 use Pagent\Events\Events\Memory\MemoryLoadedEvent;
 use Pagent\Events\Events\Memory\MemoryLoadingEvent;
+use Pagent\Events\Events\Mcp\McpConnectionEstablishedEvent;
+use Pagent\Events\Events\Mcp\McpConnectionFailedEvent;
+use Pagent\Events\Events\Mcp\McpToolCalledEvent;
+use Pagent\Events\Events\Mcp\McpToolCallingEvent;
+use Pagent\Events\Events\Mcp\McpToolErrorEvent;
+use Pagent\Events\Events\Mcp\McpToolsDiscoveredEvent;
+use Pagent\Events\Events\Mcp\McpToolsDiscoveringEvent;
 use Pagent\Events\Events\Stream\StreamCompletedEvent;
 use Pagent\Events\Events\Stream\StreamStartedEvent;
 use Pagent\Events\Events\Tool\ToolErrorEvent;
@@ -63,14 +70,14 @@ final class TelemetryEventBridge implements EventListener
     /**
      * Bridge configuration.
      *
-     * @var array{enabled: bool, trace_llm: bool, trace_tools: bool, trace_memory: bool, trace_guards: bool, trace_streams: bool}
+     * @var array{enabled: bool, trace_llm: bool, trace_tools: bool, trace_memory: bool, trace_guards: bool, trace_streams: bool, trace_mcp: bool}
      */
     private array $config;
 
     /**
      * Create a new TelemetryEventBridge.
      *
-     * @param  array{enabled?: bool, trace_llm?: bool, trace_tools?: bool, trace_memory?: bool, trace_guards?: bool, trace_streams?: bool}  $config
+     * @param  array{enabled?: bool, trace_llm?: bool, trace_tools?: bool, trace_memory?: bool, trace_guards?: bool, trace_streams?: bool, trace_mcp?: bool}  $config
      */
     public function __construct(array $config = [])
     {
@@ -81,6 +88,7 @@ final class TelemetryEventBridge implements EventListener
             'trace_memory' => true,
             'trace_guards' => true,
             'trace_streams' => true,
+            'trace_mcp' => true,
         ], $config);
     }
 
@@ -119,6 +127,16 @@ final class TelemetryEventBridge implements EventListener
         if ($this->config['trace_streams']) {
             $events[] = 'stream_started';
             $events[] = 'stream_completed';
+        }
+
+        if ($this->config['trace_mcp']) {
+            $events[] = 'mcp_connection_established';
+            $events[] = 'mcp_connection_failed';
+            $events[] = 'mcp_tools_discovering';
+            $events[] = 'mcp_tools_discovered';
+            $events[] = 'mcp_tool_calling';
+            $events[] = 'mcp_tool_called';
+            $events[] = 'mcp_tool_error';
         }
 
         return $events;
@@ -167,6 +185,14 @@ final class TelemetryEventBridge implements EventListener
             // Stream events
             $event instanceof StreamStartedEvent => $this->handleStreamStarted($event),
             $event instanceof StreamCompletedEvent => $this->handleStreamCompleted($event),
+            // MCP events
+            $event instanceof McpConnectionEstablishedEvent => $this->handleMcpConnectionEstablished($event),
+            $event instanceof McpConnectionFailedEvent => $this->handleMcpConnectionFailed($event),
+            $event instanceof McpToolsDiscoveringEvent => $this->handleMcpToolsDiscovering($event),
+            $event instanceof McpToolsDiscoveredEvent => $this->handleMcpToolsDiscovered($event),
+            $event instanceof McpToolCallingEvent => $this->handleMcpToolCalling($event),
+            $event instanceof McpToolCalledEvent => $this->handleMcpToolCalled($event),
+            $event instanceof McpToolErrorEvent => $this->handleMcpToolError($event),
             default => null,
         };
     }
@@ -460,6 +486,153 @@ final class TelemetryEventBridge implements EventListener
         $span->setAttribute('stream.content_length', strlen($event->fullContent));
 
         $span->setStatus('ok');
+        $span->end();
+    }
+
+    /**
+     * Handle McpConnectionEstablishedEvent - record MCP connection.
+     */
+    private function handleMcpConnectionEstablished(McpConnectionEstablishedEvent $event): void
+    {
+        if (! $this->config['trace_mcp']) {
+            return;
+        }
+
+        // Create a completed span for the connection
+        $span = TelemetryManager::instance()->startSpan(
+            'mcp.connection',
+            [
+                'mcp.client.name' => $event->clientName,
+                'mcp.client.version' => $event->clientVersion,
+                'mcp.server.name' => $event->serverInfo['name'] ?? 'unknown',
+                'mcp.server.version' => $event->serverInfo['version'] ?? 'unknown',
+                'mcp.duration_ms' => $event->durationMs,
+            ]
+        );
+
+        $span->setStatus('ok');
+        $span->end();
+    }
+
+    /**
+     * Handle McpConnectionFailedEvent - record MCP connection failure.
+     */
+    private function handleMcpConnectionFailed(McpConnectionFailedEvent $event): void
+    {
+        if (! $this->config['trace_mcp']) {
+            return;
+        }
+
+        $span = TelemetryManager::instance()->startSpan(
+            'mcp.connection',
+            [
+                'mcp.client.name' => $event->clientName,
+                'mcp.client.version' => $event->clientVersion,
+                'mcp.error.type' => get_class($event->error),
+                'mcp.error.message' => $event->error->getMessage(),
+            ]
+        );
+
+        $span->setStatus('error', $event->error->getMessage());
+        $span->end();
+    }
+
+    /**
+     * Handle McpToolsDiscoveringEvent - start MCP tools discovery span.
+     */
+    private function handleMcpToolsDiscovering(McpToolsDiscoveringEvent $event): void
+    {
+        if (! $this->config['trace_mcp']) {
+            return;
+        }
+
+        $span = TelemetryManager::instance()->startSpan(
+            'mcp.tools.discover',
+            []
+        );
+
+        // Store span with a unique key (use object hash)
+        $this->storeSpan('mcp_discover', (string) spl_object_id($event->client), $span);
+    }
+
+    /**
+     * Handle McpToolsDiscoveredEvent - end MCP tools discovery span.
+     */
+    private function handleMcpToolsDiscovered(McpToolsDiscoveredEvent $event): void
+    {
+        $spanData = $this->retrieveSpan('mcp_discover', (string) spl_object_id($event->client));
+
+        if ($spanData === null) {
+            return;
+        }
+
+        $span = $spanData['span'];
+
+        $span->setAttribute('mcp.tools.count', $event->toolCount);
+        $span->setAttribute('mcp.duration_ms', $event->durationMs);
+
+        $span->setStatus('ok');
+        $span->end();
+    }
+
+    /**
+     * Handle McpToolCallingEvent - start MCP tool call span.
+     */
+    private function handleMcpToolCalling(McpToolCallingEvent $event): void
+    {
+        if (! $this->config['trace_mcp']) {
+            return;
+        }
+
+        $span = TelemetryManager::instance()->startSpan(
+            'mcp.tool.call',
+            [
+                'mcp.tool.name' => $event->toolName,
+            ]
+        );
+
+        // Store span with client ID and tool name
+        $this->storeSpan('mcp_tool', (string) spl_object_id($event->client) . ':' . $event->toolName, $span);
+    }
+
+    /**
+     * Handle McpToolCalledEvent - end MCP tool call span with success.
+     */
+    private function handleMcpToolCalled(McpToolCalledEvent $event): void
+    {
+        $spanData = $this->retrieveSpan('mcp_tool', (string) spl_object_id($event->client) . ':' . $event->toolName);
+
+        if ($spanData === null) {
+            return;
+        }
+
+        $span = $spanData['span'];
+
+        $span->setAttribute('mcp.tool.duration_ms', $event->durationMs);
+        $span->setAttribute('mcp.tool.status', 'success');
+
+        $span->setStatus('ok');
+        $span->end();
+    }
+
+    /**
+     * Handle McpToolErrorEvent - end MCP tool call span with error.
+     */
+    private function handleMcpToolError(McpToolErrorEvent $event): void
+    {
+        $spanData = $this->retrieveSpan('mcp_tool', (string) spl_object_id($event->client) . ':' . $event->toolName);
+
+        if ($spanData === null) {
+            return;
+        }
+
+        $span = $spanData['span'];
+
+        $span->setAttribute('mcp.tool.status', 'error');
+        $span->setAttribute('mcp.tool.error.type', get_class($event->error));
+        $span->setAttribute('mcp.tool.error.message', $event->error->getMessage());
+
+        $span->setStatus('error', $event->error->getMessage());
         $span->end();
     }
 
