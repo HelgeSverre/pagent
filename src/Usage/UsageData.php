@@ -1,0 +1,110 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pagent\Usage;
+
+/**
+ * Data Transfer Object for LLM usage tracking.
+ *
+ * Represents a single usage record with token counts, cost, and metadata.
+ */
+final class UsageData
+{
+    public function __construct(
+        public readonly string $agentName,
+        public readonly string $provider,
+        public readonly string $model,
+        public readonly int $inputTokens,
+        public readonly int $outputTokens,
+        public readonly int $totalTokens,
+        public readonly float $cost,
+        public readonly ?int $cachedInputTokens = null,
+        public readonly ?int $cacheCreationTokens = null,
+        public readonly ?string $sessionId = null,
+        public readonly float $timestamp = 0.0,
+    ) {
+    }
+
+    /**
+     * Create UsageData from LLM response data.
+     *
+     * @param  string  $agentName  Name of the agent
+     * @param  string  $provider  Provider name (anthropic, openai, etc.)
+     * @param  string  $model  Model name
+     * @param  array<string, mixed>  $usage  Usage array from provider response
+     * @param  float  $cost  Calculated cost in USD
+     * @param  string|null  $sessionId  Optional session identifier
+     * @return self
+     */
+    public static function fromResponse(
+        string $agentName,
+        string $provider,
+        string $model,
+        array $usage,
+        float $cost,
+        ?string $sessionId = null
+    ): self {
+        return new self(
+            agentName: $agentName,
+            provider: $provider,
+            model: $model,
+            inputTokens: (int) ($usage['input_tokens'] ?? 0),
+            outputTokens: (int) ($usage['output_tokens'] ?? 0),
+            totalTokens: (int) ($usage['total_tokens'] ?? 0),
+            cost: $cost,
+            cachedInputTokens: isset($usage['cache_read_input_tokens']) ? (int) $usage['cache_read_input_tokens'] : null,
+            cacheCreationTokens: isset($usage['cache_creation_input_tokens']) ? (int) $usage['cache_creation_input_tokens'] : null,
+            sessionId: $sessionId,
+            timestamp: microtime(true),
+        );
+    }
+
+    /**
+     * Convert to array representation.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'agent_name' => $this->agentName,
+            'provider' => $this->provider,
+            'model' => $this->model,
+            'input_tokens' => $this->inputTokens,
+            'output_tokens' => $this->outputTokens,
+            'total_tokens' => $this->totalTokens,
+            'cost' => $this->cost,
+            'cached_input_tokens' => $this->cachedInputTokens,
+            'cache_creation_tokens' => $this->cacheCreationTokens,
+            'session_id' => $this->sessionId,
+            'timestamp' => $this->timestamp,
+        ];
+    }
+
+    /**
+     * Get formatted cost as string.
+     */
+    public function getFormattedCost(): string
+    {
+        return '$'.number_format($this->cost, 4);
+    }
+
+    /**
+     * Get cache hit ratio if cache data is available.
+     */
+    public function getCacheHitRatio(): ?float
+    {
+        if ($this->cachedInputTokens === null) {
+            return null;
+        }
+
+        $totalInputWithCache = $this->inputTokens + $this->cachedInputTokens;
+
+        if ($totalInputWithCache === 0) {
+            return null;
+        }
+
+        return $this->cachedInputTokens / $totalInputWithCache;
+    }
+}
