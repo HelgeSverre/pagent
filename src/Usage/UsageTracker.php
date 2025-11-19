@@ -99,6 +99,11 @@ final class UsageTracker implements EventListener
      */
     private function handleLLMResponse(AfterLLMResponseEvent $event): void
     {
+        // Check if LLM tracking is enabled
+        if (! $this->config['track_llm']) {
+            return;
+        }
+
         // Extract usage data from response
         $usage = $event->responseData['usage'] ?? [];
 
@@ -132,12 +137,13 @@ final class UsageTracker implements EventListener
      */
     private function handleStreamCompleted(StreamCompletedEvent $event): void
     {
-        // Check if event has usage data (requires event enhancement in Phase 2)
-        if (! property_exists($event, 'usage') || empty($event->usage)) {
+        // Check if streaming tracking is enabled
+        if (! $this->config['track_streaming']) {
             return;
         }
 
-        if (! property_exists($event, 'provider') || ! property_exists($event, 'model')) {
+        // Check if event has usage data
+        if (empty($event->usage) || empty($event->provider) || empty($event->model)) {
             return;
         }
 

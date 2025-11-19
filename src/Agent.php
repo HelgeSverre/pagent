@@ -627,15 +627,17 @@ final class Agent
             // Calculate duration and fire stream completed event
             $durationMs = (microtime(true) - $startTime) * 1000;
 
-            // Note: We don't have access to total chunks without modifying StreamResponse
-            // For now, we'll estimate based on content length or set to 0
-            $totalChunks = 0; // Could be enhanced in future
+            // Get total chunks from stream response
+            $totalChunks = count($streamResponse->getChunks());
 
             $this->fireEvent(new StreamCompletedEvent(
                 $this,
                 $fullContent,
                 $totalChunks,
-                $durationMs
+                $durationMs,
+                $streamResponse->getProvider(),
+                $streamResponse->getModel(),
+                $streamResponse->getUsage() ?? []
             ));
 
             // Set span status to ok
