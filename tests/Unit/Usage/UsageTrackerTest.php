@@ -448,3 +448,79 @@ test('tracker records zero cost for free providers', function () {
     expect($tracker->getTotalCost())->toBe(0.0)
         ->and($tracker->getAll())->toHaveCount(1); // Still tracks usage
 });
+
+test('tracker handles StreamCompletedEvent with usage data', function () {
+    $tracker = new UsageTracker(['track_streaming' => true]);
+    $agent = new Agent('stream-agent');
+    $agent->provider(mock());
+
+    $event = new Pagent\Events\Events\Stream\StreamCompletedEvent(
+        $agent,
+        'Hello from stream',
+        5,
+        250.0,
+        'anthropic',
+        'claude-3-5-sonnet-20241022',
+        [
+            'input_tokens' => 1000,
+            'output_tokens' => 500,
+            'total_tokens' => 1500,
+        ]
+    );
+
+    $tracker->handle($event);
+
+    $records = $tracker->getAll();
+
+    expect($records)->toHaveCount(1)
+        ->and($records[0]->agentName)->toBe('stream-agent')
+        ->and($records[0]->provider)->toBe('anthropic')
+        ->and($records[0]->model)->toBe('claude-3-5-sonnet-20241022')
+        ->and($records[0]->inputTokens)->toBe(1000)
+        ->and($records[0]->outputTokens)->toBe(500)
+        ->and($records[0]->cost)->toBeGreaterThan(0);
+});
+
+test('tracker ignores StreamCompletedEvent without usage data', function () {
+    $tracker = new UsageTracker(['track_streaming' => true]);
+    $agent = new Agent('stream-agent');
+    $agent->provider(mock());
+
+    $event = new Pagent\Events\Events\Stream\StreamCompletedEvent(
+        $agent,
+        'Hello from stream',
+        5,
+        250.0,
+        '', // empty provider
+        '', // empty model
+        [] // empty usage
+    );
+
+    $tracker->handle($event);
+
+    expect($tracker->getAll())->toBeEmpty();
+});
+
+test('tracker ignores StreamCompletedEvent when track_streaming is disabled', function () {
+    $tracker = new UsageTracker(['track_streaming' => false]);
+    $agent = new Agent('stream-agent');
+    $agent->provider(mock());
+
+    $event = new Pagent\Events\Events\Stream\StreamCompletedEvent(
+        $agent,
+        'Hello from stream',
+        5,
+        250.0,
+        'anthropic',
+        'claude-3-opus',
+        [
+            'input_tokens' => 1000,
+            'output_tokens' => 500,
+        ]
+    );
+
+    $tracker->handle($event);
+
+    // Should not track because track_streaming is disabled
+    expect($tracker->getAll())->toBeEmpty();
+});
