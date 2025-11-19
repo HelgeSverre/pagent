@@ -1,4 +1,5 @@
 # The Complete Pagent Framework Guide
+
 ## A Comprehensive Introduction to Building AI Agents with PHP
 
 **Version:** 1.0
@@ -53,6 +54,7 @@ This guide is designed for multiple reading approaches:
 - **Expert builders**: Skip to Chapters 16-19 and 24-28 for advanced patterns
 
 Each chapter includes:
+
 - **Learning objectives** to guide your focus
 - **Practical examples** you can run immediately
 - **Best practices** from production experience
@@ -77,6 +79,7 @@ Ready to build intelligent agents? Let's begin with Chapter 1: Introduction to P
 ## Table of Contents
 
 ### Part 1: Foundations
+
 Master the core concepts and basic usage patterns
 
 - [Chapter 1: Introduction to Pagent](#chapter-1-introduction-to-pagent)
@@ -86,6 +89,7 @@ Master the core concepts and basic usage patterns
 - [Chapter 5: Response Processing](#chapter-5-response-processing)
 
 ### Part 2: Tool Integration
+
 Learn how agents interact with external systems through tool calling
 
 - [Chapter 6: Introduction to Tool Calling](#chapter-6-introduction-to-tool-calling)
@@ -94,24 +98,28 @@ Learn how agents interact with external systems through tool calling
 - [Chapter 9: Tool Orchestration Patterns](#chapter-9-tool-orchestration-patterns)
 
 ### Part 3: Real-Time Interaction
+
 Implement streaming responses for dynamic user experiences
 
 - [Chapter 10: Streaming Fundamentals](#chapter-10-streaming-fundamentals)
 - [Chapter 11: Advanced Streaming Patterns](#chapter-11-advanced-streaming-patterns)
 
 ### Part 4: Persistence and State
+
 Build agents that remember conversations and maintain context
 
 - [Chapter 12: Memory Systems](#chapter-12-memory-systems)
 - [Chapter 13: Advanced Memory Patterns](#chapter-13-advanced-memory-patterns)
 
 ### Part 5: Reliability and Safety
+
 Ensure your agents are robust, safe, and production-ready
 
 - [Chapter 14: Safety Guards](#chapter-14-safety-guards)
 - [Chapter 15: Reliability Patterns](#chapter-15-reliability-patterns)
 
 ### Part 6: Multi-Agent Orchestration
+
 Coordinate multiple specialized agents for complex workflows
 
 - [Chapter 16: Multi-Agent Fundamentals](#chapter-16-multi-agent-fundamentals)
@@ -120,24 +128,28 @@ Coordinate multiple specialized agents for complex workflows
 - [Chapter 19: Delegation Pattern](#chapter-19-delegation-pattern)
 
 ### Part 7: Quality Assurance
+
 Test and evaluate agent performance systematically
 
 - [Chapter 20: Evaluation Framework](#chapter-20-evaluation-framework)
 - [Chapter 21: Testing Strategies](#chapter-21-testing-strategies)
 
 ### Part 8: Observability
+
 Monitor, debug, and optimize agent behavior in production
 
 - [Chapter 22: OpenTelemetry Integration](#chapter-22-opentelemetry-integration)
 - [Chapter 23: Debugging and Monitoring](#chapter-23-debugging-and-monitoring)
 
 ### Part 9: Integration and Extensibility
+
 Integrate with popular frameworks and extend Pagent's capabilities
 
 - [Chapter 24: Laravel and Symfony Integration](#chapter-24-laravel-and-symfony-integration)
 - [Chapter 25: Custom Middleware](#chapter-25-custom-middleware)
 
 ### Part 10: Production Excellence
+
 Optimize performance and deploy sophisticated agent systems
 
 - [Chapter 26: Performance Optimization](#chapter-26-performance-optimization)
@@ -149,7 +161,9 @@ Optimize performance and deploy sophisticated agent systems
 ## Learning Paths
 
 ### Quick Start Path (4-6 hours)
+
 Focus on getting productive fast:
+
 - Chapter 1: Introduction
 - Chapter 2: Providers
 - Chapter 3: Messages
@@ -158,7 +172,9 @@ Focus on getting productive fast:
 - Chapter 20: Evaluation
 
 ### Production-Ready Path (8-10 hours)
+
 Build reliable, deployable agents:
+
 - Chapters 1-5: Foundations
 - Chapter 6-7: Tool Integration
 - Chapters 14-15: Safety and Reliability
@@ -167,13 +183,17 @@ Build reliable, deployable agents:
 - Chapters 26-27: Optimization and Deployment
 
 ### Full-Stack Path (12-15 hours)
+
 Complete mastery from basics to advanced:
+
 - Read all 28 chapters in sequence
 - Complete code examples
 - Build practice projects after each part
 
 ### Expert Path (6-8 hours)
+
 For experienced developers familiar with LLMs:
+
 - Skim Chapters 1-5
 - Deep dive Chapters 16-19: Multi-Agent Systems
 - Master Chapters 24-28: Integration and Production
@@ -729,9 +749,11 @@ In **Chapter 2: Working with Providers**, we'll dive deeper into:
 ✅ All configuration is validated before reaching the provider layer
 
 Continue to [Chapter 2: Working with Providers](./article.part2.md) →
+
 # Chapter 2: Working with Providers
 
 **Learning Objectives:**
+
 - Configure Anthropic, OpenAI, and Ollama providers
 - Understand provider-specific features and limitations
 - Switch between providers dynamically
@@ -1114,36 +1136,40 @@ The `clearAgents()` function removes all registered agents from the global regis
 
 Different providers have different strengths. Here's a practical comparison:
 
-| Feature | Anthropic | OpenAI | Ollama | Mock |
-|---------|-----------|--------|--------|------|
-| **API Key Required** | Yes | Yes | No | No |
-| **Default Model** | claude-sonnet-4-20250514 | gpt-3.5-turbo | qwen3:8b | mock |
-| **System Messages** | Separate field | First message | First message | N/A |
-| **Streaming Support** | Yes | Yes | Yes | No |
-| **Tool Calling** | Yes | Yes | Yes | No |
-| **Token Usage Details** | Detailed | Detailed | Detailed | Simple |
-| **Cost** | Paid | Paid | Free (local) | Free |
-| **Latency** | Network | Network | Local | Instant |
+| Feature                 | Anthropic                | OpenAI        | Ollama        | Mock    |
+| ----------------------- | ------------------------ | ------------- | ------------- | ------- |
+| **API Key Required**    | Yes                      | Yes           | No            | No      |
+| **Default Model**       | claude-sonnet-4-20250514 | gpt-3.5-turbo | qwen3:8b      | mock    |
+| **System Messages**     | Separate field           | First message | First message | N/A     |
+| **Streaming Support**   | Yes                      | Yes           | Yes           | No      |
+| **Tool Calling**        | Yes                      | Yes           | Yes           | No      |
+| **Token Usage Details** | Detailed                 | Detailed      | Detailed      | Simple  |
+| **Cost**                | Paid                     | Paid          | Free (local)  | Free    |
+| **Latency**             | Network                  | Network       | Local         | Instant |
 
 ### When to Use Each Provider
 
 **Use Anthropic** when you need:
+
 - Claude's strong reasoning and tool use capabilities
 - Detailed control over system prompts
 - High-quality long-form generation
 
 **Use OpenAI** when you need:
+
 - GPT-4's multimodal capabilities
 - Structured outputs (JSON mode)
 - Broader model selection (o1, o3, etc.)
 
 **Use Ollama** when you need:
+
 - Zero-cost local development
 - Privacy (no data leaves your machine)
 - Offline operation
 - Fast iteration without API limits
 
 **Use Mock** when you need:
+
 - Deterministic testing
 - CI/CD without API credentials
 - Rapid prototyping without costs
@@ -1286,12 +1312,14 @@ In the next chapter, we'll explore how to build multi-turn conversations by mana
 ---
 
 **Key Takeaways:**
+
 - All providers implement the `Provider` interface with a single `prompt()` method
 - Anthropic, OpenAI, and Ollama each have provider-specific defaults and behaviors
 - Mock providers enable testing without API calls or costs
 - Environment variables are the recommended way to configure API keys
 - Provider responses use a consistent object structure across all implementations
 - Error handling should be provider-agnostic using try-catch blocks
+
 # Chapter 3: Messages and Conversations
 
 In Chapter 1, we learned how to create agents and send single prompts. In Chapter 2, we explored the different providers that power those prompts. But real-world AI applications rarely work with isolated messages. They require conversations - multi-turn exchanges where the agent remembers what was said before and builds on that context.
@@ -1325,6 +1353,7 @@ print_r($agent->messages);
 Every time you call `prompt()`, Pagent automatically adds two messages to the history: your user message and the assistant's response. This happens transparently - you don't need to manage the array yourself.
 
 The message structure is deliberately simple. Each message is an array with two required keys:
+
 - `role`: Either "user" or "assistant" (system messages are handled differently, as we'll see)
 - `content`: The message text
 
@@ -1446,14 +1475,14 @@ The exported JSON contains the complete message history plus metadata like the a
 
 ```json
 {
-    "agent": "persistent-bot",
-    "messages": [
-        {"role": "user", "content": "Remember this: my favorite color is blue"},
-        {"role": "assistant", "content": "I'll remember that!"},
-        {"role": "user", "content": "What should I wear to a summer wedding?"},
-        {"role": "assistant", "content": "For a summer wedding..."}
-    ],
-    "exported_at": "2025-01-15T10:30:00+00:00"
+  "agent": "persistent-bot",
+  "messages": [
+    { "role": "user", "content": "Remember this: my favorite color is blue" },
+    { "role": "assistant", "content": "I'll remember that!" },
+    { "role": "user", "content": "What should I wear to a summer wedding?" },
+    { "role": "assistant", "content": "For a summer wedding..." }
+  ],
+  "exported_at": "2025-01-15T10:30:00+00:00"
 }
 ```
 
@@ -1626,6 +1655,7 @@ $agent->prompt('Hello again');
 ```
 
 Direct manipulation is powerful but use it carefully. The automatic tracking handles most scenarios correctly. Manual manipulation is useful for:
+
 - Testing specific conversation states
 - Implementing custom pruning strategies
 - Migrating conversations between agents
@@ -1662,6 +1692,7 @@ We've now covered the fundamentals: creating agents, configuring providers, and 
 In the next chapter, we'll explore prompting strategies - how to craft system prompts that guide agent behavior, implement few-shot learning, and design effective prompts that get better results from your LLMs.
 
 You'll learn that while conversation management keeps the dialogue flowing, prompt engineering determines the quality of what flows through it. Let's dive into that next.
+
 # Chapter 4: Prompting Strategies
 
 **Target Audience:** PHP developers familiar with Pagent basics (Chapters 1-3)
@@ -2315,11 +2346,13 @@ echo $translation->content;
 ### 1. Be Specific and Direct
 
 **Bad:**
+
 ```php
 ->system('Help users')
 ```
 
 **Good:**
+
 ```php
 ->system('You are a technical support specialist for web hosting. Provide clear, step-by-step solutions for common issues like DNS configuration, SSL setup, and email routing.')
 ```
@@ -2327,11 +2360,13 @@ echo $translation->content;
 ### 2. Use Constraints to Control Output
 
 **Bad:**
+
 ```php
 ->system('Extract data from text')
 ```
 
 **Good:**
+
 ```php
 ->system('Extract contact information and return ONLY valid JSON with keys: name, email, phone, company. No additional text or explanation.')
 ```
@@ -2408,6 +2443,7 @@ In the next chapter, we'll explore response processing techniques—parsing stru
 ---
 
 **Chapter Summary:**
+
 - Learned to design effective system prompts with constraints and examples
 - Implemented few-shot learning and chain-of-thought reasoning
 - Created dynamic prompt templates using PHP patterns
@@ -2415,6 +2451,7 @@ In the next chapter, we'll explore response processing techniques—parsing stru
 - Explored real-world examples: SQL generation, content moderation, translation
 
 **Next Chapter:** Chapter 5 - Response Processing (parsing, validation, transformation)
+
 # Chapter 5: Response Processing
 
 In the previous chapters, we learned how to send prompts to LLMs and manage conversations. But the real challenge often lies in what comes next: processing the responses you receive. LLMs return text, but your application needs structured data, validated content, and reliable formats.
@@ -2449,6 +2486,7 @@ print_r($response->usage);
 ```
 
 The response object provides everything you need to understand what happened with your prompt:
+
 - `content`: The actual text response from the LLM
 - `model`: Which model was used (useful for logging and debugging)
 - `tokens`: Total token count (input + output combined)
@@ -2531,6 +2569,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 ```
 
 This pattern works reliably when you:
+
 1. Explicitly instruct the LLM in the system prompt to output JSON
 2. Specify the exact structure you expect
 3. Include error handling for malformed JSON
@@ -2672,6 +2711,7 @@ print_r($result);
 ```
 
 This retry pattern:
+
 1. Attempts the prompt up to `$maxRetries` times
 2. Validates the response with a custom validator function
 3. Provides feedback to the LLM about what went wrong
@@ -2714,6 +2754,7 @@ $response = $agent->prompt('What is 2+2?');
 ```
 
 The middleware interface has two methods:
+
 - `before(string $message, array $options): array` - Called before the prompt is sent, can modify options
 - `after(object $response): object` - Called after the response is received, can transform it
 
@@ -2803,6 +2844,7 @@ $agent = agent('rate-limited-bot')
 ```
 
 These middleware provide production-ready functionality:
+
 - `LoggingMiddleware`: Logs all interactions using PSR-3 compatible loggers
 - `MetricsMiddleware`: Collects duration and token usage statistics
 - `RateLimitMiddleware`: Enforces request rate limits to prevent API abuse
@@ -2879,6 +2921,7 @@ print_r($formData);
 ```
 
 This extractor:
+
 1. Uses a clear system prompt defining expected output format
 2. Parses JSON response with proper error handling
 3. Validates the structure matches requirements
@@ -2986,6 +3029,7 @@ foreach ($reviews as $review) {
 ```
 
 This analyzer demonstrates:
+
 - Retry logic with conversation-based feedback
 - Comprehensive validation (structure, types, ranges)
 - Clear error messages at each validation stage
@@ -3072,6 +3116,7 @@ try {
 ```
 
 This generator:
+
 1. Validates non-empty response
 2. Checks SQL syntax requirements (semicolon)
 3. Prevents SQL injection attempts in SELECT contexts
@@ -3103,6 +3148,7 @@ We've explored the complete lifecycle of a prompt: creating agents, configuring 
 In the next chapter, we'll expand agent capabilities dramatically by introducing tool calling - the ability for agents to execute functions, call APIs, and interact with external systems. This is where agents transform from conversational interfaces into autonomous systems that can take action in the world.
 
 You'll learn how to define tools, handle tool execution, and build agents that seamlessly combine conversation with capability. Let's explore that next.
+
 # Chapter 6: Introduction to Tool Calling
 
 One of the most powerful features of modern large language models is their ability to call functions or "tools" to extend their capabilities beyond text generation. In Pagent, tool calling transforms your agents from simple conversational interfaces into action-taking systems that can query databases, read files, call APIs, perform calculations, and interact with the real world.
@@ -3114,6 +3160,7 @@ This chapter introduces the fundamentals of tool calling in Pagent: how to defin
 When you send a prompt to an LLM with tools registered, the model can decide to call one or more of those tools instead of (or in addition to) generating text. The LLM doesn't execute the tool itself—instead, it returns structured data indicating which tool to call and what arguments to pass.
 
 Your application then:
+
 1. Receives the tool call request from the LLM
 2. Executes the tool with the provided arguments
 3. Sends the tool's result back to the LLM
@@ -3168,6 +3215,7 @@ public function tool(ToolInterface $tool): self
 ```
 
 **Parameters:**
+
 - `$name`: The tool name the LLM will use to invoke it (e.g., "get_weather", "calculate_distance")
 - `$description`: A clear description of what the tool does—this helps the LLM decide when to use it
 - `$callable`: A PHP closure that implements the tool's logic
@@ -3188,6 +3236,7 @@ $agent->tool(
 ```
 
 Pagent automatically extracts:
+
 - **Parameter names**: `location` and `include_forecast`
 - **Parameter types**: `string` and `bool`
 - **Required vs. optional**: `location` is required, `include_forecast` is optional (has default value)
@@ -3196,6 +3245,7 @@ Pagent automatically extracts:
 This information is converted into JSON Schema format compatible with both OpenAI and Anthropic APIs:
 
 **Anthropic Format:**
+
 ```json
 {
   "name": "get_weather",
@@ -3203,8 +3253,8 @@ This information is converted into JSON Schema format compatible with both OpenA
   "input_schema": {
     "type": "object",
     "properties": {
-      "location": {"type": "string"},
-      "include_forecast": {"type": "boolean"}
+      "location": { "type": "string" },
+      "include_forecast": { "type": "boolean" }
     },
     "required": ["location"]
   }
@@ -3212,6 +3262,7 @@ This information is converted into JSON Schema format compatible with both OpenA
 ```
 
 **OpenAI Format:**
+
 ```json
 {
   "type": "function",
@@ -3221,8 +3272,8 @@ This information is converted into JSON Schema format compatible with both OpenA
     "parameters": {
       "type": "object",
       "properties": {
-        "location": {"type": "string"},
-        "include_forecast": {"type": "boolean"}
+        "location": { "type": "string" },
+        "include_forecast": { "type": "boolean" }
       },
       "required": ["location"]
     }
@@ -3236,14 +3287,14 @@ Pagent automatically uses the correct schema format based on your configured pro
 
 Pagent maps PHP type hints to JSON Schema types:
 
-| PHP Type | JSON Schema Type |
-|----------|------------------|
-| `string` | `"string"` |
-| `int` | `"integer"` |
-| `float` | `"number"` |
-| `bool` | `"boolean"` |
-| `array` | `"array"` |
-| `object`, `stdClass` | `"object"` |
+| PHP Type             | JSON Schema Type |
+| -------------------- | ---------------- |
+| `string`             | `"string"`       |
+| `int`                | `"integer"`      |
+| `float`              | `"number"`       |
+| `bool`               | `"boolean"`      |
+| `array`              | `"array"`        |
+| `object`, `stdClass` | `"object"`       |
 
 **Example with multiple types:**
 
@@ -3305,21 +3356,27 @@ $agent->tools($tools);
 Understanding the tool execution lifecycle helps you debug and optimize your tools. Here's what happens under the hood:
 
 ### 1. Registration Phase
+
 When you call `$agent->tool()`, Pagent:
+
 - Creates a `Tool` instance using `Tool::fromClosure()`
 - Uses PHP reflection to extract parameter information
 - Stores the tool in the agent's internal tool registry
 - Caches the JSON schema for performance
 
 ### 2. Prompt Phase
+
 When you call `$agent->prompt()`, Pagent:
+
 - Includes tool schemas in the API request
 - Sends your prompt along with available tools to the LLM
 
 ### 3. LLM Response Phase
+
 The LLM can respond in two ways:
 
 **Option A: Direct text response**
+
 ```php
 // LLM decides no tool is needed
 {
@@ -3328,6 +3385,7 @@ The LLM can respond in two ways:
 ```
 
 **Option B: Tool call request**
+
 ```php
 // LLM requests to call a tool
 {
@@ -3342,7 +3400,9 @@ The LLM can respond in two ways:
 ```
 
 ### 4. Automatic Tool Execution
+
 When the LLM requests a tool call, Pagent automatically:
+
 1. Validates the tool exists
 2. Validates the arguments match the tool's signature
 3. Executes the tool: `$result = $tool->execute([15, 27])`
@@ -3350,7 +3410,9 @@ When the LLM requests a tool call, Pagent automatically:
 5. Sends the result back to the LLM in the conversation
 
 ### 5. Final Response
+
 The LLM receives the tool result and generates a final response:
+
 ```php
 // After receiving tool result: 42
 {
@@ -3400,6 +3462,7 @@ echo $result; // 15
 ```
 
 This is particularly useful for:
+
 - Testing tool implementations
 - Debugging tool logic
 - Building custom orchestration flows
@@ -3424,6 +3487,7 @@ foreach ($tools as $tool) {
 ```
 
 This returns an array of `ToolInterface` instances, each with:
+
 - `name`: The tool's name
 - `description`: The tool's description
 - `arguments`: Array of `ToolArgument` objects with type information
@@ -3468,6 +3532,7 @@ echo count($agent->getTools()); // 0
 ```
 
 The `clearTools()` method:
+
 - Removes all registered tools
 - Clears the internal schema cache
 - Allows you to start fresh with new tools
@@ -3537,6 +3602,7 @@ $agent->tool(new DatabaseQuery());
 ```
 
 Class-based tools give you more control over:
+
 - Schema definition (for complex parameter structures)
 - Error handling and validation
 - Dependency injection (constructor arguments)
@@ -3601,6 +3667,7 @@ echo $response->content;
 ```
 
 This agent demonstrates:
+
 - Multiple related tools working together
 - Tools that call external functions (simulated API)
 - Different parameter types (string, float)
@@ -3624,6 +3691,7 @@ In this chapter, you learned:
 Tool calling transforms your agents from conversational systems into action-taking systems. With tools, your agents can query databases, read files, call APIs, perform calculations, and interact with external systems—all while maintaining natural language interaction.
 
 In the next chapter, we'll dive deeper into building custom tools with validation, error handling, and advanced patterns for production use.
+
 # Chapter 7: Building Custom Tools
 
 In Chapter 6, we learned how to add tool calling capabilities to agents using simple closures. But as your applications grow more sophisticated, you'll need tools that are reusable, composable, and well-documented. You'll want to share tools across multiple agents, add validation logic, handle edge cases gracefully, and create libraries of functionality that other developers can use.
@@ -4483,9 +4551,11 @@ This pattern lets you integrate any PHP library into your agent's capabilities.
 You now understand how to build production-ready custom tools with proper validation, configuration, and error handling. You know how to implement the `ToolInterface`, use the abstract `Tool` class to reduce boilerplate, and organize tools into reusable libraries.
 
 In the next chapter, we'll explore recursive tool execution - how agents can chain multiple tool calls together, handle complex multi-step workflows, and avoid infinite loops. You'll learn how Pagent's automatic recursion handling makes it easy to build agents that break down complex tasks into a series of tool calls.
+
 # Chapter 8: Recursive Tool Execution
 
 **Learning Objectives:**
+
 - Understand automatic recursive tool calling
 - Manage execution depth limits
 - Handle multi-step tool workflows
@@ -4960,9 +5030,11 @@ In Chapter 9, we'll explore tool orchestration patterns, learning how to design 
 - [Anthropic Tool Use Guide](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)
 - [OpenAI Function Calling](https://platform.openai.com/docs/guides/function-calling)
 - [Pagent Source Code - Agent.php](https://github.com/hhelge/pagent/blob/main/src/Agent.php)
+
 # Chapter 9: Tool Orchestration Patterns
 
 **Learning Objectives:**
+
 - Understand how Pagent executes tools sequentially
 - Master manual vs. LLM-driven orchestration strategies
 - Implement data pipeline and workflow patterns
@@ -5029,6 +5101,7 @@ foreach ($response->tool_calls as $toolCall) {
 ```
 
 **Why sequential?** Sequential execution provides:
+
 - **Predictable ordering:** Tools run in the exact order the LLM specifies
 - **Dependency handling:** Later tools can depend on earlier results
 - **Simpler debugging:** Clear execution trace in conversation history
@@ -5049,6 +5122,7 @@ Every tool execution leaves a trace in `$agent->messages`:
 ```
 
 This full history allows:
+
 - **LLM context:** The model sees all tool results for final synthesis
 - **Debugging:** Inspect exactly what tools returned
 - **Auditing:** Track the entire decision chain
@@ -5102,6 +5176,7 @@ $result = $agent->prompt('
 ```
 
 **When LLM orchestration shines:**
+
 - The workflow involves decision-making
 - Tool selection depends on data content
 - You want natural language workflow definitions
@@ -5136,6 +5211,7 @@ $response = $agent->prompt("
 ```
 
 The LLM naturally handles:
+
 - **Conditional logic:** Only refund if order exists and is eligible
 - **Multi-step workflows:** Check → Refund → Notify
 - **Context awareness:** Use customer info from conversation history
@@ -5191,6 +5267,7 @@ echo "Result: {$product}"; // Result: 16
 ```
 
 **Use cases for manual execution:**
+
 - **Deterministic workflows:** Fixed sequence every time
 - **Performance optimization:** Skip LLM overhead for simple chains
 - **Testing:** Validate tool behavior in isolation
@@ -5238,6 +5315,7 @@ $report = $agent->prompt("
 ```
 
 **Why hybrid?** You get:
+
 - Predictable data gathering (manual)
 - Creative presentation (LLM)
 - Cost efficiency (fewer LLM calls)
@@ -5315,6 +5393,7 @@ while (!empty($response->tool_calls)) {
 ```
 
 **Implications:**
+
 - Deep workflows may need manual orchestration
 - Consider batching related operations in single tools
 - Design tools to return complete results, not partial
@@ -5567,13 +5646,13 @@ $agent->telemetry(true);
 
 ## Common Patterns Summary
 
-| Pattern | When to Use | Orchestration Type |
-|---------|-------------|-------------------|
-| **Multi-Step Pipeline** | Sequential data processing | LLM-driven |
-| **Conditional Workflow** | Decision-based tool selection | LLM-driven |
-| **Information Aggregation** | Gather from multiple sources | LLM-driven |
-| **Hybrid Orchestration** | Mix manual + LLM creativity | Manual + LLM |
-| **Error-Resilient Pipeline** | Critical workflows with validation | Manual |
+| Pattern                      | When to Use                        | Orchestration Type |
+| ---------------------------- | ---------------------------------- | ------------------ |
+| **Multi-Step Pipeline**      | Sequential data processing         | LLM-driven         |
+| **Conditional Workflow**     | Decision-based tool selection      | LLM-driven         |
+| **Information Aggregation**  | Gather from multiple sources       | LLM-driven         |
+| **Hybrid Orchestration**     | Mix manual + LLM creativity        | Manual + LLM       |
+| **Error-Resilient Pipeline** | Critical workflows with validation | Manual             |
 
 ## What We Learned
 
@@ -5596,6 +5675,7 @@ Now that you understand tool orchestration patterns, you're ready for:
 - **Part 6 (Chapters 18-20):** Multi-agent orchestration with pipelines, handoffs, and delegation
 
 Tool orchestration is where Pagent transforms from a simple chat interface into a powerful workflow engine. Master these patterns and you'll build sophisticated AI applications that blend LLM intelligence with deterministic reliability.
+
 # Chapter 10: Streaming Fundamentals
 
 In previous chapters, we've worked with the standard `prompt()` method - send a message, wait for the complete response, then display it. This works perfectly for many use cases, but what about scenarios where you want to show progress as the response generates? What about building a chatbot with that characteristic "typing" effect, or displaying long-form content word-by-word as it's created?
@@ -5643,6 +5723,7 @@ echo "\n\nTotal length: " . strlen($fullContent) . " characters";
 This simple example demonstrates the core pattern: provide a callback that receives each chunk, check if it's text content with `isText()`, then process it however you need. The `flush()` call ensures output reaches the browser immediately rather than buffering.
 
 The `streamTo()` method handles several things automatically:
+
 - Adds your message to conversation history
 - Streams the response through your callback
 - Collects the full content
@@ -5685,6 +5766,7 @@ echo "Stopped because: " . $stopReason;
 ```
 
 The `StreamResponse` object provides:
+
 - `getStream()`: Returns the underlying PHP Generator for manual iteration
 - `collect()`: Iterates through all chunks and returns the full content
 - `streamTo(callable $callback)`: Streams to a callback function
@@ -5734,6 +5816,7 @@ $agent->streamTo('Count to five', function ($chunk) {
 ```
 
 The `StreamChunk` provides these methods:
+
 - `isText()`: True for text content chunks
 - `isStart()`: True for stream start marker
 - `isEnd()`: True for stream completion marker
@@ -5743,6 +5826,7 @@ The `StreamChunk` provides these methods:
 - `getMetadata(string $key, mixed $default = null)`: Retrieves metadata like usage stats
 
 And these public properties:
+
 - `type`: Chunk type string ("text", "start", "done", "error", etc.)
 - `content`: The actual text content
 - `delta`: Additional delta information (optional)
@@ -5777,6 +5861,7 @@ echo "Tokens: " . ($usage['total_tokens'] ?? 'unknown');
 ```
 
 The `collect()` method:
+
 - Iterates through the entire stream automatically
 - Accumulates all text content
 - Collects metadata from the final chunk (usage, stop reason)
@@ -5869,6 +5954,7 @@ echo "Total exchanges: " . (count($agent->messages) / 2) . "\n";
 ```
 
 This demonstrates several important patterns:
+
 - Streaming works seamlessly with conversation history
 - Each `streamTo()` call automatically adds messages to history
 - You can measure generation time around streaming calls
@@ -5912,6 +5998,7 @@ try {
 ```
 
 Common error scenarios:
+
 - Invalid API keys throw `RuntimeException` before streaming starts
 - Network interruptions throw exceptions during streaming
 - Provider errors appear as error chunks in the stream
@@ -5922,6 +6009,7 @@ Common error scenarios:
 Pagent abstracts away the differences, but it's helpful to understand what's happening under the hood:
 
 **Anthropic** uses Server-Sent Events (SSE). The underlying format looks like:
+
 ```
 event: message_start
 data: {"type":"message_start","message":{"id":"msg_123"...}}
@@ -5936,6 +6024,7 @@ data: {"type":"message_stop"}
 Pagent's `AnthropicStreamParser` parses these SSE events and converts them into normalized `StreamChunk` objects.
 
 **OpenAI** uses newline-delimited JSON (NDJSON). Each line is a JSON object:
+
 ```json
 {"id":"chatcmpl-123","object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello"}}]}
 {"id":"chatcmpl-123","object":"chat.completion.chunk","choices":[{"delta":{"content":" world"}}]}
@@ -5983,6 +6072,7 @@ $agent->streamTo("What's my name?", function ($chunk) {
 ```
 
 The memory integration works identically to `prompt()`:
+
 - Conversation loads automatically on first `streamTo()` call
 - Each streaming response is saved to memory
 - Session persistence works across streaming and non-streaming calls
@@ -6015,6 +6105,7 @@ try {
 ```
 
 This means:
+
 - Content streams in real-time
 - After streaming completes, guards check the full content
 - If a guard fails, the exception is thrown after all chunks have streamed
@@ -6027,12 +6118,14 @@ For real-time content filtering during streaming, you'd need to implement checks
 Streaming trades bandwidth efficiency for responsiveness. Each chunk creates overhead, so streaming a 50-word response might actually use slightly more bandwidth than getting it all at once. However, the user experience improvement typically outweighs this cost.
 
 Consider streaming when:
+
 - Responses are likely to be lengthy (>100 words)
 - User experience and perceived speed matter
 - You want to show progress for long-running operations
 - You're building interactive chat interfaces
 
 Stick with `prompt()` when:
+
 - Responses are short and fast
 - You need tool calling functionality
 - Bandwidth efficiency is critical
@@ -6041,12 +6134,14 @@ Stick with `prompt()` when:
 ## When to Use stream() vs streamTo()
 
 Choose `streamTo()` when:
+
 - You want simplest integration (like upgrading from `prompt()`)
 - You need automatic conversation management
 - You want memory integration
 - You want guard execution
 
 Choose `stream()` when:
+
 - You need access to `StreamResponse` metadata before consuming the stream
 - You want to pass the `StreamResponse` to another function
 - You need fine control over iteration
@@ -6096,6 +6191,7 @@ Streaming brings real-time responsiveness to your LLM applications. The key conc
 - All major providers support streaming with transparent format handling
 
 In the next chapter, we'll explore advanced streaming patterns including cancellation, progress tracking, and building complex streaming interfaces for production applications.
+
 # Chapter 11: Advanced Streaming Patterns
 
 In Chapter 10, we explored the basics of streaming responses - receiving LLM output token by token as it's generated. But production applications require more sophisticated streaming patterns. You need to handle errors gracefully, integrate streaming with conversation memory, track token usage and completion metadata, and build robust user interfaces that handle network interruptions.
@@ -6440,7 +6536,7 @@ Streaming shines in interactive applications where responsiveness matters. Here 
 
 Stream code analysis results as they're generated:
 
-```php
+````php
 $agent = agent('code-reviewer')
     ->provider('anthropic')
     ->system('You are a code reviewer. Analyze code and suggest improvements.')
@@ -6466,7 +6562,7 @@ $agent->streamTo(
 );
 
 echo "</div>";
-```
+````
 
 Users see analysis appearing in real-time instead of waiting for the complete response.
 
@@ -6715,6 +6811,7 @@ In **Chapter 12: Memory Systems**, we'll explore:
 ✅ Batch chunk processing for better performance in production
 
 Continue to [Chapter 12: Memory Systems](./article.part12.md) →
+
 # Chapter 12: Memory Systems
 
 ## Why Memory Matters
@@ -6807,6 +6904,7 @@ $agent->prompt('What was my order number again?');
 ```
 
 The agent automatically:
+
 1. Loads conversation history on first prompt
 2. Saves messages after each interaction
 3. Maintains context across script executions
@@ -6839,6 +6937,7 @@ $agent->memory('Sqlite', [
 ```
 
 **Features:**
+
 - Automatic schema creation and migrations
 - WAL mode for concurrent reads
 - Transaction safety for writes
@@ -6859,6 +6958,7 @@ CREATE INDEX idx_updated_at ON sessions(updated_at);
 ```
 
 **When to use:**
+
 - Production applications
 - Multiple concurrent users
 - Need transaction safety
@@ -6876,6 +6976,7 @@ $agent->memory('File', [
 ```
 
 **Features:**
+
 - Human-readable JSON format
 - No dependencies beyond filesystem
 - LOCK_EX for atomic writes
@@ -6885,16 +6986,17 @@ $agent->memory('File', [
 
 ```json
 {
-    "session_id": "user-12345",
-    "messages": [
-        {"role": "user", "content": "Hello"},
-        {"role": "assistant", "content": "Hi there!"}
-    ],
-    "updated_at": "2025-11-17T10:30:00+00:00"
+  "session_id": "user-12345",
+  "messages": [
+    { "role": "user", "content": "Hello" },
+    { "role": "assistant", "content": "Hi there!" }
+  ],
+  "updated_at": "2025-11-17T10:30:00+00:00"
 }
 ```
 
 **When to use:**
+
 - Development and testing
 - Low-volume applications
 - Need human-readable storage
@@ -6913,6 +7015,7 @@ $adapter->save('any-session', $messages);  // Does nothing
 ```
 
 **When to use:**
+
 - Testing and mocking
 - Truly stateless operations
 - Default behavior when memory not needed
@@ -6942,6 +7045,7 @@ expect($agent->messages)->toHaveCount(4);  // 2 loaded + 2 new
 ```
 
 This lazy approach means:
+
 - No unnecessary database hits
 - Configuration happens independently of loading
 - Memory only loaded when needed
@@ -6959,6 +7063,7 @@ $agent->prompt('And 3+3?');
 ```
 
 This ensures:
+
 - No manual save calls needed
 - Conversation never lost mid-session
 - Each interaction persisted atomically
@@ -7018,12 +7123,14 @@ expect($pruned)->toHaveCount(50);
 ```
 
 **Pruning strategy:**
+
 - Takes most recent N messages
 - Preserves system messages
 - Updates storage atomically
 - Returns pruned message array
 
 **Use cases:**
+
 - Periodic cleanup of long sessions
 - Pre-pruning before expensive operations
 - Managing storage costs
@@ -7115,6 +7222,7 @@ $report = $writer->prompt("Write a report about: {$analysis->content}");
 ```
 
 Session naming convention helps organize related conversations:
+
 - `workflow-{id}-{role}` - Multi-agent workflows
 - `ticket-{id}-{stage}` - Multi-stage support
 - `project-{id}-{timestamp}` - Timestamped snapshots
@@ -7139,6 +7247,7 @@ try {
 ```
 
 **Common errors:**
+
 - **SQLite**: Database locked (concurrent writes), disk full
 - **File**: Directory not writable, disk full, filesystem errors
 - **Both**: JSON encoding failures (invalid UTF-8)
@@ -7295,11 +7404,13 @@ You now understand how Pagent manages conversation memory across sessions. You c
 In the next chapter, we'll explore **Events and Hooks** - how to tap into the agent lifecycle for logging, metrics, debugging, and custom behaviors at every stage of execution.
 
 **Key Takeaways:**
+
 - Memory is optional but critical for stateful conversations
 - Three built-in adapters: SQLite (production), File (development), Null (testing)
 - Automatic lazy loading and auto-save eliminate boilerplate
 - Session IDs organize conversations by user, workflow, or context
 - The `Memory` interface makes custom adapters straightforward
+
 # Chapter 13: Advanced Memory Patterns
 
 In the previous chapter, we explored basic memory persistence with SQLite and file-based storage. While those patterns work well for straightforward conversation history, real-world applications often demand more sophisticated memory management. What happens when conversations grow to thousands of messages? How do you implement semantic search across conversation history? What about hierarchical memory systems that summarize old context while preserving important details?
@@ -7930,6 +8041,7 @@ This architecture scales from dozens to thousands of concurrent conversations wh
 In this chapter, we've explored advanced memory patterns - from context window management to semantic search and hierarchical storage. You've learned how to build custom memory adapters, implement compression strategies, and optimize performance for production workloads.
 
 The next chapter moves to safety and reliability. We'll examine Pagent's guard system for detecting PII, filtering content, and protecting against prompt injection attacks - essential features for deploying LLM applications in production.
+
 # Chapter 14: Safety Guards
 
 ## Introduction
@@ -8572,6 +8684,7 @@ Pagent's guard system provides defense-in-depth for LLM applications. By layerin
 With guards in place, you can confidently deploy agents that handle sensitive data, comply with regulations, and protect against adversarial inputs.
 
 **Next:** In Chapter 15, we'll explore reliability patterns - retries, circuit breakers, and timeouts that keep your agents running smoothly even when LLM providers have issues.
+
 # Chapter 15: Reliability Patterns
 
 When building production LLM applications, you need to handle failures gracefully. Network requests time out. APIs return errors. Rate limits get hit. Unsafe content gets generated. In this chapter, we'll explore how Pagent helps you build resilient agents through fallback mechanisms, error handling strategies, and custom middleware patterns.
@@ -8809,6 +8922,7 @@ try {
 ```
 
 This helper function implements:
+
 - Configurable maximum attempts
 - Exponential backoff (1s, 2s, 4s, ...)
 - Clear error messages showing attempt count
@@ -8922,6 +9036,7 @@ try {
 ```
 
 The circuit breaker:
+
 - Tracks consecutive failures
 - Opens after hitting the threshold (default 5)
 - Rejects requests during cooldown (default 60s)
@@ -9058,6 +9173,7 @@ try {
 ```
 
 This layered approach provides:
+
 1. **Rate limiting** - Prevents quota violations
 2. **Content guards** - Blocks unsafe output with fallbacks
 3. **Retry logic** - Handles transient failures
@@ -9239,6 +9355,7 @@ In Chapter 16, we'll explore multi-agent orchestration, learning how to coordina
 - [Circuit Breaker Pattern](https://martinfowler.com/bliki/CircuitBreaker.html)
 - [Exponential Backoff And Jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/)
 - [Pagent Middleware Implementation](https://github.com/hhelge/pagent/tree/main/src/Middleware)
+
 # Chapter 16: Multi-Agent Fundamentals
 
 ## Why Multiple Agents?
@@ -10034,6 +10151,7 @@ assert($result === 'Expected output');
 ## What's Next
 
 You now understand the fundamentals of multi-agent orchestration: handoffs for conversation routing, delegation for manager-worker patterns, and pipelines for sequential processing. In the next chapter, we'll dive deeper into the **Pipeline Pattern**, exploring advanced techniques for building complex multi-stage workflows with error handling, transformations, and performance optimization.
+
 # Chapter 17: Pipeline Pattern
 
 In previous chapters, we've explored how individual agents handle tasks, how streaming enables real-time interactions, and how guards protect against unwanted outputs. But what happens when you need to process information through multiple stages, where each agent specializes in one aspect of the task? What if you want to extract data, transform it, validate it, and format it - each step performed by a different expert agent?
@@ -10089,6 +10207,7 @@ echo $result; // Formatted markdown summary
 This example demonstrates the core pattern: create a pipeline with a descriptive name, add agents in sequence using the `agent()` method, then execute the pipeline with `run()`. Each agent processes the output from the previous stage.
 
 The `run()` method:
+
 - Accepts the initial input (string or any data type)
 - Passes it to the first agent
 - Takes that agent's response and passes it to the next agent
@@ -10195,6 +10314,7 @@ foreach ($results as $result) {
 ```
 
 Each result in the array contains:
+
 - `stage`: Numeric index (0, 1, 2, ...)
 - `agent`: Agent name (string)
 - `input`: What was sent to this agent
@@ -10274,11 +10394,13 @@ echo $result;
 ```
 
 The error handler receives three parameters:
+
 - `$exception`: The caught exception
 - `$stageIndex`: Which stage failed (0, 1, 2, ...)
 - `$agentName`: Name of the agent that failed
 
 Your error handler can:
+
 - Return a fallback value (becomes the final pipeline output)
 - Log the error and re-throw it
 - Implement retry logic
@@ -10371,6 +10493,7 @@ echo "\nTotal tokens used: {$moderated['total_tokens']}";
 ```
 
 This demonstrates several advanced patterns:
+
 - Transform functions that access external data (the original `$content` via closure)
 - Result inspection to build a comprehensive response
 - Token usage aggregation across all stages
@@ -10568,18 +10691,21 @@ error_log("Pipeline '{$pipe->getName()}' completed with {count($pipe->getResults
 When should you use pipelines versus other approaches?
 
 **Use Pipelines When**:
+
 - You need sequential processing with clear stages
 - Each stage specializes in one task
 - You want to inspect intermediate results
 - Data transforms naturally through steps (extract → transform → load)
 
 **Use Single Agents When**:
+
 - The task doesn't naturally decompose into stages
 - You need tool calling (pipelines don't support automatic tool calling)
 - Latency is critical (one API call vs. multiple)
 - The task is simple enough for one agent
 
 **Use Orchestration When**:
+
 - You need parallel execution
 - You need conditional branching
 - You need loops or retries
@@ -10656,9 +10782,11 @@ The Pipeline pattern brings structure and composability to complex agent workflo
 - Pipelines execute sequentially, one stage at a time
 
 In the next chapter, we'll explore the Workflow Orchestration system, which provides even more sophisticated control over agent execution including parallel processing, conditional branching, and complex multi-agent coordination.
+
 # Chapter 18: Handoff Pattern
 
 **Learning Objectives:**
+
 - Understand when and why to use agent handoffs
 - Implement seamless context transfer between agents
 - Build multi-agent routing and escalation systems
@@ -10701,6 +10829,7 @@ $techAgent->prompt('Which endpoint are you having trouble with?');
 ```
 
 The `technical-expert` agent receives:
+
 - All messages from the `supportAgent` conversation
 - The reason: "Customer needs API documentation help"
 - A clean slate to continue helping the customer
@@ -10778,6 +10907,7 @@ $targetAgent = $sourceAgent->handoff('target');
 ```
 
 **What happens:**
+
 1. `sourceAgent` packages its entire conversation history
 2. Resolves the `target` agent from the registry
 3. Adds context message to `target`'s messages array
@@ -10806,6 +10936,7 @@ $billing = $support->handoff(
 ```
 
 The reason helps the new agent understand:
+
 - **Context** - What triggered the handoff
 - **Priority** - How urgent or important the matter is
 - **Expectations** - What the user needs
@@ -10872,12 +11003,14 @@ $this->toAgent->messages[] = [
 ### What Gets Transferred
 
 **Included in handoff:**
+
 - All user messages
 - All assistant responses
 - Tool call results (formatted as JSON)
 - Handoff reason (if provided)
 
 **Not included:**
+
 - Source agent's system prompt (target has its own)
 - Source agent's configuration (temperature, model, etc.)
 - Registered tools (target defines its own)
@@ -11420,6 +11553,7 @@ echo "[Journey] " . $session->getJourney() . "\n";
 ```
 
 This example demonstrates:
+
 - **Automatic escalation** based on conversation content
 - **Handoff tracking** for analytics
 - **Seamless context transfer** between agents
@@ -11522,6 +11656,7 @@ Now that you understand handoffs, you're ready for:
 - **Chapter 21:** Advanced Multi-Agent Patterns - Complex workflows and coordination
 
 Handoffs are just the beginning. Combined with delegation and pipelines, you can build sophisticated multi-agent applications that handle complex workflows with ease.
+
 # Chapter 19: Delegation Pattern
 
 In complex AI applications, a single agent often can't handle every task effectively. Some tasks require specialized expertise, different system prompts, or distinct tool sets. The Delegation pattern solves this by allowing a manager agent to delegate specific tasks to specialized worker agents, review their work, and aggregate results.
@@ -12255,9 +12390,11 @@ In **Chapter 20: Building Multi-Agent Systems**, we'll explore:
 ✅ Delegation provides more structure than handoff or pipeline patterns
 
 Continue to [Chapter 20: Building Multi-Agent Systems](./article.part20.md) →
+
 # Chapter 20: Evaluation Framework
 
 **Learning Objectives:**
+
 - Design evaluation metrics for agent performance
 - Create test datasets from multiple sources
 - Implement custom scoring functions
@@ -12929,6 +13066,7 @@ This evaluation provides quantifiable metrics for accuracy, tone, and response l
 ---
 
 The evaluation framework transforms agent development from guesswork into engineering. With systematic testing, clear metrics, and reproducible results, you can iterate confidently and deploy with certainty.
+
 # Chapter 21: Testing Strategies
 
 ## Why Testing Matters for AI Agents
@@ -13419,7 +13557,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: "8.3"
           extensions: mbstring, curl
 
       - name: Install Dependencies
@@ -13443,6 +13581,7 @@ Run unit tests on every commit, integration tests on schedule or manual trigger 
 When building agents, ensure comprehensive test coverage:
 
 **Unit Tests (with Mock Provider):**
+
 - [ ] Agent creation and configuration
 - [ ] Conversation history tracking
 - [ ] Tool registration and execution
@@ -13453,6 +13592,7 @@ When building agents, ensure comprehensive test coverage:
 - [ ] Edge cases (null responses, malformed data, etc.)
 
 **Integration Tests (with Real Providers):**
+
 - [ ] Basic prompt-response cycles
 - [ ] System prompt configuration
 - [ ] Temperature and token settings
@@ -13462,6 +13602,7 @@ When building agents, ensure comprehensive test coverage:
 - [ ] Provider-specific features
 
 **Performance Tests:**
+
 - [ ] Response time benchmarks
 - [ ] Memory usage under load
 - [ ] Concurrent agent operations
@@ -13482,6 +13623,7 @@ Testing AI agents requires a balanced approach: unit test the framework logic wi
 - Document behavior through clear, readable test names
 
 In the next chapter, we'll explore OpenTelemetry integration for monitoring agents in production, giving you visibility into LLM interactions, tool executions, and performance metrics.
+
 # Chapter 22: OpenTelemetry Integration
 
 In previous chapters, we've explored how to build sophisticated agent systems with memory, tools, and orchestration. But once your agent is running in production, how do you understand what's actually happening? How do you debug performance issues, track down errors, or optimize expensive LLM calls?
@@ -13636,6 +13778,7 @@ Here's what gets instrumented:
 **Agent Operations**: Every `prompt()`, `stream()`, and `continue()` call creates an `agent.prompt` or `agent.stream` span. This tracks the overall operation from start to finish.
 
 **LLM Requests**: API calls to your LLM provider create `llm.request` spans with detailed attributes following the OpenTelemetry GenAI semantic conventions:
+
 - `gen_ai.system`: Provider name ("anthropic", "openai", "ollama")
 - `gen_ai.request.model`: Model identifier
 - `gen_ai.request.temperature`: Temperature setting
@@ -13645,11 +13788,13 @@ Here's what gets instrumented:
 - `gen_ai.usage.total_tokens`: Total tokens used
 
 **Tool Executions**: When agents call tools, `tool.execute` spans capture:
+
 - `tool.name`: The tool that was invoked
 - `tool.arguments`: JSON-encoded arguments passed to the tool
 - `tool.result`: The tool's response (truncated if large)
 
 **Guard Checks**: Guard validations create `guard.check` spans with:
+
 - `guard.name`: Which guard was evaluated
 - `guard.passed`: Boolean indicating if validation succeeded
 - `guard.reason`: Explanation if the guard failed
@@ -13990,6 +14135,7 @@ In this chapter, we've explored Pagent's OpenTelemetry integration:
 Observability transforms your agent from a black box into a well-understood system. You can see exactly what your agent is doing, identify performance bottlenecks, track costs, and debug errors with rich contextual information.
 
 In the next chapter, we'll explore debugging and monitoring techniques that build on this telemetry foundation, including token usage tracking, cost calculation, and performance profiling.
+
 # Chapter 23: Debugging and Monitoring
 
 Building LLM agents is one thing. Understanding how they behave in production is another. When your agent makes unexpected decisions, consumes more tokens than anticipated, or takes too long to respond, you need visibility into what's happening. This chapter explores Pagent's debugging and monitoring capabilities, from simple statistics tracking to comprehensive distributed tracing.
@@ -14397,21 +14543,25 @@ Each exporter sends traces to a different backend. Choose based on your infrastr
 When telemetry is enabled, Pagent automatically creates spans for:
 
 **Agent operations:**
+
 - `agent.prompt` - Each prompt/response cycle
 - `agent.build` - Agent construction
 - Attributes: agent name, operation type
 
 **LLM requests:**
+
 - `llm.request` - Every API call to the provider
 - Attributes: provider, model, temperature, max tokens
 - Usage metrics: input/output/total tokens
 
 **Tool executions:**
+
 - `tool.execute` - When agents use tools
 - Attributes: tool name, arguments
 - Results and errors
 
 **Guard checks:**
+
 - `guard.check` - When content guards run
 - Attributes: guard name, passed/failed
 
@@ -14484,13 +14634,13 @@ Jaeger is especially powerful for multi-agent systems, showing how agents delega
 
 Pagent includes a complete Docker-based observability stack with five platforms:
 
-| Platform | Port  | Purpose                     |
-|----------|-------|-----------------------------|
-| Jaeger   | 16686 | Distributed tracing         |
-| Phoenix  | 6006  | LLM observability (Arize)   |
-| Langfuse | 3000  | LLM monitoring & prompts    |
-| Helicone | 3001  | LLM cost tracking           |
-| Opik     | 5173  | LLM experiment tracking     |
+| Platform | Port  | Purpose                   |
+| -------- | ----- | ------------------------- |
+| Jaeger   | 16686 | Distributed tracing       |
+| Phoenix  | 6006  | LLM observability (Arize) |
+| Langfuse | 3000  | LLM monitoring & prompts  |
+| Helicone | 3001  | LLM cost tracking         |
+| Opik     | 5173  | LLM experiment tracking   |
 
 Start the entire stack:
 
@@ -14898,6 +15048,7 @@ In **Chapter 24: Testing LLM Agents**, we'll explore:
 ✅ Track costs per feature to understand spending and inform pricing
 
 Continue to [Chapter 24: Testing LLM Agents](./article.part24.md) →
+
 # Chapter 24: Laravel and Symfony Integration
 
 Pagent is intentionally framework-agnostic - there are no built-in Laravel service providers, Symfony bundles, or framework-specific packages. This design choice keeps Pagent lightweight and portable, but it also means you'll need to integrate it manually with your framework of choice.
@@ -15358,28 +15509,28 @@ Define Pagent services in `config/services.yaml`:
 
 ```yaml
 services:
-    # Register the Registry as a singleton
-    Pagent\Registry:
-        public: true
-        shared: true
+  # Register the Registry as a singleton
+  Pagent\Registry:
+    public: true
+    shared: true
 
-    # Factory for creating agents
-    pagent.agent.factory:
-        class: Closure
-        factory: ['App\Factory\AgentFactory', 'create']
-        arguments:
-            - '@Pagent\Registry'
+  # Factory for creating agents
+  pagent.agent.factory:
+    class: Closure
+    factory: ['App\Factory\AgentFactory', "create"]
+    arguments:
+      - '@Pagent\Registry'
 
-    # Pre-configured agents
-    pagent.agent.support:
-        class: Pagent\Agent
-        factory: ['@App\Factory\AgentFactory', 'createSupport']
-        shared: true
+  # Pre-configured agents
+  pagent.agent.support:
+    class: Pagent\Agent
+    factory: ['@App\Factory\AgentFactory', "createSupport"]
+    shared: true
 
-    pagent.agent.analyzer:
-        class: Pagent\Agent
-        factory: ['@App\Factory\AgentFactory', 'createAnalyzer']
-        shared: true
+  pagent.agent.analyzer:
+    class: Pagent\Agent
+    factory: ['@App\Factory\AgentFactory', "createAnalyzer"]
+    shared: true
 ```
 
 Create an agent factory:
@@ -15436,10 +15587,10 @@ Register the factory in `services.yaml`:
 
 ```yaml
 services:
-    App\Factory\AgentFactory:
-        arguments:
-            $anthropicKey: '%env(ANTHROPIC_API_KEY)%'
-            $openaiKey: '%env(OPENAI_API_KEY)%'
+  App\Factory\AgentFactory:
+    arguments:
+      $anthropicKey: "%env(ANTHROPIC_API_KEY)%"
+      $openaiKey: "%env(OPENAI_API_KEY)%"
 ```
 
 ### Controller Integration
@@ -15670,12 +15821,12 @@ Configure async transport in `config/packages/messenger.yaml`:
 
 ```yaml
 framework:
-    messenger:
-        transports:
-            async: '%env(MESSENGER_TRANSPORT_DSN)%'
+  messenger:
+    transports:
+      async: "%env(MESSENGER_TRANSPORT_DSN)%"
 
-        routing:
-            App\Message\ProcessAgentTask: async
+    routing:
+      App\Message\ProcessAgentTask: async
 ```
 
 ### Event Subscribers
@@ -15761,6 +15912,7 @@ $response = $agent->prompt('Hello');
 You've learned how to integrate Pagent with Laravel and Symfony, creating clean, maintainable architectures that leverage framework strengths while keeping agent logic portable.
 
 In the next chapter, we'll explore custom middleware - building your own middleware to add rate limiting, caching, logging, and other cross-cutting concerns to your agent interactions.
+
 # Chapter 25: Custom Middleware
 
 In Chapter 24, we explored workflow patterns and orchestration. But what if you need to intercept and modify every agent interaction? What if you want to add logging, metrics collection, rate limiting, or caching to all your LLM calls without cluttering your business logic? What if you need an audit trail of every prompt and response that flows through your system?
@@ -16254,9 +16406,11 @@ Middleware provides a clean, composable way to add cross-cutting concerns to you
 The key insight is that middleware operates on the request/response cycle - transforming inputs before they reach the LLM and transforming outputs before they reach your code. This separation of concerns keeps your business logic clean while adding powerful capabilities through composition.
 
 In the next chapter, we'll explore performance optimization techniques - including how to use middleware to implement efficient caching strategies, reduce token usage, and minimize API latency. You'll learn how to make your agents faster and more cost-effective in production.
+
 # Chapter 26: Performance Optimization
 
 **Learning Objectives:**
+
 - Optimize token usage with context windowing
 - Implement response caching strategies
 - Reduce API latency through configuration
@@ -16897,9 +17051,11 @@ This agent achieves:
 ---
 
 Performance optimization is an ongoing process. Start with built-in features like context windowing and schema caching, add custom caching middleware as needed, and use telemetry to identify bottlenecks. With these techniques, you can build agents that scale efficiently and deliver responsive user experiences while controlling costs.
+
 # Chapter 27: Production Deployment
 
 **Learning Objectives:**
+
 - Configure production environments with secure credential management
 - Implement comprehensive monitoring and observability
 - Design scalable agent architectures for production workloads
@@ -16945,6 +17101,7 @@ $response = $agent->prompt('Hello');
 ```
 
 The provider resolution order is:
+
 1. Explicit `api_key` in configuration array
 2. `$_ENV` superglobal
 3. `getenv()` function call
@@ -17460,6 +17617,7 @@ function handleRequest(string $input): object
 ```
 
 This pattern works perfectly in:
+
 - PHP-FPM with multiple worker processes
 - Containerized environments (Docker, Kubernetes)
 - Serverless functions (AWS Lambda, Google Cloud Functions)
@@ -17514,37 +17672,37 @@ spec:
         app: agent-service
     spec:
       containers:
-      - name: php-fpm
-        image: your-registry/agent-service:latest
-        env:
-        - name: ANTHROPIC_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: agent-secrets
-              key: anthropic-api-key
-        - name: TELEMETRY_ENABLED
-          value: "true"
-        - name: TELEMETRY_ENDPOINT
-          value: "http://otel-collector:4318/v1/traces"
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 9000
-          initialDelaySeconds: 10
-          periodSeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 9000
-          initialDelaySeconds: 5
-          periodSeconds: 10
+        - name: php-fpm
+          image: your-registry/agent-service:latest
+          env:
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: anthropic-api-key
+            - name: TELEMETRY_ENABLED
+              value: "true"
+            - name: TELEMETRY_ENDPOINT
+              value: "http://otel-collector:4318/v1/traces"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service
@@ -17554,8 +17712,8 @@ spec:
   selector:
     app: agent-service
   ports:
-  - port: 80
-    targetPort: 9000
+    - port: 80
+      targetPort: 9000
   type: LoadBalancer
 ```
 
@@ -17577,18 +17735,18 @@ spec:
   minReplicas: 2
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
 ```
 
 ### Health Check Endpoints
@@ -17772,36 +17930,42 @@ $robust = new FallbackAgent($primary, $fallback);
 Before deploying to production, verify:
 
 **Configuration:**
+
 - [ ] API keys loaded from environment variables or secret store
 - [ ] No hardcoded credentials in code
 - [ ] Environment-specific configuration files
 - [ ] Proper .gitignore to exclude secrets
 
 **Security:**
+
 - [ ] Guards configured (PII, content filter, prompt injection)
 - [ ] Fallback responses for guard violations
 - [ ] Rate limiting implemented
 - [ ] Input validation and sanitization
 
 **Observability:**
+
 - [ ] Telemetry enabled with OTLP exporter
 - [ ] Custom attributes added for business context
 - [ ] Monitoring dashboards configured
 - [ ] Alerts set up for error rates, latency, guard violations
 
 **Scaling:**
+
 - [ ] Stateless agent architecture
 - [ ] Memory adapters for persistent conversations
 - [ ] Health check endpoints implemented
 - [ ] Auto-scaling rules configured
 
 **Error Handling:**
+
 - [ ] Structured logging with context
 - [ ] Exception handling for all error types
 - [ ] Circuit breaker for provider failures
 - [ ] Graceful degradation strategy
 
 **Testing:**
+
 - [ ] Integration tests with real providers
 - [ ] Load testing under expected traffic
 - [ ] Chaos testing for failure scenarios
@@ -17810,9 +17974,11 @@ Before deploying to production, verify:
 ---
 
 Production deployment transforms your agent from experiment to service. With proper configuration, security, observability, and error handling, you can deploy agents that are reliable, scalable, and maintainable. In the next chapter, we'll explore building complex multi-agent systems that coordinate to solve sophisticated problems.
+
 # Chapter 28: Building Complex Systems
 
 **Learning Objectives:**
+
 - Design scalable agent architectures using extension interfaces
 - Implement event-driven patterns for agent coordination
 - Create reusable extension patterns via interface composition
@@ -18652,6 +18818,7 @@ As you build with Pagent, keep these principles in mind:
 Your Pagent journey doesn't end here—it's just beginning. Here are suggested next steps:
 
 **Build Projects** - Apply what you've learned by building real applications:
+
 - Customer support chatbot with handoffs to human agents
 - Code review assistant with tool calling for repository analysis
 - Content generation pipeline with multi-agent collaboration
@@ -18659,17 +18826,20 @@ Your Pagent journey doesn't end here—it's just beginning. Here are suggested n
 - Automated testing agent for your existing applications
 
 **Join the Community** - Connect with other Pagent developers:
+
 - **GitHub**: [github.com/helgek/pagent](https://github.com/helgek/pagent) - Star the repo, report issues, contribute code
 - **Discussions**: Share your projects, ask questions, help others
 - **Contributions**: The framework grows through community input—your experiences matter
 
 **Dive Deeper** - Continue your learning:
+
 - **Official Documentation**: [pagent.ai/docs](https://pagent.ai/docs) - API reference and guides
 - **Example Projects**: [github.com/helgek/pagent-examples](https://github.com/helgek/pagent-examples) - Production-ready samples
 - **Blog**: Latest patterns, use cases, and advanced techniques
 - **Workshops**: Live coding sessions and Q&A
 
 **Stay Updated** - Pagent evolves rapidly:
+
 - Follow the changelog for new features
 - Upgrade guides for breaking changes
 - Security advisories for patches
@@ -18700,22 +18870,26 @@ The future of AI development is collaborative—humans and agents working togeth
 ## Additional Resources
 
 ### Official Links
+
 - **GitHub Repository**: [github.com/helgek/pagent](https://github.com/helgek/pagent)
 - **Documentation**: [pagent.ai/docs](https://pagent.ai/docs)
 - **Packagist**: [packagist.org/packages/pagent/pagent](https://packagist.org/packages/pagent/pagent)
 
 ### Community
+
 - **Discussions**: GitHub Discussions for questions and sharing
 - **Issues**: GitHub Issues for bug reports and feature requests
 - **Examples**: Community-contributed example projects
 
 ### Related Tools
+
 - **Anthropic Claude**: [anthropic.com](https://anthropic.com)
 - **OpenAI GPT**: [openai.com](https://openai.com)
 - **Ollama**: [ollama.ai](https://ollama.ai)
 - **OpenTelemetry**: [opentelemetry.io](https://opentelemetry.io)
 
 ### Learning Resources
+
 - **LangChain Concepts**: Understanding agent patterns
 - **Prompt Engineering Guide**: Crafting effective prompts
 - **PHP 8.3 Documentation**: Language features used by Pagent
@@ -18732,6 +18906,6 @@ The future of AI development is collaborative—humans and agents working togeth
 
 ---
 
-*This guide is maintained by the Pagent team with contributions from the community. For corrections or suggestions, please open an issue on GitHub.*
+_This guide is maintained by the Pagent team with contributions from the community. For corrections or suggestions, please open an issue on GitHub._
 
 **Happy building!**

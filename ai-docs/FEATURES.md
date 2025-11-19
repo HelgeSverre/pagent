@@ -205,52 +205,52 @@ This document tracks all features mentioned in documentation, proposals, and the
 
 ### 12. Observability & Monitoring
 
-| Feature                           | Status | Implementation                                        | Source | Notes                                              |
-| --------------------------------- | ------ | ----------------------------------------------------- | ------ | -------------------------------------------------- |
-| TelemetryManager                  | ✅     | `src/Observability/TelemetryManager.php`              | v0.7.0 | OpenTelemetry SDK wrapper, singleton pattern       |
-| OpenTelemetry SDK Integration     | ✅     | `open-telemetry/sdk` dependency                       | v0.7.0 | Industry-standard distributed tracing              |
-| Span Creation                     | ✅     | `startAgentSpan()`, `startLLMSpan()`, `startToolSpan()` | v0.7.0 | Helper methods for all operation types             |
-| Semantic Conventions              | ✅     | GenAI attributes (`gen_ai.*`)                         | v0.7.0 | OpenTelemetry semantic conventions for LLMs        |
-| Console Exporter                  | ✅     | `src/Observability/Exporters/ConsoleExporter.php`     | v0.7.0 | Debug output to console                            |
-| OTLP Exporter                     | ✅     | `src/Observability/Exporters/OTLPExporter.php`        | v0.7.0 | Generic OTLP protocol support                      |
-| Jaeger Exporter                   | ✅     | `src/Observability/Exporters/JaegerExporter.php`      | v0.7.0 | Jaeger-specific integration                        |
-| Zipkin Exporter                   | ✅     | `src/Observability/Exporters/ZipkinExporter.php`      | v0.7.0 | Zipkin-specific integration                        |
-| InMemory Exporter                 | ✅     | `src/Observability/Exporters/InMemoryExporter.php`    | v0.7.0 | Test-only exporter with span inspection            |
-| Agent Telemetry Integration       | ✅     | `Agent::telemetry(true)`                              | v0.7.0 | Opt-in per-agent telemetry                         |
-| Events/Hooks System               | ✅     | `src/Events/`                                         | v0.7.0 | Event-driven architecture for observability        |
-| Event Base Classes                | ✅     | Event, EventListener, EventDispatcher                 | v0.7.0 | Typed event objects with propagation control       |
-| Lifecycle Events                  | ✅     | 23 typed event classes                                | v0.7.0 | Agent, LLM, Tool, Guard, Memory, Stream, MCP       |
-| Hybrid Listener Pattern           | ✅     | Interface + Closure support                           | v0.7.0 | Both class and closure listeners                   |
-| EventDispatcher Priority          | ✅     | Priority-based listener execution                     | v0.7.0 | Control listener order                             |
-| Global Events                     | ✅     | EventManager singleton                                | v0.7.0 | Cross-agent event listening                        |
-| Per-Agent Events                  | ✅     | `Agent::on()`, `once()`, `off()`                      | v0.7.0 | Instance-level event listeners                     |
-| TelemetryEventBridge              | ✅     | `src/Observability/TelemetryEventBridge.php`          | v0.7.0 | Automatic span creation from events                |
-| Event-Driven Telemetry            | ✅     | Fire events → Bridge creates spans                    | v0.7.0 | Clean separation of concerns                       |
-| Cost & Token Tracking             | 📋     | `UsageTracker` singleton                              | v0.7.0 | Track usage, calculate costs, budget enforcement   |
-| Provider Pricing                  | 📋     | `ProviderPricing` with Jan 2025 pricing               | v0.7.0 | Up-to-date pricing for Anthropic, OpenAI, etc.     |
-| Budget Enforcement                | 📋     | Soft warnings, hard limits                            | v0.7.0 | Agent, session, and global budget tracking         |
-| Usage Analytics                   | 📋     | By agent, session, provider                           | v0.7.0 | Queryable usage statistics                         |
-| Usage Export                      | 📋     | JSON, CSV, SQLite                                     | v0.7.0 | Export usage data for analysis                     |
+| Feature                       | Status | Implementation                                          | Source | Notes                                            |
+| ----------------------------- | ------ | ------------------------------------------------------- | ------ | ------------------------------------------------ |
+| TelemetryManager              | ✅     | `src/Observability/TelemetryManager.php`                | v0.7.0 | OpenTelemetry SDK wrapper, singleton pattern     |
+| OpenTelemetry SDK Integration | ✅     | `open-telemetry/sdk` dependency                         | v0.7.0 | Industry-standard distributed tracing            |
+| Span Creation                 | ✅     | `startAgentSpan()`, `startLLMSpan()`, `startToolSpan()` | v0.7.0 | Helper methods for all operation types           |
+| Semantic Conventions          | ✅     | GenAI attributes (`gen_ai.*`)                           | v0.7.0 | OpenTelemetry semantic conventions for LLMs      |
+| Console Exporter              | ✅     | `src/Observability/Exporters/ConsoleExporter.php`       | v0.7.0 | Debug output to console                          |
+| OTLP Exporter                 | ✅     | `src/Observability/Exporters/OTLPExporter.php`          | v0.7.0 | Generic OTLP protocol support                    |
+| Jaeger Exporter               | ✅     | `src/Observability/Exporters/JaegerExporter.php`        | v0.7.0 | Jaeger-specific integration                      |
+| Zipkin Exporter               | ✅     | `src/Observability/Exporters/ZipkinExporter.php`        | v0.7.0 | Zipkin-specific integration                      |
+| InMemory Exporter             | ✅     | `src/Observability/Exporters/InMemoryExporter.php`      | v0.7.0 | Test-only exporter with span inspection          |
+| Agent Telemetry Integration   | ✅     | `Agent::telemetry(true)`                                | v0.7.0 | Opt-in per-agent telemetry                       |
+| Events/Hooks System           | ✅     | `src/Events/`                                           | v0.7.0 | Event-driven architecture for observability      |
+| Event Base Classes            | ✅     | Event, EventListener, EventDispatcher                   | v0.7.0 | Typed event objects with propagation control     |
+| Lifecycle Events              | ✅     | 23 typed event classes                                  | v0.7.0 | Agent, LLM, Tool, Guard, Memory, Stream, MCP     |
+| Hybrid Listener Pattern       | ✅     | Interface + Closure support                             | v0.7.0 | Both class and closure listeners                 |
+| EventDispatcher Priority      | ✅     | Priority-based listener execution                       | v0.7.0 | Control listener order                           |
+| Global Events                 | ✅     | EventManager singleton                                  | v0.7.0 | Cross-agent event listening                      |
+| Per-Agent Events              | ✅     | `Agent::on()`, `once()`, `off()`                        | v0.7.0 | Instance-level event listeners                   |
+| TelemetryEventBridge          | ✅     | `src/Observability/TelemetryEventBridge.php`            | v0.7.0 | Automatic span creation from events              |
+| Event-Driven Telemetry        | ✅     | Fire events → Bridge creates spans                      | v0.7.0 | Clean separation of concerns                     |
+| Cost & Token Tracking         | 📋     | `UsageTracker` singleton                                | v0.7.0 | Track usage, calculate costs, budget enforcement |
+| Provider Pricing              | 📋     | `ProviderPricing` with Jan 2025 pricing                 | v0.7.0 | Up-to-date pricing for Anthropic, OpenAI, etc.   |
+| Budget Enforcement            | 📋     | Soft warnings, hard limits                              | v0.7.0 | Agent, session, and global budget tracking       |
+| Usage Analytics               | 📋     | By agent, session, provider                             | v0.7.0 | Queryable usage statistics                       |
+| Usage Export                  | 📋     | JSON, CSV, SQLite                                       | v0.7.0 | Export usage data for analysis                   |
 
 ### 13. MCP (Model Context Protocol) Integration
 
-| Feature                  | Status | Implementation                                    | Source | Notes                                         |
-| ------------------------ | ------ | ------------------------------------------------- | ------ | --------------------------------------------- |
-| MCP Client               | ✅     | `src/Mcp/McpClient.php`                           | v0.7.0 | Full MCP protocol v2024-11-05                 |
-| Stdio Transport          | ✅     | `src/Mcp/Transports/StdioTransport.php`           | v0.7.0 | Process-based MCP servers                     |
-| HTTP SSE Transport       | ✅     | `src/Mcp/Transports/HttpSseTransport.php`         | v0.7.0 | HTTP Server-Sent Events transport             |
-| Tool Discovery           | ✅     | `McpClient::discoverTools()`                      | v0.7.0 | Automatic tool discovery from MCP servers     |
-| Tool Execution           | ✅     | `McpClient::callTool()`                           | v0.7.0 | Execute MCP tools via JSON-RPC                |
-| Resource Discovery       | ✅     | `McpClient::discoverResources()`                  | v0.7.0 | Discover available resources                  |
-| Resource Reading         | ✅     | `McpClient::readResource()`                       | v0.7.0 | Read resource content                         |
-| Prompt Discovery         | ✅     | `McpClient::discoverPrompts()`                    | v0.7.0 | Discover available prompts                    |
-| Prompt Retrieval         | ✅     | `McpClient::getPrompt()`                          | v0.7.0 | Get prompt with arguments                     |
-| Tool Adapter             | ✅     | `src/Mcp/McpToolAdapter.php`                      | v0.7.0 | Wrap MCP tools as Pagent tools                |
-| Connection Events        | ✅     | Initiating, Established, Failed, Disconnecting    | v0.7.0 | 5 connection lifecycle events                 |
-| Tool Events              | ✅     | Discovering, Discovered, Calling, Called, Error   | v0.7.0 | 5 tool operation events                       |
-| Event Listeners          | ✅     | `McpClient::on()`, `once()`, `off()`              | v0.7.0 | Per-client event listeners                    |
-| Error Handling           | ✅     | McpConnectionException, McpProtocolException      | v0.7.0 | Comprehensive error types                     |
-| Timeout Handling         | ✅     | McpTimeoutException with configurable timeouts    | v0.7.0 | Prevent hanging operations                    |
+| Feature            | Status | Implementation                                  | Source | Notes                                     |
+| ------------------ | ------ | ----------------------------------------------- | ------ | ----------------------------------------- |
+| MCP Client         | ✅     | `src/Mcp/McpClient.php`                         | v0.7.0 | Full MCP protocol v2024-11-05             |
+| Stdio Transport    | ✅     | `src/Mcp/Transports/StdioTransport.php`         | v0.7.0 | Process-based MCP servers                 |
+| HTTP SSE Transport | ✅     | `src/Mcp/Transports/HttpSseTransport.php`       | v0.7.0 | HTTP Server-Sent Events transport         |
+| Tool Discovery     | ✅     | `McpClient::discoverTools()`                    | v0.7.0 | Automatic tool discovery from MCP servers |
+| Tool Execution     | ✅     | `McpClient::callTool()`                         | v0.7.0 | Execute MCP tools via JSON-RPC            |
+| Resource Discovery | ✅     | `McpClient::discoverResources()`                | v0.7.0 | Discover available resources              |
+| Resource Reading   | ✅     | `McpClient::readResource()`                     | v0.7.0 | Read resource content                     |
+| Prompt Discovery   | ✅     | `McpClient::discoverPrompts()`                  | v0.7.0 | Discover available prompts                |
+| Prompt Retrieval   | ✅     | `McpClient::getPrompt()`                        | v0.7.0 | Get prompt with arguments                 |
+| Tool Adapter       | ✅     | `src/Mcp/McpToolAdapter.php`                    | v0.7.0 | Wrap MCP tools as Pagent tools            |
+| Connection Events  | ✅     | Initiating, Established, Failed, Disconnecting  | v0.7.0 | 5 connection lifecycle events             |
+| Tool Events        | ✅     | Discovering, Discovered, Calling, Called, Error | v0.7.0 | 5 tool operation events                   |
+| Event Listeners    | ✅     | `McpClient::on()`, `once()`, `off()`            | v0.7.0 | Per-client event listeners                |
+| Error Handling     | ✅     | McpConnectionException, McpProtocolException    | v0.7.0 | Comprehensive error types                 |
+| Timeout Handling   | ✅     | McpTimeoutException with configurable timeouts  | v0.7.0 | Prevent hanging operations                |
 
 ### 14. Developer Experience
 

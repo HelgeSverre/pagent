@@ -134,6 +134,7 @@ telemetry_console(verbose: false);
 ```
 
 **Use Cases:**
+
 - Understanding trace structure
 - Debugging agent interactions
 - Verifying instrumentation
@@ -168,6 +169,7 @@ docker run -d \
 ```
 
 **Use Cases:**
+
 - Production monitoring
 - Multi-service tracing
 - Performance analysis
@@ -217,6 +219,7 @@ telemetry_otlp('http://localhost:4317/v1/traces');
 ```
 
 **Compatible Platforms:**
+
 - Datadog
 - New Relic
 - Honeycomb
@@ -680,7 +683,7 @@ register_shutdown_function(function() {
 ### Docker Compose Example
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   app:
@@ -695,8 +698,8 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:latest
     ports:
-      - "16686:16686"  # UI
-      - "14268:14268"  # Collector
+      - "16686:16686" # UI
+      - "14268:14268" # Collector
 ```
 
 ### Kubernetes Example
@@ -720,10 +723,10 @@ spec:
   template:
     spec:
       containers:
-      - name: app
-        envFrom:
-        - configMapRef:
-            name: telemetry-config
+        - name: app
+          envFrom:
+            - configMapRef:
+                name: telemetry-config
 ```
 
 ---

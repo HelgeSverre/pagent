@@ -5,6 +5,7 @@
 A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-inspired fluent API for building LLM agents in PHP 8.3+.
 
 **Target Audience:**
+
 - PHP 8.3+ developers with OpenAI/Anthropic API experience
 - Understand LLM basics (prompts, tokens, function calling)
 - Want to master Pagent framework patterns, production deployment, and multi-agent orchestration
@@ -14,11 +15,13 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ---
 
 ## Part 1: Foundations (Chapters 1-5)
-*Building the core mental model for Pagent development*
+
+_Building the core mental model for Pagent development_
 
 ### Chapter 1: Introduction to Pagent
 
 **Learning Objectives:**
+
 - Understand Pagent's philosophy and design principles
 - Set up development environment with Composer
 - Create and run your first agent
@@ -26,12 +29,14 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Learn about provider abstraction
 
 **Key Concepts:**
+
 - Agent builder pattern
 - Provider interface
 - Fluent method chaining
 - Global helper functions (`agent()`, `anthropic()`, `openai()`)
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Agent.php (lines 44-1204)
 Builder Pattern: src/AgentBuilder.php (lines 10-67)
@@ -42,6 +47,7 @@ Test Examples: tests/Unit/AgentTest.php (lines 8-90)
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Global helper function - src/functions.php:14
 function agent(string $name): Agent|AgentBuilder
@@ -72,6 +78,7 @@ public function prompt(string $message, array $options = []): object  // line 18
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ agent() helper function - src/functions.php:14
 ✅ AgentBuilder with __destruct() registry - src/AgentBuilder.php:19-22
@@ -83,6 +90,7 @@ public function prompt(string $message, array $options = []): object  // line 18
 ```
 
 **Code Example Themes:**
+
 - Hello World agent
 - Basic prompt-response interaction
 - Provider switching demonstration
@@ -97,6 +105,7 @@ public function prompt(string $message, array $options = []): object  // line 18
 ### Chapter 2: Working with Providers
 
 **Learning Objectives:**
+
 - Configure Anthropic, OpenAI, and Ollama providers
 - Understand provider-specific features and limitations
 - Switch between providers dynamically
@@ -104,6 +113,7 @@ public function prompt(string $message, array $options = []): object  // line 18
 - Use mock providers for testing
 
 **Key Concepts:**
+
 - Provider configuration
 - API key management
 - Model selection
@@ -111,6 +121,7 @@ public function prompt(string $message, array $options = []): object  // line 18
 - Mock provider for testing
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Providers/Anthropic.php (lines 17-157)
 OpenAI Provider: src/Providers/OpenAI.php (lines 18-198)
@@ -121,6 +132,7 @@ AgentBuilder Resolution: src/AgentBuilder.php (lines 40-61)
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Provider Interface - src/Contracts/Provider.php:9
 interface Provider {
@@ -157,6 +169,7 @@ return (object) [
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Anthropic provider with streaming support - src/Providers/Anthropic.php
 ✅ OpenAI provider with streaming support - src/Providers/OpenAI.php
@@ -169,6 +182,7 @@ return (object) [
 ```
 
 **Code Example Themes:**
+
 - Multi-provider weather bot
 - Provider fallback patterns
 - Mock provider for unit tests
@@ -183,6 +197,7 @@ return (object) [
 ### Chapter 3: Messages and Conversations
 
 **Learning Objectives:**
+
 - Build multi-turn conversations
 - Manage conversation history
 - Implement different message roles (system, user, assistant)
@@ -190,6 +205,7 @@ return (object) [
 - Create conversational agents
 
 **Key Concepts:**
+
 - Message structure
 - Conversation history management
 - Context window optimization
@@ -197,6 +213,7 @@ return (object) [
 - History truncation strategies
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Agent.php (lines 60, 228, 294-296)
 Context Manager: src/Memory/ContextManager.php
@@ -206,6 +223,7 @@ Test Examples: tests/Unit/AgentTest.php:48-61
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Message array structure - src/Agent.php:60
 public array $messages = [];
@@ -239,6 +257,7 @@ public function getStats(): array
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Public $messages array for history - src/Agent.php:60
 ✅ Automatic message tracking on prompt() - src/Agent.php:228, 295
@@ -252,6 +271,7 @@ public function getStats(): array
 ```
 
 **Code Example Themes:**
+
 - Customer service chatbot
 - Code review assistant
 - Multi-turn reasoning agent
@@ -266,6 +286,7 @@ public function getStats(): array
 ### Chapter 4: Prompting Strategies
 
 **Learning Objectives:**
+
 - Design effective system prompts
 - Implement few-shot learning
 - Use chain-of-thought prompting
@@ -273,6 +294,7 @@ public function getStats(): array
 - Handle prompt injection concerns
 
 **Key Concepts:**
+
 - System vs user prompts
 - Prompt engineering patterns
 - Template variables
@@ -280,6 +302,7 @@ public function getStats(): array
 - Prompt versioning
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Agent.php:system() method (lines 105-110)
 Configuration: src/Agent.php:config() method (lines 98-103)
@@ -289,6 +312,7 @@ Test Examples: tests/Unit/AgentTest.php:32-46
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // System prompt configuration - src/Agent.php:105-110
 public function system(string $prompt): self
@@ -310,6 +334,7 @@ $mergedOptions = array_merge($this->config, $options);
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ system() method for system prompts - src/Agent.php:105-110
 ✅ config() for additional configuration - src/Agent.php:98-103
@@ -320,6 +345,7 @@ $mergedOptions = array_merge($this->config, $options);
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Built-in template engine - Implement using PHP string interpolation
 ❌ Prompt versioning system - Implement manually or with git
@@ -328,6 +354,7 @@ $mergedOptions = array_merge($this->config, $options);
 ```
 
 **Code Example Themes:**
+
 - Data extraction agent
 - Classification system
 - Creative writing assistant
@@ -342,6 +369,7 @@ $mergedOptions = array_merge($this->config, $options);
 ### Chapter 5: Response Processing
 
 **Learning Objectives:**
+
 - Parse and validate responses
 - Extract structured data from text
 - Handle response formats (JSON, markdown)
@@ -349,6 +377,7 @@ $mergedOptions = array_merge($this->config, $options);
 - Process partial responses
 
 **Key Concepts:**
+
 - Response validation
 - JSON mode usage
 - Regular expression extraction
@@ -356,6 +385,7 @@ $mergedOptions = array_merge($this->config, $options);
 - Error recovery patterns
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Agent.php:prompt() return value (line 189, 328)
 Response Object: Providers return objects (e.g., src/Providers/Mock.php:25-30)
@@ -365,6 +395,7 @@ Test Examples: tests/Unit/AgentTest.php
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Response object structure (from providers) - src/Providers/Mock.php:25-30
 $response = (object) [
@@ -397,6 +428,7 @@ public function middleware(string|Middleware $middleware): self
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Structured response object from all providers - Providers return consistent objects
 ✅ middleware() for response transformation - src/Agent.php:673-688
@@ -408,6 +440,7 @@ public function middleware(string|Middleware $middleware): self
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Built-in JSON mode enforcement - Use prompt engineering or validate manually
 ❌ Automatic retry with backoff - Implement manually or use middleware
@@ -416,6 +449,7 @@ public function middleware(string|Middleware $middleware): self
 ```
 
 **Code Example Themes:**
+
 - Form data extractor
 - Sentiment analysis processor
 - Code generation validator
@@ -428,11 +462,13 @@ public function middleware(string|Middleware $middleware): self
 ---
 
 ## Part 2: Tool Calling (Chapters 6-9)
-*Extending agents with function calling capabilities*
+
+_Extending agents with function calling capabilities_
 
 ### Chapter 6: Introduction to Tool Calling
 
 **Learning Objectives:**
+
 - Understand function calling in LLMs
 - Define tools with schemas
 - Handle tool execution results
@@ -440,6 +476,7 @@ public function middleware(string|Middleware $middleware): self
 - Implement error handling for tools
 
 **Key Concepts:**
+
 - Tool definition structure
 - Schema validation
 - Automatic tool discovery
@@ -447,6 +484,7 @@ public function middleware(string|Middleware $middleware): self
 - Error propagation
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Tool/Tool.php (lines 12-126)
 Tool Interface: src/Contracts/ToolInterface.php (lines 7-18)
@@ -456,6 +494,7 @@ Test Examples: tests/Unit/Tool/ToolTest.php, tests/Unit/AgentToolsTest.php
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Tool Interface - src/Contracts/ToolInterface.php:7-18
 interface ToolInterface {
@@ -496,6 +535,7 @@ public function executeTool(string $name, array $arguments): mixed
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Tool::fromClosure() for creating tools - src/Tool/Tool.php:24-47
 ✅ Automatic type inference from closure params - src/Tool/Tool.php:26-44
@@ -511,6 +551,7 @@ public function executeTool(string $name, array $arguments): mixed
 ```
 
 **Code Example Themes:**
+
 - Calculator tool
 - Weather API integration
 - Database query tool
@@ -525,6 +566,7 @@ public function executeTool(string $name, array $arguments): mixed
 ### Chapter 7: Building Custom Tools
 
 **Learning Objectives:**
+
 - Create PHP callable tools
 - Design tool interfaces for reusability
 - Implement tool validation logic
@@ -532,6 +574,7 @@ public function executeTool(string $name, array $arguments): mixed
 - Create tool documentation
 
 **Key Concepts:**
+
 - Tool class structure
 - Parameter validation
 - Return type handling
@@ -539,6 +582,7 @@ public function executeTool(string $name, array $arguments): mixed
 - Documentation generation
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Tool/Tool.php (lines 12-126)
 Tool Argument: src/Tool/ToolArgument.php
@@ -548,6 +592,7 @@ Test Examples: tests/Unit/Tool/ToolTest.php:74-89
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Tool class constructor - src/Tool/Tool.php:17-22
 public function __construct(
@@ -610,6 +655,7 @@ class CustomTool implements ToolInterface {
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ ToolInterface for custom implementations - src/Contracts/ToolInterface.php
 ✅ Tool class with automatic schema generation - src/Tool/Tool.php
@@ -621,6 +667,7 @@ class CustomTool implements ToolInterface {
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Async tool execution - All tools execute synchronously
 ❌ Tool dependency injection - Pass dependencies via closure scope
@@ -629,6 +676,7 @@ class CustomTool implements ToolInterface {
 ```
 
 **Code Example Themes:**
+
 - Email sending tool
 - Data transformation pipeline
 - API wrapper tools
@@ -643,6 +691,7 @@ class CustomTool implements ToolInterface {
 ### Chapter 8: Recursive Tool Execution
 
 **Learning Objectives:**
+
 - Enable recursive tool calling
 - Manage execution depth limits
 - Handle circular dependencies
@@ -650,6 +699,7 @@ class CustomTool implements ToolInterface {
 - Debug recursive call chains
 
 **Key Concepts:**
+
 - Recursive execution patterns
 - Depth limiting strategies
 - Execution graph tracking
@@ -657,6 +707,7 @@ class CustomTool implements ToolInterface {
 - Recursive debugging
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Agent.php:handleToolCalls() (lines 877-943)
 Depth Limit: src/Agent.php:MAX_TOOL_CALL_DEPTH constant (line 58)
@@ -665,6 +716,7 @@ Test Examples: tests/Unit/AgentTest.php:98-130 (loop protection tests)
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Maximum recursion depth - src/Agent.php:58
 private const MAX_TOOL_CALL_DEPTH = 10;
@@ -696,6 +748,7 @@ private function handleToolCalls(object $response): object
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Automatic recursive tool calling - src/Agent.php:272-286
 ✅ MAX_TOOL_CALL_DEPTH = 10 protection - src/Agent.php:58, 276-283
@@ -706,6 +759,7 @@ private function handleToolCalls(object $response): object
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Configurable depth limit - Hardcoded to 10
 ❌ Execution graph visualization - No built-in tracking
@@ -715,6 +769,7 @@ private function handleToolCalls(object $response): object
 ```
 
 **Code Example Themes:**
+
 - Multi-step research assistant
 - Recursive web scraper
 - Nested API orchestrator
@@ -729,6 +784,7 @@ private function handleToolCalls(object $response): object
 ### Chapter 9: Tool Orchestration Patterns
 
 **Learning Objectives:**
+
 - Implement sequential tool execution
 - Build parallel tool operations
 - Create conditional tool flows
@@ -736,6 +792,7 @@ private function handleToolCalls(object $response): object
 - Optimize tool call batching
 
 **Key Concepts:**
+
 - Execution strategies
 - Dependency resolution
 - Parallel execution
@@ -743,6 +800,7 @@ private function handleToolCalls(object $response): object
 - Performance optimization
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Agent.php:handleToolCalls() (lines 877-943)
 Tool Execution: src/Agent.php:executeTool() (lines 579-602)
@@ -751,6 +809,7 @@ Test Examples: tests/Unit/AgentToolsTest.php:42-55
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Tool execution is sequential by default - src/Agent.php:904-932
 foreach ($response->tool_calls as $toolCall) {
@@ -775,6 +834,7 @@ $processed = $agent->executeTool('process_data', [$data]);
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Sequential tool execution in handleToolCalls() - src/Agent.php:904-932
 ✅ Manual tool execution via executeTool() - src/Agent.php:579-602
@@ -783,6 +843,7 @@ $processed = $agent->executeTool('process_data', [$data]);
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Built-in parallel tool execution - Execute sequentially only
 ❌ Explicit tool dependency declaration - LLM infers from descriptions
@@ -794,6 +855,7 @@ $processed = $agent->executeTool('process_data', [$data]);
 **Note:** For advanced orchestration patterns, see Part 6 (Multi-Agent Orchestration) which covers Pipeline, Handoff, and Delegation patterns at the agent level.
 
 **Code Example Themes:**
+
 - Data pipeline orchestrator
 - Multi-source aggregator
 - Conditional workflow executor
@@ -806,11 +868,13 @@ $processed = $agent->executeTool('process_data', [$data]);
 ---
 
 ## Part 3: Streaming (Chapters 10-11)
-*Real-time response handling and user experience*
+
+_Real-time response handling and user experience_
 
 ### Chapter 10: Streaming Fundamentals
 
 **Learning Objectives:**
+
 - Enable streaming responses
 - Handle SSE and NDJSON formats
 - Process partial responses
@@ -818,6 +882,7 @@ $processed = $agent->executeTool('process_data', [$data]);
 - Display real-time updates
 
 **Key Concepts:**
+
 - Stream configuration
 - Chunk processing
 - Event handling
@@ -825,6 +890,7 @@ $processed = $agent->executeTool('process_data', [$data]);
 - Buffer management
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Agent.php:stream() (lines 370-409), streamTo() (lines 414-526)
 StreamResponse: src/Streaming/StreamResponse.php (lines 12-135)
@@ -834,6 +900,7 @@ Provider Support: src/Providers/Anthropic.php:streamPrompt(), src/Providers/Open
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Stream method - src/Agent.php:370
 public function stream(string $message, array $options = []): StreamResponse
@@ -881,6 +948,7 @@ $chunk->getMetadata(string $key): mixed
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ stream() returns StreamResponse - src/Agent.php:370-409
 ✅ streamTo() with callback and auto-saves to history - src/Agent.php:414-526
@@ -894,6 +962,7 @@ $chunk->getMetadata(string $key): mixed
 ```
 
 **Code Example Themes:**
+
 - Real-time chatbot interface
 - Progress indicator implementation
 - Live code generation
@@ -908,6 +977,7 @@ $chunk->getMetadata(string $key): mixed
 ### Chapter 11: Advanced Streaming Patterns
 
 **Learning Objectives:**
+
 - Stream with tool calling
 - Handle streaming errors gracefully
 - Implement backpressure control
@@ -915,6 +985,7 @@ $chunk->getMetadata(string $key): mixed
 - Optimize streaming performance
 
 **Key Concepts:**
+
 - Tool streaming integration
 - Error recovery in streams
 - Flow control mechanisms
@@ -922,6 +993,7 @@ $chunk->getMetadata(string $key): mixed
 - Performance tuning
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Agent.php:streamTo() (lines 414-526)
 Error Handling: src/Agent.php:496-525 (GuardException and general exception handling)
@@ -930,6 +1002,7 @@ Provider Streaming: src/Providers/Anthropic.php:streamPrompt(), OpenAI.php:strea
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Streaming with error handling - src/Agent.php:414-526
 public function streamTo(string $message, callable $callback, array $options = []): string
@@ -963,6 +1036,7 @@ $stopReason = $streamResponse->getStopReason();  // 'end_turn', 'max_tokens', et
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Error handling in streamTo() - src/Agent.php:496-525
 ✅ GuardException support with fallback - src/Agent.php:496-512
@@ -973,6 +1047,7 @@ $stopReason = $streamResponse->getStopReason();  // 'end_turn', 'max_tokens', et
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Tool calling during streaming - Not currently supported, tools execute after full response
 ❌ Multi-modal streaming (images, audio) - Text-only streaming
@@ -984,6 +1059,7 @@ $stopReason = $streamResponse->getStopReason();  // 'end_turn', 'max_tokens', et
 **Note:** Tool calling with streaming is a complex feature not yet implemented. The current approach is: streaming is for real-time text output, tool calling happens in non-streaming mode.
 
 **Code Example Themes:**
+
 - Live dashboard updater
 - Streaming code analyzer
 - Real-time translation system
@@ -996,11 +1072,13 @@ $stopReason = $streamResponse->getStopReason();  // 'end_turn', 'max_tokens', et
 ---
 
 ## Part 4: Memory & Persistence (Chapters 12-13)
-*Stateful agents with memory management*
+
+_Stateful agents with memory management_
 
 ### Chapter 12: Memory Systems
 
 **Learning Objectives:**
+
 - Implement conversation memory
 - Use SQLite and file adapters
 - Manage memory lifecycle
@@ -1008,6 +1086,7 @@ $stopReason = $streamResponse->getStopReason();  // 'end_turn', 'max_tokens', et
 - Implement memory pruning
 
 **Key Concepts:**
+
 - Memory adapter interface
 - SQLite integration
 - File-based storage
@@ -1015,6 +1094,7 @@ $stopReason = $streamResponse->getStopReason();  // 'end_turn', 'max_tokens', et
 - Retention policies
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Contracts/Memory.php (lines 23-81)
 Agent Integration: src/Agent.php:memory() (lines 145-163), sessionId() (lines 165-170)
@@ -1026,6 +1106,7 @@ Test Examples: tests/Unit/Memory/ directory
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Memory Interface - src/Contracts/Memory.php:23-81
 interface Memory {
@@ -1075,6 +1156,7 @@ $memory->delete('session-1');
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Memory interface with 5 methods - src/Contracts/Memory.php
 ✅ SqliteAdapter for SQLite storage - src/Memory/Adapters/SqliteAdapter.php
@@ -1088,6 +1170,7 @@ $memory->delete('session-1');
 ```
 
 **Code Example Themes:**
+
 - Personal assistant with memory
 - Learning system that improves
 - Context-aware support bot
@@ -1102,6 +1185,7 @@ $memory->delete('session-1');
 ### Chapter 13: Advanced Memory Patterns
 
 **Learning Objectives:**
+
 - Build semantic memory search
 - Implement memory summarization
 - Create memory hierarchies
@@ -1109,6 +1193,7 @@ $memory->delete('session-1');
 - Optimize memory performance
 
 **Key Concepts:**
+
 - Vector embeddings
 - Memory compression
 - Hierarchical storage
@@ -1116,6 +1201,7 @@ $memory->delete('session-1');
 - Cache optimization
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Contracts/Memory.php (interface definition)
 Context Manager: src/Memory/ContextManager.php
@@ -1124,6 +1210,7 @@ Memory Adapters: src/Memory/Adapters/ (SqliteAdapter, FileAdapter)
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Context window management - src/Agent.php:172-177
 public function contextWindow(int $maxTokens, string $strategy = 'oldest'): self
@@ -1152,6 +1239,7 @@ $agent
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ ContextManager for token-based pruning - src/Memory/ContextManager.php
 ✅ contextWindow() configuration - src/Agent.php:172-177
@@ -1161,6 +1249,7 @@ $agent
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Vector embeddings or semantic search - Not built-in, implement custom Memory adapter
 ❌ Automatic memory summarization - Implement manually via LLM prompts
@@ -1174,6 +1263,7 @@ $agent
 **Note:** For advanced memory features, implement custom Memory adapter or build on top of existing adapters. Consider using vector databases (Pinecone, Weaviate, etc.) with custom adapters.
 
 **Code Example Themes:**
+
 - Semantic search assistant
 - Long-term memory system
 - Multi-tier cache implementation
@@ -1186,11 +1276,13 @@ $agent
 ---
 
 ## Part 5: Safety & Reliability (Chapters 14-15)
-*Production-ready safety features*
+
+_Production-ready safety features_
 
 ### Chapter 14: Safety Guards
 
 **Learning Objectives:**
+
 - Implement PII detection and redaction
 - Add content filtering guards
 - Detect prompt injection attempts
@@ -1198,6 +1290,7 @@ $agent
 - Handle guard violations
 
 **Key Concepts:**
+
 - Guard interface
 - PII patterns and detection
 - Content classification
@@ -1205,6 +1298,7 @@ $agent
 - Violation handling
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Contracts/Guard.php (lines 7-14)
 Agent Guard Methods: src/Agent.php:guard() (lines 604-656), fallback() (lines 658-663)
@@ -1215,6 +1309,7 @@ Test Examples: tests/Unit/AgentGuardsTest.php
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Guard Interface - src/Contracts/Guard.php:7-14
 interface Guard {
@@ -1265,6 +1360,7 @@ if (! empty($this->guards)) {
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Guard interface with 3 methods - src/Contracts/Guard.php
 ✅ guard() method with multiple signatures - src/Agent.php:604-656
@@ -1281,6 +1377,7 @@ if (! empty($this->guards)) {
 ```
 
 **Code Example Themes:**
+
 - GDPR-compliant assistant
 - Content moderation system
 - Secure data processor
@@ -1295,6 +1392,7 @@ if (! empty($this->guards)) {
 ### Chapter 15: Reliability Patterns
 
 **Learning Objectives:**
+
 - Implement retry strategies
 - Add circuit breakers
 - Configure timeout handling
@@ -1302,6 +1400,7 @@ if (! empty($this->guards)) {
 - Monitor reliability metrics
 
 **Key Concepts:**
+
 - Retry policies
 - Circuit breaker pattern
 - Timeout configuration
@@ -1309,6 +1408,7 @@ if (! empty($this->guards)) {
 - Health monitoring
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Agent.php:fallback() (lines 658-663)
 Middleware: src/Contracts/Middleware.php, src/Middleware/
@@ -1318,6 +1418,7 @@ Test Examples: tests/Unit/AgentGuardsTest.php (fallback tests)
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Fallback mechanism - src/Agent.php:658-663
 public function fallback(Closure $callback): self
@@ -1364,6 +1465,7 @@ $agent->middleware(new MetricsMiddleware());
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ fallback() for guard violations - src/Agent.php:658-663
 ✅ Exception handling in prompt() - src/Agent.php:329-364
@@ -1375,6 +1477,7 @@ $agent->middleware(new MetricsMiddleware());
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Built-in retry strategy - Implement via custom middleware
 ❌ Circuit breaker pattern - Implement via custom middleware
@@ -1387,6 +1490,7 @@ $agent->middleware(new MetricsMiddleware());
 **Note:** For production reliability, implement custom middleware for retry logic, circuit breakers, and advanced error handling. The framework provides hooks but not opinionated implementations.
 
 **Code Example Themes:**
+
 - Resilient API gateway
 - High-availability assistant
 - Fault-tolerant processor
@@ -1399,11 +1503,13 @@ $agent->middleware(new MetricsMiddleware());
 ---
 
 ## Part 6: Multi-Agent Orchestration (Chapters 16-19)
-*Coordinating multiple agents for complex tasks*
+
+_Coordinating multiple agents for complex tasks_
 
 ### Chapter 16: Multi-Agent Fundamentals
 
 **Learning Objectives:**
+
 - Understand agent orchestration concepts
 - Create agent hierarchies
 - Implement agent communication
@@ -1411,6 +1517,7 @@ $agent->middleware(new MetricsMiddleware());
 - Handle agent lifecycle
 
 **Key Concepts:**
+
 - Agent composition
 - Communication protocols
 - Shared memory patterns
@@ -1418,6 +1525,7 @@ $agent->middleware(new MetricsMiddleware());
 - Coordination primitives
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Orchestration/ directory
 Agent Methods: src/Agent.php:handoff() (lines 695-705), delegate() (lines 707-710)
@@ -1428,6 +1536,7 @@ Test Examples: tests/Integration/Orchestration/
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Creating multiple agents
 $researcher = agent('researcher')
@@ -1479,6 +1588,7 @@ $clone = $researcher->clone('researcher-2');
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ handoff() method on Agent - src/Agent.php:695-705
 ✅ delegate() method on Agent - src/Agent.php:707-710
@@ -1492,6 +1602,7 @@ $clone = $researcher->clone('researcher-2');
 ```
 
 **Code Example Themes:**
+
 - Manager-worker pattern
 - Collaborative research team
 - Multi-stage pipeline
@@ -1506,6 +1617,7 @@ $clone = $researcher->clone('researcher-2');
 ### Chapter 17: Pipeline Pattern
 
 **Learning Objectives:**
+
 - Build sequential agent pipelines
 - Implement data transformation between stages
 - Handle pipeline errors
@@ -1513,6 +1625,7 @@ $clone = $researcher->clone('researcher-2');
 - Monitor pipeline execution
 
 **Key Concepts:**
+
 - Pipeline architecture
 - Stage interfaces
 - Data flow management
@@ -1520,6 +1633,7 @@ $clone = $researcher->clone('researcher-2');
 - Performance profiling
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Orchestration/Pipeline.php (lines 16-105)
 Helper Function: src/functions.php:pipeline() (lines 97-105)
@@ -1527,6 +1641,7 @@ Test Examples: tests/Integration/Orchestration/PipelineTest.php (if exists)
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Pipeline creation - src/functions.php:97-105
 function pipeline(string $name): Pagent\Orchestration\Pipeline
@@ -1573,6 +1688,7 @@ $results = [
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ pipeline() global function - src/functions.php:97-105
 ✅ Pipeline class with fluent API - src/Orchestration/Pipeline.php
@@ -1585,6 +1701,7 @@ $results = [
 ```
 
 **Code Example Themes:**
+
 - Document processing pipeline
 - ETL system with agents
 - Content generation workflow
@@ -1599,6 +1716,7 @@ $results = [
 ### Chapter 18: Handoff Pattern
 
 **Learning Objectives:**
+
 - Implement agent handoff logic
 - Define handoff conditions
 - Manage context transfer
@@ -1606,6 +1724,7 @@ $results = [
 - Track handoff metrics
 
 **Key Concepts:**
+
 - Handoff protocols
 - Context serialization
 - Condition evaluation
@@ -1613,6 +1732,7 @@ $results = [
 - Metrics collection
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Orchestration/Handoff.php (lines 14-74)
 Agent Method: src/Agent.php:handoff() (lines 695-705)
@@ -1620,6 +1740,7 @@ Test Examples: tests/Integration/Orchestration/HandoffTest.php (if exists)
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Agent handoff method - src/Agent.php:695-705
 public function handoff(string|Agent $targetAgent, ?string $reason = null): Agent
@@ -1656,6 +1777,7 @@ if ($this->reason) {
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ handoff() method on Agent - src/Agent.php:695-705
 ✅ Handoff class - src/Orchestration/Handoff.php
@@ -1667,6 +1789,7 @@ if ($this->reason) {
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Conditional handoff triggers - Implement logic manually
 ❌ Handoff metrics tracking - No built-in telemetry for handoffs
@@ -1676,6 +1799,7 @@ if ($this->reason) {
 ```
 
 **Code Example Themes:**
+
 - Customer service escalation
 - Specialized expert system
 - Multi-language support bot
@@ -1690,6 +1814,7 @@ if ($this->reason) {
 ### Chapter 19: Delegation Pattern
 
 **Learning Objectives:**
+
 - Design delegation strategies
 - Implement work distribution
 - Handle parallel delegation
@@ -1697,6 +1822,7 @@ if ($this->reason) {
 - Optimize delegation decisions
 
 **Key Concepts:**
+
 - Delegation algorithms
 - Load balancing
 - Parallel execution
@@ -1704,6 +1830,7 @@ if ($this->reason) {
 - Decision optimization
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Orchestration/Delegation.php (lines 14-102)
 Agent Method: src/Agent.php:delegate() (lines 707-710)
@@ -1711,6 +1838,7 @@ Test Examples: tests/Integration/Orchestration/DelegationTest.php (if exists)
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Agent delegation method - src/Agent.php:707-710
 public function delegate(string $task): Orchestration\Delegation
@@ -1768,6 +1896,7 @@ $result = (object) [
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ delegate() method on Agent - src/Agent.php:707-710
 ✅ Delegation class - src/Orchestration/Delegation.php
@@ -1780,6 +1909,7 @@ $result = (object) [
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Parallel delegation to multiple workers - Sequential only, implement manually
 ❌ Load balancing across workers - No built-in load balancing
@@ -1792,6 +1922,7 @@ $result = (object) [
 **Note:** For parallel delegation, create multiple Delegation instances and use async PHP libraries or manually manage concurrent execution.
 
 **Code Example Themes:**
+
 - Research coordinator
 - Parallel task executor
 - Voting system implementation
@@ -1804,11 +1935,13 @@ $result = (object) [
 ---
 
 ## Part 7: Evaluation & Testing (Chapters 20-21)
-*Measuring and improving agent performance*
+
+_Measuring and improving agent performance_
 
 ### Chapter 20: Evaluation Framework
 
 **Learning Objectives:**
+
 - Design evaluation metrics
 - Create test datasets
 - Implement scoring functions
@@ -1816,6 +1949,7 @@ $result = (object) [
 - Generate performance reports
 
 **Key Concepts:**
+
 - Metric definition
 - Dataset structure
 - Scoring algorithms
@@ -1823,6 +1957,7 @@ $result = (object) [
 - Report generation
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Evaluation/Evaluator.php (lines 16-131)
 Dataset: src/Evaluation/Dataset.php
@@ -1835,6 +1970,7 @@ Test Examples: tests/Unit/Evaluation/ directory
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Evaluation helper - src/functions.php:87-95
 function evaluate(string $agentName): Pagent\Evaluation\Evaluator
@@ -1893,6 +2029,7 @@ $result->getDatasetSize(): int;
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ evaluate() global function - src/functions.php:87-95
 ✅ Evaluator class - src/Evaluation/Evaluator.php
@@ -1906,6 +2043,7 @@ $result->getDatasetSize(): int;
 ```
 
 **Code Example Themes:**
+
 - Accuracy measurement system
 - A/B testing framework
 - Benchmark suite
@@ -1920,6 +2058,7 @@ $result->getDatasetSize(): int;
 ### Chapter 21: Testing Strategies
 
 **Learning Objectives:**
+
 - Write unit tests for agents
 - Create integration test suites
 - Implement mock providers
@@ -1927,6 +2066,7 @@ $result->getDatasetSize(): int;
 - Automate regression testing
 
 **Key Concepts:**
+
 - Test structure with Pest
 - Mock provider usage
 - Fixture management
@@ -1934,6 +2074,7 @@ $result->getDatasetSize(): int;
 - CI/CD integration
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: tests/Unit/ directory (comprehensive test suite)
 Mock Provider: src/Providers/Mock.php (lines 11-37)
@@ -1943,6 +2084,7 @@ Example Tests: tests/Unit/AgentTest.php, tests/Unit/AgentToolsTest.php
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Mock provider - src/Providers/Mock.php
 function mock(array $responses = []): Pagent\Providers\Mock
@@ -1999,6 +2141,7 @@ test('it streams responses', function () {
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Mock provider for testing - src/Providers/Mock.php
 ✅ mock() global helper - src/functions.php:77-85
@@ -2012,6 +2155,7 @@ test('it streams responses', function () {
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Mock streaming support - Mock provider doesn't implement streamPrompt()
 ❌ Built-in test fixtures manager - Create manually
@@ -2021,6 +2165,7 @@ test('it streams responses', function () {
 ```
 
 **Code Example Themes:**
+
 - Comprehensive test suite
 - Mock-driven development
 - Regression test automation
@@ -2033,11 +2178,13 @@ test('it streams responses', function () {
 ---
 
 ## Part 8: Observability (Chapters 22-23)
-*Monitoring and debugging production agents*
+
+_Monitoring and debugging production agents_
 
 ### Chapter 22: OpenTelemetry Integration
 
 **Learning Objectives:**
+
 - Configure OpenTelemetry exporters
 - Instrument agent operations
 - Create custom spans
@@ -2045,6 +2192,7 @@ test('it streams responses', function () {
 - Visualize traces in Jaeger
 
 **Key Concepts:**
+
 - OTLP configuration
 - Span creation and management
 - Metric collection
@@ -2052,6 +2200,7 @@ test('it streams responses', function () {
 - Trace visualization
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Observability/TelemetryManager.php (lines 15-203)
 Span: src/Observability/Span.php
@@ -2062,6 +2211,7 @@ Test Examples: tests/Integration/Observability/
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Enable telemetry on agent - src/Agent.php:182-187
 public function telemetry(bool $enabled = true): self
@@ -2124,6 +2274,7 @@ TelemetryManager::instance()->initialize($config);
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ telemetry() method on Agent - src/Agent.php:182-187
 ✅ Global telemetry configuration - src/functions.php:117-127
@@ -2138,6 +2289,7 @@ TelemetryManager::instance()->initialize($config);
 ```
 
 **Code Example Themes:**
+
 - Full observability setup
 - Custom instrumentation
 - Performance monitoring
@@ -2152,6 +2304,7 @@ TelemetryManager::instance()->initialize($config);
 ### Chapter 23: Debugging and Monitoring
 
 **Learning Objectives:**
+
 - Debug agent conversations
 - Monitor token usage
 - Track costs across providers
@@ -2159,6 +2312,7 @@ TelemetryManager::instance()->initialize($config);
 - Create alerting rules
 
 **Key Concepts:**
+
 - Debug mode configuration
 - Token tracking
 - Cost calculation
@@ -2166,6 +2320,7 @@ TelemetryManager::instance()->initialize($config);
 - Alert configuration
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Agent.php:getStats() (lines 813-828)
 Token Tracking: Response objects include usage data
@@ -2175,6 +2330,7 @@ Conversation Export: src/Agent.php:exportConversation() (lines 785-792)
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Agent statistics - src/Agent.php:813-828
 public function getStats(): array
@@ -2239,6 +2395,7 @@ $agent->middleware(new MetricsMiddleware());
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ getStats() for agent statistics - src/Agent.php:813-828
 ✅ getGuardStats() - src/Agent.php:833-839
@@ -2252,6 +2409,7 @@ $agent->middleware(new MetricsMiddleware());
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Built-in cost calculation - Implement based on provider pricing
 ❌ Alerting system - Use external monitoring tools (Prometheus, Grafana)
@@ -2262,6 +2420,7 @@ $agent->middleware(new MetricsMiddleware());
 ```
 
 **Code Example Themes:**
+
 - Debug dashboard
 - Cost optimization system
 - Performance analyzer
@@ -2274,11 +2433,13 @@ $agent->middleware(new MetricsMiddleware());
 ---
 
 ## Part 9: Framework Integration (Chapter 24)
-*Using Pagent with popular PHP frameworks*
+
+_Using Pagent with popular PHP frameworks_
 
 ### Chapter 24: Laravel and Symfony Integration
 
 **Learning Objectives:**
+
 - Integrate Pagent with Laravel
 - Use with Symfony components
 - Implement queue workers
@@ -2286,6 +2447,7 @@ $agent->middleware(new MetricsMiddleware());
 - Configure dependency injection
 
 **Key Concepts:**
+
 - Service provider setup
 - Queue job integration
 - Controller patterns
@@ -2293,12 +2455,14 @@ $agent->middleware(new MetricsMiddleware());
 - DI configuration
 
 **CODEBASE REFERENCES:**
+
 ```
 None - Framework integration not built-in
 Reference: src/Agent.php, src/Registry.php for integration patterns
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Pagent is framework-agnostic - no built-in integrations
 
@@ -2380,6 +2544,7 @@ class AgentController extends AbstractController {
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Framework-agnostic design - Works with any PHP framework
 ✅ Registry for agent sharing - src/Registry.php
@@ -2388,6 +2553,7 @@ class AgentController extends AbstractController {
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Laravel Service Provider - Not provided, implement as shown above
 ❌ Symfony Bundle - Not provided, implement as shown above
@@ -2401,6 +2567,7 @@ class AgentController extends AbstractController {
 **Note:** This chapter should focus on integration patterns and best practices rather than expecting built-in framework support. Pagent is intentionally framework-agnostic.
 
 **Code Example Themes:**
+
 - Laravel chat application
 - Symfony console commands
 - Queue-based processor
@@ -2413,11 +2580,13 @@ class AgentController extends AbstractController {
 ---
 
 ## Part 10: Advanced Topics (Chapters 25-28)
-*Expert-level patterns and optimization*
+
+_Expert-level patterns and optimization_
 
 ### Chapter 25: Custom Middleware
 
 **Learning Objectives:**
+
 - Create custom middleware
 - Implement middleware chains
 - Build rate limiting middleware
@@ -2425,6 +2594,7 @@ class AgentController extends AbstractController {
 - Create audit logging
 
 **Key Concepts:**
+
 - Middleware interface
 - Chain of responsibility
 - Rate limiting strategies
@@ -2432,6 +2602,7 @@ class AgentController extends AbstractController {
 - Audit trail design
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Contracts/Middleware.php (lines 7-12)
 Agent Integration: src/Agent.php:middleware() (lines 673-688), getMiddleware() (lines 690-693)
@@ -2441,6 +2612,7 @@ Test Examples: tests/Unit/Middleware/ (if exists)
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // Middleware Interface - src/Contracts/Middleware.php:7-12
 interface Middleware {
@@ -2509,6 +2681,7 @@ $middlewares = $agent->getMiddleware();
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Middleware interface - src/Contracts/Middleware.php
 ✅ middleware() method on Agent - src/Agent.php:673-688
@@ -2522,6 +2695,7 @@ $middlewares = $agent->getMiddleware();
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Middleware priority/ordering control - Registration order only
 ❌ Conditional middleware execution - All middleware always runs
@@ -2531,6 +2705,7 @@ $middlewares = $agent->getMiddleware();
 ```
 
 **Code Example Themes:**
+
 - Rate limiter implementation
 - Response cache middleware
 - Audit logger
@@ -2545,6 +2720,7 @@ $middlewares = $agent->getMiddleware();
 ### Chapter 26: Performance Optimization
 
 **Learning Objectives:**
+
 - Optimize token usage
 - Implement response caching
 - Reduce API latency
@@ -2552,6 +2728,7 @@ $middlewares = $agent->getMiddleware();
 - Profile performance bottlenecks
 
 **Key Concepts:**
+
 - Token optimization
 - Cache strategies
 - Latency reduction
@@ -2559,6 +2736,7 @@ $middlewares = $agent->getMiddleware();
 - Performance profiling
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Agent.php (various optimization features)
 Context Management: src/Memory/ContextManager.php
@@ -2567,6 +2745,7 @@ Telemetry: src/Observability/TelemetryManager.php (for profiling)
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // 1. Token optimization via context windowing - src/Agent.php:172-177
 $agent->contextWindow(4000, 'oldest');
@@ -2631,6 +2810,7 @@ $worker2 = $agent->clone('worker-2');
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Context window management - src/Agent.php:172-177
 ✅ Tool schema caching - src/Agent.php:85, 856-875
@@ -2643,6 +2823,7 @@ $worker2 = $agent->clone('worker-2');
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Built-in response caching - Implement via middleware
 ❌ Parallel/async execution - Use external libraries (Amp, ReactPHP, etc.)
@@ -2653,6 +2834,7 @@ $worker2 = $agent->clone('worker-2');
 ```
 
 **Code Example Themes:**
+
 - Token-efficient assistant
 - High-performance cache
 - Batch processor
@@ -2667,6 +2849,7 @@ $worker2 = $agent->clone('worker-2');
 ### Chapter 27: Production Deployment
 
 **Learning Objectives:**
+
 - Configure production environment
 - Implement secure key management
 - Set up monitoring and alerting
@@ -2674,6 +2857,7 @@ $worker2 = $agent->clone('worker-2');
 - Handle production incidents
 
 **Key Concepts:**
+
 - Environment configuration
 - Secret management
 - Monitoring setup
@@ -2681,6 +2865,7 @@ $worker2 = $agent->clone('worker-2');
 - Incident response
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Agent.php, src/Providers/ (environment variable support)
 Telemetry: src/Observability/TelemetryManager.php
@@ -2689,6 +2874,7 @@ Guards: src/Guards/ (security in production)
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // 1. Environment-based configuration
 // All providers check environment variables:
@@ -2789,6 +2975,7 @@ function healthCheck(): array {
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ Environment variable support - All providers check env vars
 ✅ Telemetry with OTLP - Production-ready observability
@@ -2800,6 +2987,7 @@ function healthCheck(): array {
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Built-in health check endpoint - Implement manually
 ❌ Graceful shutdown handling - Implement at application level
@@ -2811,6 +2999,7 @@ function healthCheck(): array {
 ```
 
 **Code Example Themes:**
+
 - Production configuration
 - Kubernetes deployment
 - Auto-scaling setup
@@ -2825,6 +3014,7 @@ function healthCheck(): array {
 ### Chapter 28: Building Complex Systems
 
 **Learning Objectives:**
+
 - Design agent architectures
 - Implement event-driven patterns
 - Create plugin systems
@@ -2832,6 +3022,7 @@ function healthCheck(): array {
 - Develop agent marketplaces
 
 **Key Concepts:**
+
 - Architecture patterns
 - Event sourcing
 - Plugin architecture
@@ -2839,6 +3030,7 @@ function healthCheck(): array {
 - Marketplace design
 
 **CODEBASE REFERENCES:**
+
 ```
 Primary Source: src/Agent.php (extensibility patterns)
 Interfaces: src/Contracts/ (Tool, Guard, Middleware, Memory, Provider)
@@ -2847,6 +3039,7 @@ Registry: src/Registry.php (agent management)
 ```
 
 **ACTUAL API (verified from source):**
+
 ```php
 // 1. Extension Points (all interfaces for custom implementations)
 
@@ -2984,6 +3177,7 @@ $supportAgent = $marketplace->create('customer-support', [
 ```
 
 **FEATURES THAT EXIST:**
+
 ```
 ✅ 6 extension interfaces - Provider, Tool, Guard, Middleware, Memory, Metric
 ✅ Registry for agent management - src/Registry.php
@@ -2995,6 +3189,7 @@ $supportAgent = $marketplace->create('customer-support', [
 ```
 
 **DOES NOT EXIST:**
+
 ```
 ❌ Built-in plugin system - Design patterns shown above
 ❌ Event hooks/observers - Implement via middleware
@@ -3006,6 +3201,7 @@ $supportAgent = $marketplace->create('customer-support', [
 ```
 
 **Code Example Themes:**
+
 - Enterprise agent system
 - Plugin-based framework
 - Event-driven orchestrator
@@ -3020,15 +3216,19 @@ $supportAgent = $marketplace->create('customer-support', [
 ## Learning Path Recommendations
 
 ### Quick Start Path (5 chapters)
+
 Chapters 1 → 2 → 3 → 6 → 10
 
 ### Production Path (12 chapters)
+
 Chapters 1-5 → 14-15 → 20-21 → 22-23 → 27
 
 ### Full Stack Path (18 chapters)
+
 Chapters 1-9 → 12-13 → 14-15 → 22-24 → 27
 
 ### Expert Path (All 28 chapters)
+
 Complete sequential progression through all parts
 
 ---

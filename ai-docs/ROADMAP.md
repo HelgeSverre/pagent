@@ -205,6 +205,7 @@ agent('bot')
 ### v0.7.0 Progress Summary (Updated 2025-11-19)
 
 **Completed:**
+
 - ✅ Events/Hooks System (6-8 hours)
   - 36 passing tests (117 assertions)
   - 23 event classes total (Agent, LLM, Tool, Guard, Memory, Stream, MCP)
@@ -228,6 +229,7 @@ agent('bot')
 **Total Completed:** ~20-26 hours of ~49-66 hours (**52% complete**)
 
 **Remaining:**
+
 - Cost & Token Tracking (18-24 hours) - **Largest remaining work**
 - TOON Integration (3-4 hours)
 - Attribute-Based Tools (6-8 hours)
