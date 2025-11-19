@@ -22,11 +22,19 @@ final class Mock implements Provider
         // Check for predefined response
         $response = $this->responses[$message] ?? "Mock response to: {$message}";
 
+        $inputTokens = mb_strlen($message);
+        $outputTokens = mb_strlen($response);
+
         return (object) [
             'content' => $response,
             'model' => 'mock',
-            'tokens' => mb_strlen($message) + mb_strlen($response),
+            'tokens' => $inputTokens + $outputTokens,
             'provider' => 'mock',
+            'usage' => [
+                'input_tokens' => $inputTokens,
+                'output_tokens' => $outputTokens,
+                'total_tokens' => $inputTokens + $outputTokens,
+            ],
         ];
     }
 
