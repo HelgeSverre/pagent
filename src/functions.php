@@ -233,6 +233,43 @@ if (! function_exists('telemetry_bridge')) {
     }
 }
 
+if (! function_exists('usage_tracker')) {
+    /**
+     * Create and register a UsageTracker for automatic cost and token tracking.
+     *
+     * This tracker listens to LLM events and automatically records usage and cost data,
+     * enabling budget enforcement and usage analytics.
+     *
+     * @param  array{enabled?: bool, track_llm?: bool, track_streaming?: bool, storage?: Pagent\Usage\Storage\UsageStorage, pricing?: array<string, array<string, array{input: float, output: float, cached_input?: float}>>}  $config  Tracker configuration
+     *
+     * @example
+     * ```php
+     * use Pagent\Usage\Storage\SqliteUsageStorage;
+     *
+     * // Enable global usage tracking with SQLite storage
+     * usage_tracker([
+     *     'storage' => new SqliteUsageStorage(['database' => 'usage.db']),
+     * ]);
+     *
+     * // Now all LLM operations automatically track usage and cost
+     * agent('bot')->prompt('Hello');
+     *
+     * // Query usage
+     * $tracker = Pagent\Usage\UsageTracker::global();
+     * echo "Total cost: " . $tracker->getTotalCost();
+     * ```
+     */
+    function usage_tracker(array $config = []): Pagent\Usage\UsageTracker
+    {
+        $tracker = new Pagent\Usage\UsageTracker($config);
+
+        // Register with EventManager to receive all events
+        Pagent\Events\EventManager::instance()->listen($tracker);
+
+        return $tracker;
+    }
+}
+
 if (! function_exists('search')) {
     /**
      * Create a SearchTool with flexible configuration.
