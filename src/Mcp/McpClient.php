@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Pagent\Mcp;
 
+use Closure;
+use Pagent\Events\Event;
+use Pagent\Events\EventDispatcher;
+use Pagent\Events\EventListener;
+use Pagent\Events\EventManager;
 use Pagent\Mcp\Exceptions\McpConnectionException;
 use Pagent\Mcp\Exceptions\McpProtocolException;
 
@@ -36,11 +41,16 @@ final class McpClient
 
     private int $requestId = 1;
 
+    private EventDispatcher $eventDispatcher;
+
     public function __construct(
         private readonly McpTransport $transport,
         private readonly string $clientName = 'pagent',
         private readonly string $clientVersion = '0.7.0',
-    ) {}
+        ?EventDispatcher $eventDispatcher = null,
+    ) {
+        $this->eventDispatcher = $eventDispatcher ?? new EventDispatcher;
+    }
 
     /**
      * Connect and initialize the MCP session.
@@ -52,37 +62,74 @@ final class McpClient
      */
     public function connect(): void
     {
-        // Connect transport
-        $this->transport->connect();
+        $startTime = microtime(true);
 
-        // Send initialize request
-        $response = $this->sendRequest('initialize', [
-            'protocolVersion' => '2024-11-05',
-            'capabilities' => [
-                'experimental' => [],
-                'sampling' => [],
-            ],
-            'clientInfo' => [
-                'name' => $this->clientName,
-                'version' => $this->clientVersion,
-            ],
-        ]);
+        // Fire connection initiating event
+        $this->fireEvent(new \Pagent\Events\Events\Mcp\McpConnectionInitiatingEvent(
+            client: $this,
+            clientName: $this->clientName,
+            clientVersion: $this->clientVersion,
+        ));
 
-        // Validate response
-        if (! isset($response['result'])) {
-            throw McpProtocolException::invalidResponse('Missing result in initialize response');
+        try {
+            // Connect transport
+            $this->transport->connect();
+
+            // Send initialize request
+            $response = $this->sendRequest('initialize', [
+                'protocolVersion' => '2024-11-05',
+                'capabilities' => [
+                    'experimental' => [],
+                    'sampling' => [],
+                ],
+                'clientInfo' => [
+                    'name' => $this->clientName,
+                    'version' => $this->clientVersion,
+                ],
+            ]);
+
+            // Validate response
+            if (! isset($response['result'])) {
+                throw McpProtocolException::invalidResponse('Missing result in initialize response');
+            }
+
+            $result = $response['result'];
+
+            // Store server capabilities
+            /** @var array<string, mixed> $capabilities */
+            $capabilities = $result['capabilities'] ?? [];
+            $this->serverCapabilities = $capabilities;
+
+            // Mark as initialized
+            $this->initialized = true;
+
+            // Send initialized notification
+            $this->sendNotification('notifications/initialized');
+
+            $durationMs = (microtime(true) - $startTime) * 1000;
+
+            // Fire connection established event
+            /** @var array<string, mixed> $serverInfo */
+            $serverInfo = $result['serverInfo'] ?? [];
+            $this->fireEvent(new \Pagent\Events\Events\Mcp\McpConnectionEstablishedEvent(
+                client: $this,
+                clientName: $this->clientName,
+                clientVersion: $this->clientVersion,
+                serverCapabilities: $this->serverCapabilities,
+                serverInfo: $serverInfo,
+                durationMs: $durationMs,
+            ));
+        } catch (\Throwable $e) {
+            // Fire connection failed event
+            $this->fireEvent(new \Pagent\Events\Events\Mcp\McpConnectionFailedEvent(
+                client: $this,
+                clientName: $this->clientName,
+                clientVersion: $this->clientVersion,
+                error: $e,
+            ));
+
+            throw $e;
         }
-
-        $result = $response['result'];
-
-        // Store server capabilities
-        $this->serverCapabilities = $result['capabilities'] ?? [];
-
-        // Mark as initialized
-        $this->initialized = true;
-
-        // Send initialized notification
-        $this->sendNotification('notifications/initialized');
     }
 
     /**
@@ -90,10 +137,24 @@ final class McpClient
      */
     public function disconnect(): void
     {
+        // Fire disconnecting event
+        $this->fireEvent(new \Pagent\Events\Events\Mcp\McpDisconnectingEvent(
+            client: $this,
+            clientName: $this->clientName,
+            clientVersion: $this->clientVersion,
+        ));
+
         $this->transport->disconnect();
         $this->initialized = false;
         $this->serverCapabilities = null;
         $this->availableTools = [];
+
+        // Fire disconnected event
+        $this->fireEvent(new \Pagent\Events\Events\Mcp\McpDisconnectedEvent(
+            client: $this,
+            clientName: $this->clientName,
+            clientVersion: $this->clientVersion,
+        ));
     }
 
     /**
@@ -116,6 +177,13 @@ final class McpClient
     {
         $this->ensureConnected();
 
+        $startTime = microtime(true);
+
+        // Fire tools discovering event
+        $this->fireEvent(new \Pagent\Events\Events\Mcp\McpToolsDiscoveringEvent(
+            client: $this,
+        ));
+
         $response = $this->sendRequest('tools/list', []);
 
         if (! isset($response['result']['tools']) || ! is_array($response['result']['tools'])) {
@@ -123,6 +191,16 @@ final class McpClient
         }
 
         $this->availableTools = $response['result']['tools'];
+
+        $durationMs = (microtime(true) - $startTime) * 1000;
+
+        // Fire tools discovered event
+        $this->fireEvent(new \Pagent\Events\Events\Mcp\McpToolsDiscoveredEvent(
+            client: $this,
+            tools: $this->availableTools,
+            toolCount: count($this->availableTools),
+            durationMs: $durationMs,
+        ));
 
         return $this->availableTools;
     }
@@ -151,16 +229,49 @@ final class McpClient
     {
         $this->ensureConnected();
 
-        $response = $this->sendRequest('tools/call', [
-            'name' => $toolName,
-            'arguments' => $arguments,
-        ]);
+        $startTime = microtime(true);
 
-        if (! isset($response['result'])) {
-            throw McpProtocolException::invalidResponse('Missing result in tools/call response');
+        // Fire tool calling event
+        $this->fireEvent(new \Pagent\Events\Events\Mcp\McpToolCallingEvent(
+            client: $this,
+            toolName: $toolName,
+            arguments: $arguments,
+        ));
+
+        try {
+            $response = $this->sendRequest('tools/call', [
+                'name' => $toolName,
+                'arguments' => $arguments,
+            ]);
+
+            if (! isset($response['result'])) {
+                throw McpProtocolException::invalidResponse('Missing result in tools/call response');
+            }
+
+            $result = $response['result'];
+            $durationMs = (microtime(true) - $startTime) * 1000;
+
+            // Fire tool called event
+            $this->fireEvent(new \Pagent\Events\Events\Mcp\McpToolCalledEvent(
+                client: $this,
+                toolName: $toolName,
+                arguments: $arguments,
+                result: $result,
+                durationMs: $durationMs,
+            ));
+
+            return $result;
+        } catch (\Throwable $e) {
+            // Fire tool error event
+            $this->fireEvent(new \Pagent\Events\Events\Mcp\McpToolErrorEvent(
+                client: $this,
+                toolName: $toolName,
+                arguments: $arguments,
+                error: $e,
+            ));
+
+            throw $e;
         }
-
-        return $response['result'];
     }
 
     /**
@@ -318,6 +429,19 @@ final class McpClient
     }
 
     /**
+     * Register an event listener.
+     *
+     * @param  string  $event  Event name or class name
+     * @param  Closure|EventListener  $listener  Listener to attach
+     * @param  int  $priority  Priority (higher = executed first)
+     * @return string Listener ID for later removal
+     */
+    public function on(string $event, Closure|EventListener $listener, int $priority = 0): string
+    {
+        return $this->eventDispatcher->on($event, $listener, $priority);
+    }
+
+    /**
      * Handle incoming notification from the server.
      *
      * @param  array<string, mixed>  $notification
@@ -395,5 +519,14 @@ final class McpClient
         if (! $this->isConnected()) {
             throw McpConnectionException::notConnected();
         }
+    }
+
+    /**
+     * Fire an event to both instance and global listeners.
+     */
+    private function fireEvent(Event $event): void
+    {
+        $this->eventDispatcher->dispatch($event);
+        EventManager::instance()->dispatch($event);
     }
 }
