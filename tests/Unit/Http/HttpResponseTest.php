@@ -55,7 +55,7 @@ test('it throws on invalid json', function (): void {
     );
 
     expect(fn () => $response->json())
-        ->toThrow(JsonException::class);
+        ->toThrow(UnexpectedValueException::class, 'Failed to decode JSON response');
 });
 
 test('it throws when json decodes to non-array', function (): void {
@@ -309,5 +309,237 @@ test('it handles various status codes correctly', function () {
         expect($response->isSuccessful())->toBe($case['success'])
             ->and($response->isClientError())->toBe($case['client'])
             ->and($response->isServerError())->toBe($case['server']);
+    }
+});
+
+test('it throws when json decodes empty response', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: [],
+        body: ''
+    );
+
+    expect(fn () => $response->json())
+        ->toThrow(UnexpectedValueException::class, 'Cannot decode JSON from empty response body');
+});
+
+test('it throws when json decodes whitespace-only response', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: [],
+        body: '   '
+    );
+
+    expect(fn () => $response->json())
+        ->toThrow(UnexpectedValueException::class, 'Cannot decode JSON from empty response body');
+});
+
+test('it throws when content type is not json', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: ['content-type' => 'text/html'],
+        body: '<html><body>Not JSON</body></html>'
+    );
+
+    expect(fn () => $response->json())
+        ->toThrow(UnexpectedValueException::class, 'Response Content-Type is "text/html", expected JSON');
+});
+
+test('it allows json when content type contains json', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: ['content-type' => 'application/json; charset=utf-8'],
+        body: '{"status":"ok"}'
+    );
+
+    $json = $response->json();
+
+    expect($json)->toBe(['status' => 'ok']);
+});
+
+test('it handles case-insensitive content type header', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: ['Content-Type' => 'application/json'],
+        body: '{"result":"success"}'
+    );
+
+    $json = $response->json();
+
+    expect($json)->toBe(['result' => 'success']);
+});
+
+test('it includes http status in json error message', function (): void {
+    $response = new HttpResponse(
+        status: 400,
+        headers: [],
+        body: 'invalid'
+    );
+
+    try {
+        $response->json();
+        throw new Exception('Expected exception was not thrown');
+    } catch (UnexpectedValueException $e) {
+        expect($e->getMessage())
+            ->toContain('HTTP status: 400')
+            ->toContain('Body preview: invalid');
+    }
+});
+
+test('it truncates long body in error message', function (): void {
+    $response = new HttpResponse(
+        status: 500,
+        headers: [],
+        body: str_repeat('A', 300)
+    );
+
+    try {
+        $response->json();
+        throw new Exception('Expected exception was not thrown');
+    } catch (UnexpectedValueException $e) {
+        expect($e->getMessage())
+            ->toContain('Body preview: '.str_repeat('A', 200))
+            ->not->toContain(str_repeat('A', 300));
+    }
+});
+
+test('it handles json with unicode characters', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: [],
+        body: '{"emoji":"🚀","chinese":"你好","arabic":"مرحبا"}'
+    );
+
+    $json = $response->json();
+
+    expect($json)->toBe([
+        'emoji' => '🚀',
+        'chinese' => '你好',
+        'arabic' => 'مرحبا',
+    ]);
+});
+
+test('it handles deeply nested json', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: [],
+        body: '{"level1":{"level2":{"level3":{"level4":{"value":"deep"}}}}}'
+    );
+
+    $json = $response->json();
+
+    expect($json['level1']['level2']['level3']['level4']['value'])->toBe('deep');
+});
+
+test('it handles json with special characters in strings', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: [],
+        body: '{"quote":"He said \"hello\"","newline":"line1\\nline2","tab":"col1\\tcol2"}'
+    );
+
+    $json = $response->json();
+
+    expect($json['quote'])->toBe('He said "hello"')
+        ->and($json['newline'])->toBe("line1\nline2")
+        ->and($json['tab'])->toBe("col1\tcol2");
+});
+
+test('it handles json arrays with mixed types', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: [],
+        body: '[1, "string", true, null, {"key": "value"}]'
+    );
+
+    $json = $response->json();
+
+    expect($json)->toBe([1, 'string', true, null, ['key' => 'value']]);
+});
+
+test('it handles json with numeric keys', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: [],
+        body: '{"0":"zero","1":"one","2":"two"}'
+    );
+
+    $json = $response->json();
+
+    expect($json)->toBe(['0' => 'zero', '1' => 'one', '2' => 'two']);
+});
+
+test('it handles large json response', function (): void {
+    $largeArray = [];
+    for ($i = 0; $i < 1000; $i++) {
+        $largeArray["key{$i}"] = "value{$i}";
+    }
+    $body = json_encode($largeArray);
+
+    $response = new HttpResponse(
+        status: 200,
+        headers: [],
+        body: $body
+    );
+
+    $json = $response->json();
+
+    expect($json)->toHaveCount(1000)
+        ->and($json['key0'])->toBe('value0')
+        ->and($json['key999'])->toBe('value999');
+});
+
+test('it handles json with boolean values', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: [],
+        body: '{"active":true,"disabled":false}'
+    );
+
+    $json = $response->json();
+
+    expect($json['active'])->toBeTrue()
+        ->and($json['disabled'])->toBeFalse();
+});
+
+test('it handles json with null values', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: [],
+        body: '{"value":null,"another_value":null}'
+    );
+
+    $json = $response->json();
+
+    expect($json['value'])->toBeNull()
+        ->and($json['another_value'])->toBeNull();
+});
+
+test('it handles json with floating point numbers', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: [],
+        body: '{"pi":3.14159,"e":2.71828,"negative":-1.5}'
+    );
+
+    $json = $response->json();
+
+    expect($json['pi'])->toBe(3.14159)
+        ->and($json['e'])->toBe(2.71828)
+        ->and($json['negative'])->toBe(-1.5);
+});
+
+test('it wraps JsonException as previous exception', function (): void {
+    $response = new HttpResponse(
+        status: 200,
+        headers: [],
+        body: '{invalid json}'
+    );
+
+    try {
+        $response->json();
+        throw new Exception('Expected exception was not thrown');
+    } catch (UnexpectedValueException $e) {
+        expect($e->getPrevious())->toBeInstanceOf(JsonException::class);
     }
 });
