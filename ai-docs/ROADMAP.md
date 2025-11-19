@@ -202,33 +202,38 @@ agent('bot')
 
 ---
 
-### v0.7.0 Progress Summary (Updated 2025-11-18)
+### v0.7.0 Progress Summary (Updated 2025-11-19)
 
 **Completed:**
 - ✅ Events/Hooks System (6-8 hours)
   - 36 passing tests (117 assertions)
-  - 19 event classes, 17 integrated
+  - 23 event classes total (Agent, LLM, Tool, Guard, Memory, Stream, MCP)
   - EventManager singleton with per-agent and global listeners
 - ✅ TelemetryEventBridge (2-3 hours)
   - 20 passing tests (116 assertions)
   - Automatic span creation for LLM, Tool, Guard, Memory, Stream operations
   - Configurable tracing per operation type
 - ✅ OpenTelemetry Exporters (3-4 hours)
-  - 82 total observability tests (196 assertions)
-  - ConsoleExporter, OTLPExporter, JaegerExporter, ZipkinExporter
+  - 82+ total observability tests (196+ assertions)
+  - ConsoleExporter, OTLPExporter, JaegerExporter, ZipkinExporter, InMemoryExporter
   - Helper methods in TelemetryManager for all operation types
-  - 1 working example
+  - Multiple working examples and integration tests
+- ✅ MCP Client Support (6-8 hours)
+  - 69 passing tests (315 assertions)
+  - Full MCP protocol implementation (v2024-11-05)
+  - StdioTransport and HttpSseTransport
+  - McpToolAdapter for tool integration
+  - 10 MCP-specific events integrated
 
-**Total Completed:** ~11-15 hours of ~49-66 hours (23% complete)
+**Total Completed:** ~20-26 hours of ~49-66 hours (**52% complete**)
 
 **Remaining:**
-- Cost & Token Tracking (18-24 hours) - Major remaining work
+- Cost & Token Tracking (18-24 hours) - **Largest remaining work**
 - TOON Integration (3-4 hours)
 - Attribute-Based Tools (6-8 hours)
-- MCP Server Support (6-8 hours)
 - HTTP Client Migration (4-6 hours)
 
-**Next Steps:** Cost & Token Tracking is the largest remaining piece and should be prioritized next.
+**Next Steps:** Cost & Token Tracking is the largest remaining piece and provides critical production functionality.
 
 ---
 
@@ -340,42 +345,43 @@ agent('weather-bot')
 
 **Integration:** Works with TOON encoding for maximum token efficiency.
 
-#### 6. MCP Server Support (Consumer)
+#### 6. MCP Client Support (**COMPLETED** ✅)
 
-**Effort:** 6-8 hours | **Plan:** TBD
+**Effort:** 6-8 hours | **Plan:** [`ai-docs/plans/mcp-server-support-plan.md`](plans/mcp-server-support-plan.md)
+**Status:** COMPLETED 2025-11-19
 
-- [ ] Connect to MCP (Model Context Protocol) servers
-- [ ] Discover available tools from MCP servers
-- [ ] Map MCP tools to Pagent tools automatically
-- [ ] Support stdio and HTTP MCP transports
-- [ ] Handle tool parameters and responses
-- [ ] Integration with existing tool system
+- [x] Connect to MCP (Model Context Protocol) servers
+- [x] Discover available tools from MCP servers
+- [x] Map MCP tools to Pagent tools automatically (McpToolAdapter)
+- [x] Support stdio and HTTP SSE MCP transports
+- [x] Handle tool parameters and responses
+- [x] Integration with existing tool system
+- [x] MCP event system (10 event classes)
+- [x] 69 passing tests (315 assertions)
 
 **API Preview:**
 
 ```php
 // Connect to MCP server and auto-import tools
-agent('bot')
-    ->mcpServer('filesystem', [
-        'transport' => 'stdio',
-        'command' => 'npx',
-        'args' => ['-y', '@modelcontextprotocol/server-filesystem'],
-    ])
-    ->prompt('List files in /tmp');
+$transport = new StdioTransport('npx -y @modelcontextprotocol/server-filesystem /tmp');
+$client = new McpClient($transport);
+$client->connect();
+$tools = $client->discoverTools();
 
-// Or HTTP transport
-agent('bot')
-    ->mcpServer('api', [
-        'transport' => 'http',
-        'url' => 'http://localhost:3000/mcp',
-    ])
-    ->prompt('Get user data');
+// Register MCP event listeners
+$client->on('mcp_connection_established', function($event) {
+    echo "Connected to MCP server\n";
+});
+
+// HTTP SSE transport
+$transport = new HttpSseTransport('http://localhost:3000/mcp');
+$client = new McpClient($transport);
 ```
 
 **References:**
 
 - MCP Specification: https://modelcontextprotocol.io/
-- MCP PHP: https://github.com/modelcontextprotocol/php-sdk
+- Implementation: `src/Mcp/McpClient.php`
 
 #### 4. TOON Integration (Attribute-based Tool Definition)
 
@@ -833,6 +839,6 @@ router()
 
 ---
 
-**Last Updated:** 2025-10-29
+**Last Updated:** 2025-11-19
 **Maintained By:** Pagent Core Team
 **Format:** Chronological by version, consistent structure
