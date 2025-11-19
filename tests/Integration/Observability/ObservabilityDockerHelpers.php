@@ -305,6 +305,11 @@ class ObservabilityDockerHelpers
             return [];
         }
 
+        // Check if response is an error (Opik returns {"code": 404, "message": "..."})
+        if (isset($data['code']) && isset($data['message'])) {
+            return [];
+        }
+
         return $data;
     }
 }
