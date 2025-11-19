@@ -107,6 +107,8 @@ final class Agent
 
     private EventDispatcher $eventDispatcher;
 
+    private ?\Pagent\Usage\UsageTracker $usageTracker = null;
+
     public function __construct(
         private readonly string $name,
     ) {
@@ -209,6 +211,57 @@ final class Agent
         $this->telemetryEnabled = $enabled;
 
         return $this;
+    }
+
+    /**
+     * Enable usage tracking for this agent.
+     *
+     * Creates a dedicated UsageTracker for this agent that only tracks
+     * operations from this specific agent.
+     *
+     * @param  array{enabled?: bool, track_llm?: bool, track_streaming?: bool, storage?: \Pagent\Usage\Storage\UsageStorage, pricing?: array<string, array<string, array{input: float, output: float, cached_input?: float}>>}  $config  Tracker configuration
+     */
+    public function trackUsage(array $config = []): self
+    {
+        $this->usageTracker = new \Pagent\Usage\UsageTracker($config);
+
+        // Register with this agent's EventDispatcher AND global EventManager
+        // Agent's dispatcher for events from this agent
+        foreach ($this->usageTracker->listensTo() as $eventName) {
+            $this->eventDispatcher->on($eventName, $this->usageTracker);
+        }
+
+        // Global EventManager for events from other agents (if using global tracker)
+        \Pagent\Events\EventManager::instance()->listen($this->usageTracker);
+
+        return $this;
+    }
+
+    /**
+     * Get usage data for this agent.
+     *
+     * Returns usage records filtered by this agent's name from either:
+     * - The agent's dedicated tracker (if trackUsage() was called)
+     * - The global tracker (if usage_tracker() was called globally)
+     *
+     * @return array<int, \Pagent\Usage\UsageData>
+     */
+    public function getUsage(): array
+    {
+        // Check if this agent has its own tracker
+        if ($this->usageTracker !== null) {
+            return $this->usageTracker->byAgent($this->name);
+        }
+
+        // Fall back to global tracker if available
+        try {
+            $globalTracker = \Pagent\Usage\UsageTracker::global();
+
+            return $globalTracker->byAgent($this->name);
+        } catch (\Throwable) {
+            // No tracker available
+            return [];
+        }
     }
 
     /**
