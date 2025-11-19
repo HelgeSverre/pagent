@@ -19,10 +19,7 @@ use Pagent\Mcp\McpClient;
 final class McpToolsDiscoveredEvent extends Event
 {
     /**
-     * @param  McpClient  $client
      * @param  array<int, array<string, mixed>>  $tools
-     * @param  int  $toolCount
-     * @param  float  $durationMs
      */
     public function __construct(
         public readonly McpClient $client,

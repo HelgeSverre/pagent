@@ -12,8 +12,6 @@ use Pagent\Events\Events\Guard\GuardPassedEvent;
 use Pagent\Events\Events\Guard\GuardViolatedEvent;
 use Pagent\Events\Events\LLM\AfterLLMResponseEvent;
 use Pagent\Events\Events\LLM\BeforeLLMRequestEvent;
-use Pagent\Events\Events\Memory\MemoryLoadedEvent;
-use Pagent\Events\Events\Memory\MemoryLoadingEvent;
 use Pagent\Events\Events\Mcp\McpConnectionEstablishedEvent;
 use Pagent\Events\Events\Mcp\McpConnectionFailedEvent;
 use Pagent\Events\Events\Mcp\McpToolCalledEvent;
@@ -21,6 +19,8 @@ use Pagent\Events\Events\Mcp\McpToolCallingEvent;
 use Pagent\Events\Events\Mcp\McpToolErrorEvent;
 use Pagent\Events\Events\Mcp\McpToolsDiscoveredEvent;
 use Pagent\Events\Events\Mcp\McpToolsDiscoveringEvent;
+use Pagent\Events\Events\Memory\MemoryLoadedEvent;
+use Pagent\Events\Events\Memory\MemoryLoadingEvent;
 use Pagent\Events\Events\Stream\StreamCompletedEvent;
 use Pagent\Events\Events\Stream\StreamStartedEvent;
 use Pagent\Events\Events\Tool\ToolErrorEvent;
@@ -592,7 +592,7 @@ final class TelemetryEventBridge implements EventListener
         );
 
         // Store span with client ID and tool name
-        $this->storeSpan('mcp_tool', (string) spl_object_id($event->client) . ':' . $event->toolName, $span);
+        $this->storeSpan('mcp_tool', (string) spl_object_id($event->client).':'.$event->toolName, $span);
     }
 
     /**
@@ -600,7 +600,7 @@ final class TelemetryEventBridge implements EventListener
      */
     private function handleMcpToolCalled(McpToolCalledEvent $event): void
     {
-        $spanData = $this->retrieveSpan('mcp_tool', (string) spl_object_id($event->client) . ':' . $event->toolName);
+        $spanData = $this->retrieveSpan('mcp_tool', (string) spl_object_id($event->client).':'.$event->toolName);
 
         if ($spanData === null) {
             return;
@@ -620,7 +620,7 @@ final class TelemetryEventBridge implements EventListener
      */
     private function handleMcpToolError(McpToolErrorEvent $event): void
     {
-        $spanData = $this->retrieveSpan('mcp_tool', (string) spl_object_id($event->client) . ':' . $event->toolName);
+        $spanData = $this->retrieveSpan('mcp_tool', (string) spl_object_id($event->client).':'.$event->toolName);
 
         if ($spanData === null) {
             return;

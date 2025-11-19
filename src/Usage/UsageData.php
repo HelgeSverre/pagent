@@ -23,8 +23,7 @@ final class UsageData
         public readonly ?int $cacheCreationTokens = null,
         public readonly ?string $sessionId = null,
         public readonly float $timestamp = 0.0,
-    ) {
-    }
+    ) {}
 
     /**
      * Create UsageData from LLM response data.
@@ -35,7 +34,6 @@ final class UsageData
      * @param  array<string, mixed>  $usage  Usage array from provider response
      * @param  float  $cost  Calculated cost in USD
      * @param  string|null  $sessionId  Optional session identifier
-     * @return self
      */
     public static function fromResponse(
         string $agentName,

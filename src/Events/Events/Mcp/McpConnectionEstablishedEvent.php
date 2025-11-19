@@ -19,12 +19,8 @@ use Pagent\Mcp\McpClient;
 final class McpConnectionEstablishedEvent extends Event
 {
     /**
-     * @param  McpClient  $client
-     * @param  string  $clientName
-     * @param  string  $clientVersion
      * @param  array<string, mixed>  $serverCapabilities
      * @param  array<string, mixed>  $serverInfo
-     * @param  float  $durationMs
      */
     public function __construct(
         public readonly McpClient $client,

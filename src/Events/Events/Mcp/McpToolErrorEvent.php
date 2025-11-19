@@ -20,10 +20,7 @@ use Throwable;
 final class McpToolErrorEvent extends Event
 {
     /**
-     * @param  McpClient  $client
-     * @param  string  $toolName
      * @param  array<string, mixed>  $arguments
-     * @param  Throwable  $error
      */
     public function __construct(
         public readonly McpClient $client,
