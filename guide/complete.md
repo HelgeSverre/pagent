@@ -3149,6 +3149,314 @@ In the next chapter, we'll expand agent capabilities dramatically by introducing
 
 You'll learn how to define tools, handle tool execution, and build agents that seamlessly combine conversation with capability. Let's explore that next.
 
+# Chapter 5B: Event System Architecture
+
+Pagent provides a powerful two-tier event system that allows you to observe and react to agent lifecycle events. Understanding when to use per-agent event handling versus global event management is crucial for building well-structured applications with proper separation of concerns.
+
+This chapter explains the architecture of Pagent's event system, when to use each approach, and how to implement cross-agent event listening for application-level concerns like telemetry, logging, and usage tracking.
+
+## The Two-Tier Event System
+
+Pagent implements two levels of event handling:
+
+1. **Per-Agent Events** - Each agent instance has its own `EventDispatcher` for agent-specific listeners
+2. **Global Events** - The `EventManager` singleton provides application-wide event listening across all agents
+
+This architecture separates agent-specific concerns from cross-cutting application concerns.
+
+### Per-Agent EventDispatcher
+
+Every agent instance has its own `EventDispatcher` that manages listeners specific to that agent. This is what you use when you call `$agent->on()`, `$agent->once()`, or `$agent->listen()`.
+
+**Use per-agent events when:**
+- Listening to events from a specific agent instance
+- Building features tied to a particular agent's lifecycle
+- Implementing agent-specific logging or behavior modification
+- Handling events in isolated contexts (testing, sandboxing)
+
+**Example: Agent-specific logging**
+
+```php
+use function Pagent\agent;
+
+$customerAgent = agent('customer-support')
+    ->provider(anthropic())
+    ->system('You are a helpful customer support agent');
+
+// Listen only to this agent's events
+$customerAgent->on('after_prompt', function ($event) {
+    Log::info('Customer agent responded', [
+        'tokens' => $event->usage->totalTokens(),
+        'model' => $event->model,
+    ]);
+});
+
+$salesAgent = agent('sales')
+    ->provider(anthropic())
+    ->system('You are a sales assistant');
+
+// This agent has no listeners - $salesAgent events won't be logged
+$salesAgent->prompt('Help me find a product');  // Not logged
+$customerAgent->prompt('I need help');          // Logged
+```
+
+### Global EventManager
+
+The `EventManager` is a singleton that provides a global event bus for listening to events from **all agents** in your application. This is essential for cross-cutting concerns.
+
+**Use global events when:**
+- Implementing application-wide telemetry or observability
+- Tracking usage across all agents
+- Global logging or monitoring
+- Debugging entire multi-agent systems
+- Building agent-agnostic features
+
+**Example: Global usage tracking**
+
+```php
+use Pagent\Events\EventManager;
+
+// Register a global listener that hears ALL agent events
+EventManager::instance()->on('after_prompt', function ($event) {
+    Metrics::increment('agent.prompts.total');
+    Metrics::histogram('agent.prompts.tokens', $event->usage->totalTokens());
+
+    // This will fire for every agent in the application
+});
+
+// Later, anywhere in your application
+$agent1 = agent('bot1')->provider(anthropic());
+$agent2 = agent('bot2')->provider(openai());
+
+$agent1->prompt('Hello');  // Triggers global listener
+$agent2->prompt('Hi');     // Also triggers global listener
+```
+
+## EventManager API
+
+The `EventManager` singleton provides the same API as the per-agent `EventDispatcher`:
+
+```php
+use Pagent\Events\EventManager;
+
+$manager = EventManager::instance();
+
+// Register a listener
+$id = $manager->on('after_prompt', function ($event) {
+    // Handle event
+}, priority: 100);
+
+// Register a one-time listener
+$manager->once('stream_completed', function ($event) {
+    // Fires only once
+});
+
+// Register a class-based listener for multiple events
+$manager->listen($myListener);
+
+// Remove a listener
+$manager->off('after_prompt', $id);
+
+// Dispatch an event (typically done by Pagent internals)
+$manager->dispatch($event);
+
+// Reset the singleton (for testing)
+EventManager::reset();
+```
+
+## Class-Based Global Listeners
+
+For production applications, use class-based listeners that implement the `EventListener` interface. This provides better organization and testability.
+
+**Example: Global telemetry listener**
+
+```php
+use Pagent\Events\Event;
+use Pagent\Events\EventListener;
+use Pagent\Events\EventManager;
+use Pagent\Events\Events\AfterPromptEvent;
+use Pagent\Events\Events\StreamCompletedEvent;
+
+class TelemetryListener implements EventListener
+{
+    public function handle(Event $event): void
+    {
+        match (true) {
+            $event instanceof AfterPromptEvent => $this->trackPrompt($event),
+            $event instanceof StreamCompletedEvent => $this->trackStream($event),
+            default => null,
+        };
+    }
+
+    public function listensTo(): array
+    {
+        return ['after_prompt', 'stream_completed'];
+    }
+
+    private function trackPrompt(AfterPromptEvent $event): void
+    {
+        // Send to your observability platform
+        Telemetry::record('agent.prompt', [
+            'agent_name' => $event->agent->getName(),
+            'model' => $event->model,
+            'input_tokens' => $event->usage->inputTokens(),
+            'output_tokens' => $event->usage->outputTokens(),
+            'duration_ms' => $event->duration,
+        ]);
+    }
+
+    private function trackStream(StreamCompletedEvent $event): void
+    {
+        Telemetry::record('agent.stream', [
+            'agent_name' => $event->agent->getName(),
+            'total_chunks' => $event->chunks,
+            'duration_ms' => $event->duration,
+        ]);
+    }
+}
+
+// Register globally during application bootstrap
+EventManager::instance()->listen(new TelemetryListener());
+```
+
+Now every agent in your application automatically sends telemetry data, with no per-agent configuration required.
+
+## Built-In Global Listeners
+
+Pagent includes several built-in global listeners for common concerns:
+
+### 1. Global Usage Tracking
+
+The `UsageTracker` automatically registers with the global `EventManager` to track usage across all agents:
+
+```php
+use function Pagent\usage_tracker;
+
+// The global usage tracker listens to all agents automatically
+$tracker = usage_tracker();
+
+// Use agents anywhere
+$agent1->prompt('Hello');
+$agent2->prompt('Hi');
+
+// Get aggregated usage across all agents
+echo "Total tokens: " . $tracker->totalTokens() . "\n";
+echo "Total cost: $" . $tracker->totalCost() . "\n";
+```
+
+### 2. OpenTelemetry Bridge
+
+The `TelemetryEventBridge` registers globally to export all agent events to OpenTelemetry:
+
+```php
+use function Pagent\telemetry_bridge;
+
+// Enable telemetry for all agents
+$bridge = telemetry_bridge();
+
+// All agents automatically export spans
+$agent1->prompt('Hello');  // Creates trace span
+$agent2->prompt('Hi');     // Creates trace span
+```
+
+## Event Flow Architecture
+
+Understanding how events flow through Pagent helps you choose the right level:
+
+```
+Agent Operation (prompt, stream, etc.)
+       |
+       v
+Internal Event Dispatch
+       |
+       +----> Per-Agent EventDispatcher
+       |            |
+       |            v
+       |      Agent-specific listeners
+       |
+       +----> Global EventManager (via direct dispatch from internals)
+                    |
+                    v
+              Global listeners (telemetry, usage, etc.)
+```
+
+**Key points:**
+
+- Some events are dispatched to both per-agent and global listeners
+- Global listeners registered via `EventManager` hear events from all agents
+- Per-agent listeners only hear events from their specific agent
+- The `EventManager` is completely independent of per-agent dispatchers
+
+## Cross-Agent Debugging
+
+The global event system is particularly powerful for debugging multi-agent systems:
+
+```php
+use Pagent\Events\EventManager;
+
+// Enable global debugging during development
+if (app()->environment('local')) {
+    EventManager::instance()->on('after_prompt', function ($event) {
+        logger()->debug('Agent prompt', [
+            'agent' => $event->agent->getName(),
+            'prompt' => $event->prompt,
+            'response' => $event->response->content,
+            'tokens' => $event->usage->totalTokens(),
+        ]);
+    });
+}
+
+// Now all agent interactions are automatically logged
+$customerAgent->prompt('Help me');  // Logged
+$salesAgent->prompt('Find product');  // Logged
+$supportAgent->prompt('Check status');  // Logged
+```
+
+## Testing with Global Events
+
+The `EventManager::reset()` method is essential for test isolation:
+
+```php
+use Pagent\Events\EventManager;
+
+beforeEach(function () {
+    EventManager::reset();  // Clear global listeners before each test
+});
+
+test('it tracks usage globally', function () {
+    $calls = [];
+
+    EventManager::instance()->on('after_prompt', function ($event) use (&$calls) {
+        $calls[] = $event->agent->getName();
+    });
+
+    agent('bot1')->provider(mock())->prompt('Hi');
+    agent('bot2')->provider(mock())->prompt('Hello');
+
+    expect($calls)->toBe(['bot1', 'bot2']);
+});
+```
+
+## Best Practices
+
+**Use per-agent events for agent-specific logic.** If your event handling is tied to a particular agent instance (like custom retries or transformations), use the agent's own event dispatcher.
+
+**Use global events for cross-cutting concerns.** Telemetry, usage tracking, global logging, and monitoring should use `EventManager` to automatically cover all agents.
+
+**Keep global listeners lightweight.** Since global listeners fire for every agent event, ensure they're performant and don't block agent operations.
+
+**Register global listeners during bootstrap.** Set up `EventManager` listeners once during application initialization, not per-request.
+
+**Reset EventManager in tests.** Always call `EventManager::reset()` between tests to prevent listener leakage.
+
+**Prefer class-based listeners for production.** While closures are convenient for quick debugging, class-based `EventListener` implementations are more maintainable and testable.
+
+## What's Next
+
+You've now mastered Pagent's two-tier event system and understand when to use per-agent versus global event handling. This architecture enables clean separation between agent-specific concerns and application-wide observability.
+
+In the next chapter, we'll introduce tool calling - the feature that transforms agents from conversational interfaces into action-taking systems that can execute functions and interact with external systems.
+
 # Chapter 6: Introduction to Tool Calling
 
 One of the most powerful features of modern large language models is their ability to call functions or "tools" to extend their capabilities beyond text generation. In Pagent, tool calling transforms your agents from simple conversational interfaces into action-taking systems that can query databases, read files, call APIs, perform calculations, and interact with the real world.
@@ -4550,7 +4858,641 @@ This pattern lets you integrate any PHP library into your agent's capabilities.
 
 You now understand how to build production-ready custom tools with proper validation, configuration, and error handling. You know how to implement the `ToolInterface`, use the abstract `Tool` class to reduce boilerplate, and organize tools into reusable libraries.
 
-In the next chapter, we'll explore recursive tool execution - how agents can chain multiple tool calls together, handle complex multi-step workflows, and avoid infinite loops. You'll learn how Pagent's automatic recursion handling makes it easy to build agents that break down complex tasks into a series of tool calls.
+In the next chapter, we'll explore the two-tier tool architecture in Pagent - understanding when to use closure-based tools versus class-based tools, and how to leverage the powerful built-in tool library.
+
+# Chapter 7B: Tool Architecture - Closure vs Class-Based Tools
+
+Pagent provides two distinct approaches for defining tools, each serving different use cases. Understanding when to use closure-based tools (`Pagent\Tool\Tool`) versus class-based tools (`Pagent\Tools\Tool`) is essential for building maintainable agent systems.
+
+This chapter explains the architecture behind Pagent's two-tier tool system, introduces the built-in class-based tool library, and shows you how to choose the right approach for your needs.
+
+## The Two-Tier Tool System
+
+### 1. Closure-Based Tools (`Pagent\Tool\Tool`)
+
+**Namespace:** `Pagent\Tool\Tool` (singular)
+
+**Purpose:** Quick, inline tool definitions with automatic schema generation
+
+**Best for:**
+- Simple, one-off tools
+- Rapid prototyping
+- Application-specific logic
+- Tools that don't need reuse across projects
+
+**Key Features:**
+- Automatic argument detection via PHP reflection
+- Automatic schema generation for both Anthropic and OpenAI
+- Type inference from PHP type hints
+- Minimal boilerplate
+
+**Example:**
+
+```php
+use function Pagent\agent;
+
+$agent = agent('assistant')
+    ->provider(anthropic())
+    ->tool(
+        'calculate_sum',
+        'Add two numbers together',
+        fn (int $a, int $b): int => $a + $b
+    )
+    ->tool(
+        'get_timestamp',
+        'Get current Unix timestamp',
+        fn (): int => time()
+    );
+```
+
+Closure-based tools are created using `Tool::fromClosure()` internally and automatically integrated with the agent.
+
+### 2. Class-Based Tools (`Pagent\Tools\Tool`)
+
+**Namespace:** `Pagent\Tools\Tool` (plural)
+
+**Purpose:** Production-ready, reusable tools with encapsulated logic and security features
+
+**Best for:**
+- Reusable tools across multiple projects
+- Complex tools with state or configuration
+- Tools requiring security controls (path traversal, SSRF protection, etc.)
+- Tools you want to package and distribute
+- Tools with complex validation or error handling
+
+**Key Features:**
+- Full encapsulation of logic and state
+- Constructor-based configuration
+- Built-in security features in standard tools
+- Explicit parameter schema control
+- Testability and maintainability
+
+**Example:**
+
+```php
+use Pagent\Tools\Tool;
+
+abstract class Tool
+{
+    abstract public function name(): string;
+    abstract public function description(): string;
+    abstract public function execute(array $params): mixed;
+    public function parameters(): array { return []; }
+}
+```
+
+Class-based tools implement this interface and can be used standalone or wrapped for agent integration.
+
+## Built-In Class-Based Tools
+
+Pagent ships with a comprehensive library of production-ready, security-hardened tools:
+
+### 1. FileRead - Secure File Reading
+
+**Path:** `Pagent\Tools\FileRead`
+
+**Purpose:** Read files with path traversal protection
+
+**Security Features:**
+- Base directory restriction
+- Path traversal prevention
+- Configurable allowed extensions
+
+**Configuration:**
+
+```php
+use Pagent\Tools\FileRead;
+
+$tool = new FileRead(
+    baseDir: '/var/www/data',           // Restrict to this directory
+    allowedExtensions: ['txt', 'md'],    // Only allow these types
+    maxSize: 1024 * 1024                 // Max file size (optional)
+);
+
+$result = $tool->execute(['path' => 'document.txt']);
+echo $result['content'];
+```
+
+### 2. FileWrite - Secure File Writing
+
+**Path:** `Pagent\Tools\FileWrite`
+
+**Purpose:** Write files with security controls
+
+**Security Features:**
+- Base directory restriction
+- Path traversal prevention
+- Overwrite protection (optional)
+- Configurable allowed extensions
+
+**Configuration:**
+
+```php
+use Pagent\Tools\FileWrite;
+
+$tool = new FileWrite(
+    baseDir: '/var/www/uploads',
+    allowedExtensions: ['txt', 'md', 'json'],
+    allowOverwrite: false  // Prevent overwriting existing files
+);
+
+$tool->execute([
+    'path' => 'output.txt',
+    'content' => 'Hello, World!',
+]);
+```
+
+### 3. WebFetch - HTTP Requests with SSRF Protection
+
+**Path:** `Pagent\Tools\WebFetch`
+
+**Purpose:** Make HTTP requests with security controls
+
+**Security Features:**
+- SSRF protection (blocks private/local IPs)
+- Allowed domain whitelist
+- Timeout control
+- Content-type filtering
+
+**Configuration:**
+
+```php
+use Pagent\Tools\WebFetch;
+
+$tool = new WebFetch(
+    allowedDomains: ['api.example.com', 'data.example.org'],
+    timeout: 30,
+    maxRedirects: 5
+);
+
+$result = $tool->execute(['url' => 'https://api.example.com/data']);
+echo $result['body'];
+```
+
+### 4. Bash - Shell Command Execution
+
+**Path:** `Pagent\Tools\Bash`
+
+**Purpose:** Execute shell commands with command whitelisting
+
+**Security Features:**
+- Command whitelist (only allowed commands can run)
+- Working directory restriction
+- Timeout control
+- Environment variable control
+
+**Configuration:**
+
+```php
+use Pagent\Tools\Bash;
+
+$tool = new Bash(
+    allowedCommands: ['ls', 'grep', 'find', 'cat'],
+    workingDirectory: '/var/www',
+    timeout: 60
+);
+
+$result = $tool->execute(['command' => 'ls -la']);
+echo $result['output'];
+```
+
+### 5. Glob - File Pattern Matching
+
+**Path:** `Pagent\Tools\Glob`
+
+**Purpose:** Find files by pattern with directory restrictions
+
+**Configuration:**
+
+```php
+use Pagent\Tools\Glob;
+
+$tool = new Glob(
+    baseDir: '/var/www/app',
+    maxResults: 100
+);
+
+$result = $tool->execute(['pattern' => '**/*.php']);
+print_r($result['files']);
+```
+
+### 6. Grep - Content Search
+
+**Path:** `Pagent\Tools\Grep`
+
+**Purpose:** Search file contents with limits
+
+**Configuration:**
+
+```php
+use Pagent\Tools\Grep;
+
+$tool = new Grep(
+    baseDir: '/var/www/app',
+    maxResults: 50,
+    maxFileSize: 1024 * 1024  // Don't search files > 1MB
+);
+
+$result = $tool->execute([
+    'pattern' => 'function.*export',
+    'path' => 'src/',
+]);
+```
+
+### 7. PdfReader - PDF Text Extraction
+
+**Path:** `Pagent\Tools\PdfReader`
+
+**Purpose:** Extract text from PDF files
+
+**Configuration:**
+
+```php
+use Pagent\Tools\PdfReader;
+
+$tool = new PdfReader(
+    baseDir: '/var/www/documents',
+    maxPages: 50  // Limit extraction to first N pages
+);
+
+$result = $tool->execute(['path' => 'report.pdf']);
+echo $result['text'];
+```
+
+### 8. DataExtract - Structured Data Extraction
+
+**Path:** `Pagent\Tools\DataExtract`
+
+**Purpose:** Use LLM to extract structured data from unstructured text
+
+**Configuration:**
+
+```php
+use Pagent\Tools\DataExtract;
+use function Pagent\anthropic;
+
+$tool = new DataExtract(
+    provider: anthropic(),
+    schema: [
+        'type' => 'object',
+        'properties' => [
+            'name' => ['type' => 'string'],
+            'email' => ['type' => 'string'],
+            'phone' => ['type' => 'string'],
+        ],
+    ]
+);
+
+$result = $tool->execute([
+    'text' => 'Contact: John Doe (john@example.com, 555-1234)',
+]);
+```
+
+### 9. SearchTool - Semantic Search
+
+**Path:** `Pagent\Tools\SearchTool`
+
+**Purpose:** Perform semantic search over documents or data
+
+**Configuration:**
+
+```php
+use Pagent\Tools\SearchTool;
+
+$tool = new SearchTool(
+    documents: $documentCollection,
+    topK: 5
+);
+
+$result = $tool->execute(['query' => 'How to configure authentication?']);
+```
+
+## When to Use Which Approach
+
+### Use Closure-Based Tools When:
+
+1. **Rapid prototyping** - You're experimenting and iterating quickly
+2. **Simple logic** - The tool does one simple thing with no complex state
+3. **Application-specific** - The tool is unique to this application
+4. **One-time use** - You won't reuse this tool in other projects
+5. **Inline context** - The tool logic is clearer when defined inline
+
+**Example: Application-specific calculation**
+
+```php
+$agent->tool(
+    'calculate_discount',
+    'Calculate discount based on customer tier and order value',
+    function (string $tier, float $orderValue): float {
+        $discountRates = [
+            'bronze' => 0.05,
+            'silver' => 0.10,
+            'gold' => 0.15,
+        ];
+
+        return $orderValue * ($discountRates[$tier] ?? 0);
+    }
+);
+```
+
+### Use Class-Based Tools When:
+
+1. **Reusability** - You'll use this tool across multiple agents or projects
+2. **Complex logic** - The tool requires state, configuration, or multiple methods
+3. **Security** - You need path traversal, SSRF, or other security controls
+4. **Testing** - You want to unit test the tool independently
+5. **Collaboration** - The tool will be shared with other developers
+6. **External dependencies** - The tool wraps an API client or external library
+
+**Example: Reusable database query tool**
+
+```php
+namespace App\Tools;
+
+use Pagent\Tools\Tool;
+
+class DatabaseQuery extends Tool
+{
+    public function __construct(
+        private PDO $connection,
+        private array $allowedTables,
+    ) {}
+
+    public function name(): string
+    {
+        return 'query_database';
+    }
+
+    public function description(): string
+    {
+        return 'Execute a SQL SELECT query on allowed tables';
+    }
+
+    public function parameters(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'table' => [
+                    'type' => 'string',
+                    'enum' => $this->allowedTables,
+                    'description' => 'Table to query',
+                ],
+                'columns' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string'],
+                    'description' => 'Columns to select',
+                ],
+                'where' => [
+                    'type' => 'string',
+                    'description' => 'WHERE clause (optional)',
+                ],
+            ],
+            'required' => ['table', 'columns'],
+        ];
+    }
+
+    public function execute(array $params): mixed
+    {
+        // Validate table is allowed
+        if (! in_array($params['table'], $this->allowedTables)) {
+            throw new \InvalidArgumentException("Table not allowed: {$params['table']}");
+        }
+
+        // Build and execute query safely
+        $columns = implode(', ', $params['columns']);
+        $sql = "SELECT {$columns} FROM {$params['table']}";
+
+        if (isset($params['where'])) {
+            $sql .= " WHERE {$params['where']}";
+        }
+
+        $stmt = $this->connection->query($sql);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+}
+```
+
+## Using Class-Based Tools with Agents
+
+Class-based tools aren't automatically integrated with agents via `->tool()` like closures. You have two options:
+
+### Option 1: Wrap in a Closure (Recommended)
+
+```php
+use Pagent\Tools\FileRead;
+use function Pagent\agent;
+
+$fileReader = new FileRead(baseDir: '/var/www/data');
+
+$agent = agent('assistant')
+    ->provider(anthropic())
+    ->tool(
+        $fileReader->name(),
+        $fileReader->description(),
+        fn (array $params) => $fileReader->execute($params)
+    );
+```
+
+### Option 2: Convert to ToolInterface Implementation
+
+Implement the `Pagent\Contracts\ToolInterface` to get automatic integration:
+
+```php
+namespace App\Tools;
+
+use Pagent\Contracts\ToolInterface;
+
+class CustomTool implements ToolInterface
+{
+    public function name(): string
+    {
+        return 'custom_tool';
+    }
+
+    public function description(): string
+    {
+        return 'My custom tool';
+    }
+
+    public function parameters(): array
+    {
+        return [/* JSON schema */];
+    }
+
+    public function execute(array $params): mixed
+    {
+        // Implementation
+    }
+}
+
+// Usage
+$agent->tool(new CustomTool());
+```
+
+## Security Considerations
+
+### Built-In Tool Security
+
+All built-in class-based tools implement security controls:
+
+1. **FileRead/FileWrite**
+   - Path traversal prevention
+   - Base directory restriction
+   - Extension whitelisting
+   - Size limits
+
+2. **WebFetch**
+   - SSRF protection (blocks 127.0.0.1, 0.0.0.0, private IPs)
+   - Domain whitelisting
+   - Timeout controls
+   - Redirect limits
+
+3. **Bash**
+   - Command whitelisting (ONLY allowed commands can run)
+   - Working directory restriction
+   - Timeout controls
+   - No shell injection (arguments are properly escaped)
+
+4. **Glob/Grep**
+   - Base directory restriction
+   - Result limits
+   - File size limits
+
+### Custom Tool Security Checklist
+
+When building custom class-based tools:
+
+- ✅ Validate all input parameters
+- ✅ Sanitize file paths and prevent directory traversal
+- ✅ Whitelist allowed operations (not blacklist)
+- ✅ Implement timeout controls for long-running operations
+- ✅ Limit resource consumption (file sizes, result counts, memory)
+- ✅ Log security-relevant events
+- ✅ Handle errors gracefully without exposing internals
+- ✅ Escape shell commands properly
+- ✅ Validate URLs and prevent SSRF
+
+## Performance Considerations
+
+### Closure-Based Tools
+
+**Pros:**
+- No instantiation overhead
+- Direct function calls
+- Minimal memory footprint
+
+**Cons:**
+- No state reuse between calls
+- Harder to optimize complex logic
+
+### Class-Based Tools
+
+**Pros:**
+- State can be cached (DB connections, API clients)
+- Constructor-based initialization
+- Can implement caching internally
+
+**Cons:**
+- Small instantiation overhead
+- Slightly larger memory footprint
+
+**Best Practice:** For tools that make external calls (APIs, databases), use class-based tools and cache connections:
+
+```php
+class ApiClient extends Tool
+{
+    private HttpClient $client;
+
+    public function __construct(string $apiKey)
+    {
+        // Initialize once, reuse for all calls
+        $this->client = new HttpClient([
+            'base_uri' => 'https://api.example.com',
+            'headers' => ['Authorization' => "Bearer {$apiKey}"],
+        ]);
+    }
+
+    public function execute(array $params): mixed
+    {
+        // Reuse $this->client for all requests
+        return $this->client->get($params['endpoint'])->json();
+    }
+}
+```
+
+## Testing Tools
+
+### Testing Closure-Based Tools
+
+Test through agent integration:
+
+```php
+test('it calculates sum correctly', function () {
+    $agent = agent('calc')
+        ->provider(mock())
+        ->tool(
+            'add',
+            'Add numbers',
+            fn (int $a, int $b) => $a + $b
+        );
+
+    // Test via agent prompt
+    $response = $agent->prompt('What is 5 plus 3?');
+    expect($response->content)->toContain('8');
+});
+```
+
+### Testing Class-Based Tools
+
+Test the tool directly:
+
+```php
+use App\Tools\DatabaseQuery;
+
+test('it queries allowed tables only', function () {
+    $db = new PDO('sqlite::memory:');
+    $tool = new DatabaseQuery($db, allowedTables: ['users']);
+
+    $result = $tool->execute([
+        'table' => 'users',
+        'columns' => ['id', 'name'],
+    ]);
+
+    expect($result)->toBeArray();
+});
+
+test('it rejects disallowed tables', function () {
+    $db = new PDO('sqlite::memory:');
+    $tool = new DatabaseQuery($db, allowedTables: ['users']);
+
+    expect(fn () => $tool->execute([
+        'table' => 'admin_secrets',  // Not in allowedTables
+        'columns' => ['password'],
+    ]))->toThrow(InvalidArgumentException::class);
+});
+```
+
+## Best Practices
+
+**Start with closures, refactor to classes.** Begin with closure-based tools for rapid development, then extract to classes when you find yourself reusing the logic.
+
+**Use built-in tools first.** Before writing custom file/web/shell tools, check if the built-in versions meet your needs.
+
+**Configure security appropriately.** Always set `baseDir`, `allowedDomains`, or `allowedCommands` when using built-in tools.
+
+**Keep tools focused.** Each tool should do one thing well. Don't create "Swiss Army knife" tools.
+
+**Document tool behavior.** Good descriptions help the LLM decide when to use the tool correctly.
+
+**Test security boundaries.** For tools with security controls, write tests that verify they block malicious inputs.
+
+## What's Next
+
+You now understand Pagent's two-tier tool architecture and can choose between closure-based and class-based tools based on your needs. You've seen the comprehensive built-in tool library and learned how to build secure, reusable tools for your agents.
+
+In the next chapter, we'll explore recursive tool execution - how agents can chain multiple tool calls together, handle complex multi-step workflows, and avoid infinite loops.
 
 # Chapter 8: Recursive Tool Execution
 

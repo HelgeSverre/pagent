@@ -73,8 +73,8 @@ This document tracks all features mentioned in documentation, proposals, and the
 
 | Feature                     | Status | Implementation                       | Source     | Notes                                                  |
 | --------------------------- | ------ | ------------------------------------ | ---------- | ------------------------------------------------------ |
-| Closure-Based Tools         | ✅     | `src/Tool/Tool.php`                  | Core       | `Tool::fromClosure()`                                  |
-| Class-Based Tools           | ✅     | `src/Tools/Tool.php`                 | Core       | Abstract base class                                    |
+| Closure-Based Tools         | ✅     | `src/Tool/Tool.php`                  | Core       | `Tool::fromClosure()` (guide/complete.md Chapter 7B)   |
+| Class-Based Tools           | ✅     | `src/Tools/Tool.php`                 | Core       | Abstract base class (guide/complete.md Chapter 7B)     |
 | Automatic Schema Generation | ✅     | Reflection-based                     | Core       | From PHP type hints                                    |
 | Anthropic Schema Format     | ✅     | `ToolInterface::toAnthropicSchema()` | Core       |                                                        |
 | OpenAI Schema Format        | ✅     | `ToolInterface::toOpenAISchema()`    | Core       |                                                        |
@@ -222,8 +222,8 @@ This document tracks all features mentioned in documentation, proposals, and the
 | Lifecycle Events              | ✅     | 23 typed event classes                                  | v0.7.0 | Agent, LLM, Tool, Guard, Memory, Stream, MCP     |
 | Hybrid Listener Pattern       | ✅     | Interface + Closure support                             | v0.7.0 | Both class and closure listeners                 |
 | EventDispatcher Priority      | ✅     | Priority-based listener execution                       | v0.7.0 | Control listener order                           |
-| Global Events                 | ✅     | EventManager singleton                                  | v0.7.0 | Cross-agent event listening                      |
-| Per-Agent Events              | ✅     | `Agent::on()`, `once()`, `off()`                        | v0.7.0 | Instance-level event listeners                   |
+| Global Events                 | ✅     | EventManager singleton                                  | v0.7.0 | Cross-agent event listening (guide/complete.md Chapter 5B) |
+| Per-Agent Events              | ✅     | `Agent::on()`, `once()`, `off()`                        | v0.7.0 | Instance-level event listeners (guide/complete.md Chapter 5B) |
 | TelemetryEventBridge          | ✅     | `src/Observability/TelemetryEventBridge.php`            | v0.7.0 | Automatic span creation from events              |
 | Event-Driven Telemetry        | ✅     | Fire events → Bridge creates spans                      | v0.7.0 | Clean separation of concerns                     |
 | Cost & Token Tracking         | 📋     | `UsageTracker` singleton                                | v0.7.0 | Track usage, calculate costs, budget enforcement |
@@ -459,12 +459,14 @@ The new `Agent::tools()` method (added 2025-10-29) provides the foundation for t
 
 ## Version History
 
-| Version | Date       | Changes                                                                                     |
-| ------- | ---------- | ------------------------------------------------------------------------------------------- |
-| 1.3     | 2025-11-19 | Added MCP Client section (15 features), updated Events/Hooks and Observability to completed |
-| 1.2     | 2025-10-29 | Added TOON Integration to roadmap, updated references to ROADMAP.md                         |
-| 1.1     | 2025-10-29 | Added Agent::tools() method, documented Toolkit pattern future enhancement                  |
-| 1.0     | 2025-01-29 | Initial feature inventory created                                                           |
+| Version | Date       | Changes                                                                                                      |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
+| 1.5     | 2025-11-20 | Test Coverage Enhancement: +239 tests, +~478 assertions, 8 new test files (see ROADMAP.md)                  |
+| 1.4     | 2025-11-20 | Added documentation references: Event System Architecture (Chapter 5B), Tool Architecture (Chapter 7B)      |
+| 1.3     | 2025-11-19 | Added MCP Client section (15 features), updated Events/Hooks and Observability to completed                 |
+| 1.2     | 2025-10-29 | Added TOON Integration to roadmap, updated references to ROADMAP.md                                         |
+| 1.1     | 2025-10-29 | Added Agent::tools() method, documented Toolkit pattern future enhancement                                  |
+| 1.0     | 2025-01-29 | Initial feature inventory created                                                                            |
 
 ---
 

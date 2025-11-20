@@ -11,20 +11,21 @@ This directory contains the complete Pagent framework tutorial.
 
 ### Option 1: Read the Complete Guide
 
-Open `complete.md` for the full 28-chapter experience with:
+Open `complete.md` for the full guide experience with:
 
 - Professional introduction
 - Comprehensive table of contents
-- All 28 chapters in reading order
+- 28 core chapters + 2 supplementary chapters (5B, 7B)
 - Multiple learning paths
 - Detailed conclusion and next steps
 
 **Stats:**
 
-- 18,737 lines
-- 66,056 words
-- 588KB
-- ~12-15 hours reading time
+- 30 chapters total (28 core + Chapter 5B: Event System Architecture + Chapter 7B: Tool Architecture)
+- ~19,500+ lines
+- ~70,000+ words
+- ~600KB
+- ~13-16 hours reading time
 
 ### Option 2: Read Individual Chapters
 
@@ -92,12 +93,14 @@ Skim 1-5, deep dive 16-19, master 24-28
 
 ## Quality Metrics
 
-✅ All 28 chapters present
-✅ 1,151 code examples
-✅ 622 section headers
+✅ All 30 chapters present (28 core + 2 supplementary)
+✅ 1,200+ code examples
+✅ 650+ section headers
 ✅ Proper markdown formatting
 ✅ Working TOC links
 ✅ Professional introduction and conclusion
+✅ Comprehensive Event System Architecture (Chapter 5B)
+✅ Complete Tool Architecture Guide (Chapter 7B)
 
 ## Contributing
 
