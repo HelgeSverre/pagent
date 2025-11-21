@@ -1,6 +1,6 @@
 # Pagent Roadmap
 
-**Last Updated:** 2025-11-20
+**Last Updated:** 2025-11-21
 **Current Version:** v0.6.0 (Memory & Persistence)
 **Status:** Production-ready, actively developed
 
@@ -109,7 +109,7 @@ This roadmap provides a chronological view of Pagent's feature development, orga
 
 **Phase 1: Foundation (Week 1-2)**
 
-1. HTTP Client Migration (4-6 hrs) - Technical debt
+1. ✅ **HTTP Client Migration (4-6 hrs)** - Technical debt ← COMPLETED 2025-10-30
 2. ✅ **Events/Hooks System (6-8 hrs)** - **FOUNDATION** ← COMPLETED 2025-11-18
 3. TOON Integration (3-4 hrs) - Independent
 4. Attribute-Based Tools (6-8 hrs) - Builds on TOON
@@ -202,10 +202,48 @@ agent('bot')
 
 ---
 
-### v0.7.0 Progress Summary (Updated 2025-11-19)
+#### 0. HTTP Client Migration (**COMPLETED** ✅)
+
+**Effort:** 4-6 hours | **Plan:** [`ai-docs/plans/http-client-migration-plan.md`](plans/http-client-migration-plan.md)
+**Status:** COMPLETED 2025-10-30
+**Report:** See [`ai-docs/reports/2025-10-30-http-client-migration-complete.md`](reports/2025-10-30-http-client-migration-complete.md)
+
+- [x] Created `Pagent\Http` namespace with clean HTTP abstraction
+- [x] Implemented `CurlTransport` with telemetry integration
+- [x] Implemented `FakeHttpClient` for testing
+- [x] Created DTOs: `HttpResponse`, `StreamTransport`
+- [x] Migrated all 3 providers (OpenAI, Anthropic, Ollama)
+- [x] 41 tests passing (77 assertions)
+- [x] Zero new dependencies
+- [x] 41% code reduction in providers
+
+**Benefits Delivered:**
+
+```php
+// Clean, testable HTTP client
+$response = $this->httpClient->requestJson(
+    method: 'POST',
+    url: $this->baseUrl.'/chat/completions',
+    headers: ['Authorization' => "Bearer {$this->apiKey}"],
+    json: $body,
+    options: ['timeout' => 30]
+);
+
+// Full telemetry with curl_getinfo() timing data
+$timing = $response->timing(); // DNS, connect, TLS, total
+```
+
+---
+
+### v0.7.0 Progress Summary (Updated 2025-11-21)
 
 **Completed:**
 
+- ✅ HTTP Client Migration (4-6 hours)
+  - 41 passing tests (77 assertions)
+  - Clean HTTP abstraction with telemetry
+  - All 3 providers migrated
+  - Zero new dependencies, 41% code reduction
 - ✅ Events/Hooks System (6-8 hours)
   - 36 passing tests (117 assertions)
   - 23 event classes total (Agent, LLM, Tool, Guard, Memory, Stream, MCP)
@@ -226,14 +264,13 @@ agent('bot')
   - McpToolAdapter for tool integration
   - 10 MCP-specific events integrated
 
-**Total Completed:** ~20-26 hours of ~49-66 hours (**52% complete**)
+**Total Completed:** ~26-32 hours of ~49-66 hours (**58% complete**)
 
 **Remaining:**
 
 - Cost & Token Tracking (18-24 hours) - **Largest remaining work**
 - TOON Integration (3-4 hours)
 - Attribute-Based Tools (6-8 hours)
-- HTTP Client Migration (4-6 hours)
 
 **Next Steps:** Cost & Token Tracking is the largest remaining piece and provides critical production functionality.
 
@@ -916,13 +953,21 @@ router()
 
 ## 🎯 Current Focus
 
-**Version:** v0.7.0 (Planning)
-**Priority Features:**
+**Version:** v0.7.0 (58% Complete)
+**Status:** In Progress
 
-1. OpenTelemetry Observability (10-15 hours)
-2. Cost & Token Tracking (4-6 hours)
-3. MCP Server Support (6-8 hours)
-4. TOON Integration (3-4 hours)
+**Completed (26-32 hours):**
+- ✅ HTTP Client Migration
+- ✅ Events/Hooks System
+- ✅ TelemetryEventBridge
+- ✅ OpenTelemetry Exporters
+- ✅ MCP Client Support
+
+**Remaining Priority Features:**
+
+1. Cost & Token Tracking (18-24 hours) - **Largest remaining, critical for production**
+2. TOON Integration (3-4 hours)
+3. Attribute-Based Tools (6-8 hours)
 
 **Next Milestone:** v0.8.0 - Advanced Workflows & Patterns
 **Timeline:** 2-3 months to v1.0.0
@@ -938,6 +983,6 @@ router()
 
 ---
 
-**Last Updated:** 2025-11-19
+**Last Updated:** 2025-11-21
 **Maintained By:** Pagent Core Team
 **Format:** Chronological by version, consistent structure
