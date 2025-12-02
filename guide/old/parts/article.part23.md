@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 By the end of this chapter, you'll be able to:
+
 - Enable and use Pagent's debug mode to troubleshoot conversations
 - Track token usage across different providers
 - Calculate and monitor costs for LLM operations

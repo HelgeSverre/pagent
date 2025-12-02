@@ -488,7 +488,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: "8.3"
           extensions: mbstring, curl
 
       - name: Install Dependencies
@@ -512,6 +512,7 @@ Run unit tests on every commit, integration tests on schedule or manual trigger 
 When building agents, ensure comprehensive test coverage:
 
 **Unit Tests (with Mock Provider):**
+
 - [ ] Agent creation and configuration
 - [ ] Conversation history tracking
 - [ ] Tool registration and execution
@@ -522,6 +523,7 @@ When building agents, ensure comprehensive test coverage:
 - [ ] Edge cases (null responses, malformed data, etc.)
 
 **Integration Tests (with Real Providers):**
+
 - [ ] Basic prompt-response cycles
 - [ ] System prompt configuration
 - [ ] Temperature and token settings
@@ -531,6 +533,7 @@ When building agents, ensure comprehensive test coverage:
 - [ ] Provider-specific features
 
 **Performance Tests:**
+
 - [ ] Response time benchmarks
 - [ ] Memory usage under load
 - [ ] Concurrent agent operations

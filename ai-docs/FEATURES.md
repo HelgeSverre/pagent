@@ -205,32 +205,32 @@ This document tracks all features mentioned in documentation, proposals, and the
 
 ### 12. Observability & Monitoring
 
-| Feature                       | Status | Implementation                                          | Source | Notes                                            |
-| ----------------------------- | ------ | ------------------------------------------------------- | ------ | ------------------------------------------------ |
-| TelemetryManager              | ✅     | `src/Observability/TelemetryManager.php`                | v0.7.0 | OpenTelemetry SDK wrapper, singleton pattern     |
-| OpenTelemetry SDK Integration | ✅     | `open-telemetry/sdk` dependency                         | v0.7.0 | Industry-standard distributed tracing            |
-| Span Creation                 | ✅     | `startAgentSpan()`, `startLLMSpan()`, `startToolSpan()` | v0.7.0 | Helper methods for all operation types           |
-| Semantic Conventions          | ✅     | GenAI attributes (`gen_ai.*`)                           | v0.7.0 | OpenTelemetry semantic conventions for LLMs      |
-| Console Exporter              | ✅     | `src/Observability/Exporters/ConsoleExporter.php`       | v0.7.0 | Debug output to console                          |
-| OTLP Exporter                 | ✅     | `src/Observability/Exporters/OTLPExporter.php`          | v0.7.0 | Generic OTLP protocol support                    |
-| Jaeger Exporter               | ✅     | `src/Observability/Exporters/JaegerExporter.php`        | v0.7.0 | Jaeger-specific integration                      |
-| Zipkin Exporter               | ✅     | `src/Observability/Exporters/ZipkinExporter.php`        | v0.7.0 | Zipkin-specific integration                      |
-| InMemory Exporter             | ✅     | `src/Observability/Exporters/InMemoryExporter.php`      | v0.7.0 | Test-only exporter with span inspection          |
-| Agent Telemetry Integration   | ✅     | `Agent::telemetry(true)`                                | v0.7.0 | Opt-in per-agent telemetry                       |
-| Events/Hooks System           | ✅     | `src/Events/`                                           | v0.7.0 | Event-driven architecture for observability      |
-| Event Base Classes            | ✅     | Event, EventListener, EventDispatcher                   | v0.7.0 | Typed event objects with propagation control     |
-| Lifecycle Events              | ✅     | 23 typed event classes                                  | v0.7.0 | Agent, LLM, Tool, Guard, Memory, Stream, MCP     |
-| Hybrid Listener Pattern       | ✅     | Interface + Closure support                             | v0.7.0 | Both class and closure listeners                 |
-| EventDispatcher Priority      | ✅     | Priority-based listener execution                       | v0.7.0 | Control listener order                           |
-| Global Events                 | ✅     | EventManager singleton                                  | v0.7.0 | Cross-agent event listening (guide/complete.md Chapter 5B) |
+| Feature                       | Status | Implementation                                          | Source | Notes                                                         |
+| ----------------------------- | ------ | ------------------------------------------------------- | ------ | ------------------------------------------------------------- |
+| TelemetryManager              | ✅     | `src/Observability/TelemetryManager.php`                | v0.7.0 | OpenTelemetry SDK wrapper, singleton pattern                  |
+| OpenTelemetry SDK Integration | ✅     | `open-telemetry/sdk` dependency                         | v0.7.0 | Industry-standard distributed tracing                         |
+| Span Creation                 | ✅     | `startAgentSpan()`, `startLLMSpan()`, `startToolSpan()` | v0.7.0 | Helper methods for all operation types                        |
+| Semantic Conventions          | ✅     | GenAI attributes (`gen_ai.*`)                           | v0.7.0 | OpenTelemetry semantic conventions for LLMs                   |
+| Console Exporter              | ✅     | `src/Observability/Exporters/ConsoleExporter.php`       | v0.7.0 | Debug output to console                                       |
+| OTLP Exporter                 | ✅     | `src/Observability/Exporters/OTLPExporter.php`          | v0.7.0 | Generic OTLP protocol support                                 |
+| Jaeger Exporter               | ✅     | `src/Observability/Exporters/JaegerExporter.php`        | v0.7.0 | Jaeger-specific integration                                   |
+| Zipkin Exporter               | ✅     | `src/Observability/Exporters/ZipkinExporter.php`        | v0.7.0 | Zipkin-specific integration                                   |
+| InMemory Exporter             | ✅     | `src/Observability/Exporters/InMemoryExporter.php`      | v0.7.0 | Test-only exporter with span inspection                       |
+| Agent Telemetry Integration   | ✅     | `Agent::telemetry(true)`                                | v0.7.0 | Opt-in per-agent telemetry                                    |
+| Events/Hooks System           | ✅     | `src/Events/`                                           | v0.7.0 | Event-driven architecture for observability                   |
+| Event Base Classes            | ✅     | Event, EventListener, EventDispatcher                   | v0.7.0 | Typed event objects with propagation control                  |
+| Lifecycle Events              | ✅     | 23 typed event classes                                  | v0.7.0 | Agent, LLM, Tool, Guard, Memory, Stream, MCP                  |
+| Hybrid Listener Pattern       | ✅     | Interface + Closure support                             | v0.7.0 | Both class and closure listeners                              |
+| EventDispatcher Priority      | ✅     | Priority-based listener execution                       | v0.7.0 | Control listener order                                        |
+| Global Events                 | ✅     | EventManager singleton                                  | v0.7.0 | Cross-agent event listening (guide/complete.md Chapter 5B)    |
 | Per-Agent Events              | ✅     | `Agent::on()`, `once()`, `off()`                        | v0.7.0 | Instance-level event listeners (guide/complete.md Chapter 5B) |
-| TelemetryEventBridge          | ✅     | `src/Observability/TelemetryEventBridge.php`            | v0.7.0 | Automatic span creation from events              |
-| Event-Driven Telemetry        | ✅     | Fire events → Bridge creates spans                      | v0.7.0 | Clean separation of concerns                     |
-| Cost & Token Tracking         | 📋     | `UsageTracker` singleton                                | v0.7.0 | Track usage, calculate costs, budget enforcement |
-| Provider Pricing              | 📋     | `ProviderPricing` with Jan 2025 pricing                 | v0.7.0 | Up-to-date pricing for Anthropic, OpenAI, etc.   |
-| Budget Enforcement            | 📋     | Soft warnings, hard limits                              | v0.7.0 | Agent, session, and global budget tracking       |
-| Usage Analytics               | 📋     | By agent, session, provider                             | v0.7.0 | Queryable usage statistics                       |
-| Usage Export                  | 📋     | JSON, CSV, SQLite                                       | v0.7.0 | Export usage data for analysis                   |
+| TelemetryEventBridge          | ✅     | `src/Observability/TelemetryEventBridge.php`            | v0.7.0 | Automatic span creation from events                           |
+| Event-Driven Telemetry        | ✅     | Fire events → Bridge creates spans                      | v0.7.0 | Clean separation of concerns                                  |
+| Cost & Token Tracking         | 📋     | `UsageTracker` singleton                                | v0.7.0 | Track usage, calculate costs, budget enforcement              |
+| Provider Pricing              | 📋     | `ProviderPricing` with Jan 2025 pricing                 | v0.7.0 | Up-to-date pricing for Anthropic, OpenAI, etc.                |
+| Budget Enforcement            | 📋     | Soft warnings, hard limits                              | v0.7.0 | Agent, session, and global budget tracking                    |
+| Usage Analytics               | 📋     | By agent, session, provider                             | v0.7.0 | Queryable usage statistics                                    |
+| Usage Export                  | 📋     | JSON, CSV, SQLite                                       | v0.7.0 | Export usage data for analysis                                |
 
 ### 13. MCP (Model Context Protocol) Integration
 
@@ -459,14 +459,14 @@ The new `Agent::tools()` method (added 2025-10-29) provides the foundation for t
 
 ## Version History
 
-| Version | Date       | Changes                                                                                                      |
-| ------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
-| 1.5     | 2025-11-20 | Test Coverage Enhancement: +239 tests, +~478 assertions, 8 new test files (see ROADMAP.md)                  |
-| 1.4     | 2025-11-20 | Added documentation references: Event System Architecture (Chapter 5B), Tool Architecture (Chapter 7B)      |
-| 1.3     | 2025-11-19 | Added MCP Client section (15 features), updated Events/Hooks and Observability to completed                 |
-| 1.2     | 2025-10-29 | Added TOON Integration to roadmap, updated references to ROADMAP.md                                         |
-| 1.1     | 2025-10-29 | Added Agent::tools() method, documented Toolkit pattern future enhancement                                  |
-| 1.0     | 2025-01-29 | Initial feature inventory created                                                                            |
+| Version | Date       | Changes                                                                                                |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------ |
+| 1.5     | 2025-11-20 | Test Coverage Enhancement: +239 tests, +~478 assertions, 8 new test files (see ROADMAP.md)             |
+| 1.4     | 2025-11-20 | Added documentation references: Event System Architecture (Chapter 5B), Tool Architecture (Chapter 7B) |
+| 1.3     | 2025-11-19 | Added MCP Client section (15 features), updated Events/Hooks and Observability to completed            |
+| 1.2     | 2025-10-29 | Added TOON Integration to roadmap, updated references to ROADMAP.md                                    |
+| 1.1     | 2025-10-29 | Added Agent::tools() method, documented Toolkit pattern future enhancement                             |
+| 1.0     | 2025-01-29 | Initial feature inventory created                                                                      |
 
 ---
 

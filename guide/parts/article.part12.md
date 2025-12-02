@@ -90,6 +90,7 @@ $agent->prompt('What was my order number again?');
 ```
 
 The agent automatically:
+
 1. Loads conversation history on first prompt
 2. Saves messages after each interaction
 3. Maintains context across script executions
@@ -122,6 +123,7 @@ $agent->memory('Sqlite', [
 ```
 
 **Features:**
+
 - Automatic schema creation and migrations
 - WAL mode for concurrent reads
 - Transaction safety for writes
@@ -142,6 +144,7 @@ CREATE INDEX idx_updated_at ON sessions(updated_at);
 ```
 
 **When to use:**
+
 - Production applications
 - Multiple concurrent users
 - Need transaction safety
@@ -159,6 +162,7 @@ $agent->memory('File', [
 ```
 
 **Features:**
+
 - Human-readable JSON format
 - No dependencies beyond filesystem
 - LOCK_EX for atomic writes
@@ -168,16 +172,17 @@ $agent->memory('File', [
 
 ```json
 {
-    "session_id": "user-12345",
-    "messages": [
-        {"role": "user", "content": "Hello"},
-        {"role": "assistant", "content": "Hi there!"}
-    ],
-    "updated_at": "2025-11-17T10:30:00+00:00"
+  "session_id": "user-12345",
+  "messages": [
+    { "role": "user", "content": "Hello" },
+    { "role": "assistant", "content": "Hi there!" }
+  ],
+  "updated_at": "2025-11-17T10:30:00+00:00"
 }
 ```
 
 **When to use:**
+
 - Development and testing
 - Low-volume applications
 - Need human-readable storage
@@ -196,6 +201,7 @@ $adapter->save('any-session', $messages);  // Does nothing
 ```
 
 **When to use:**
+
 - Testing and mocking
 - Truly stateless operations
 - Default behavior when memory not needed
@@ -225,6 +231,7 @@ expect($agent->messages)->toHaveCount(4);  // 2 loaded + 2 new
 ```
 
 This lazy approach means:
+
 - No unnecessary database hits
 - Configuration happens independently of loading
 - Memory only loaded when needed
@@ -242,6 +249,7 @@ $agent->prompt('And 3+3?');
 ```
 
 This ensures:
+
 - No manual save calls needed
 - Conversation never lost mid-session
 - Each interaction persisted atomically
@@ -301,12 +309,14 @@ expect($pruned)->toHaveCount(50);
 ```
 
 **Pruning strategy:**
+
 - Takes most recent N messages
 - Preserves system messages
 - Updates storage atomically
 - Returns pruned message array
 
 **Use cases:**
+
 - Periodic cleanup of long sessions
 - Pre-pruning before expensive operations
 - Managing storage costs
@@ -398,6 +408,7 @@ $report = $writer->prompt("Write a report about: {$analysis->content}");
 ```
 
 Session naming convention helps organize related conversations:
+
 - `workflow-{id}-{role}` - Multi-agent workflows
 - `ticket-{id}-{stage}` - Multi-stage support
 - `project-{id}-{timestamp}` - Timestamped snapshots
@@ -422,6 +433,7 @@ try {
 ```
 
 **Common errors:**
+
 - **SQLite**: Database locked (concurrent writes), disk full
 - **File**: Directory not writable, disk full, filesystem errors
 - **Both**: JSON encoding failures (invalid UTF-8)
@@ -578,6 +590,7 @@ You now understand how Pagent manages conversation memory across sessions. You c
 In the next chapter, we'll explore **Events and Hooks** - how to tap into the agent lifecycle for logging, metrics, debugging, and custom behaviors at every stage of execution.
 
 **Key Takeaways:**
+
 - Memory is optional but critical for stateful conversations
 - Three built-in adapters: SQLite (production), File (development), Null (testing)
 - Automatic lazy loading and auto-save eliminate boilerplate

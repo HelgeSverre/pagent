@@ -9,6 +9,7 @@ This chapter introduces the fundamentals of tool calling in Pagent: how to defin
 When you send a prompt to an LLM with tools registered, the model can decide to call one or more of those tools instead of (or in addition to) generating text. The LLM doesn't execute the tool itself—instead, it returns structured data indicating which tool to call and what arguments to pass.
 
 Your application then:
+
 1. Receives the tool call request from the LLM
 2. Executes the tool with the provided arguments
 3. Sends the tool's result back to the LLM
@@ -63,6 +64,7 @@ public function tool(ToolInterface $tool): self
 ```
 
 **Parameters:**
+
 - `$name`: The tool name the LLM will use to invoke it (e.g., "get_weather", "calculate_distance")
 - `$description`: A clear description of what the tool does—this helps the LLM decide when to use it
 - `$callable`: A PHP closure that implements the tool's logic
@@ -83,6 +85,7 @@ $agent->tool(
 ```
 
 Pagent automatically extracts:
+
 - **Parameter names**: `location` and `include_forecast`
 - **Parameter types**: `string` and `bool`
 - **Required vs. optional**: `location` is required, `include_forecast` is optional (has default value)
@@ -91,6 +94,7 @@ Pagent automatically extracts:
 This information is converted into JSON Schema format compatible with both OpenAI and Anthropic APIs:
 
 **Anthropic Format:**
+
 ```json
 {
   "name": "get_weather",
@@ -98,8 +102,8 @@ This information is converted into JSON Schema format compatible with both OpenA
   "input_schema": {
     "type": "object",
     "properties": {
-      "location": {"type": "string"},
-      "include_forecast": {"type": "boolean"}
+      "location": { "type": "string" },
+      "include_forecast": { "type": "boolean" }
     },
     "required": ["location"]
   }
@@ -107,6 +111,7 @@ This information is converted into JSON Schema format compatible with both OpenA
 ```
 
 **OpenAI Format:**
+
 ```json
 {
   "type": "function",
@@ -116,8 +121,8 @@ This information is converted into JSON Schema format compatible with both OpenA
     "parameters": {
       "type": "object",
       "properties": {
-        "location": {"type": "string"},
-        "include_forecast": {"type": "boolean"}
+        "location": { "type": "string" },
+        "include_forecast": { "type": "boolean" }
       },
       "required": ["location"]
     }
@@ -131,14 +136,14 @@ Pagent automatically uses the correct schema format based on your configured pro
 
 Pagent maps PHP type hints to JSON Schema types:
 
-| PHP Type | JSON Schema Type |
-|----------|------------------|
-| `string` | `"string"` |
-| `int` | `"integer"` |
-| `float` | `"number"` |
-| `bool` | `"boolean"` |
-| `array` | `"array"` |
-| `object`, `stdClass` | `"object"` |
+| PHP Type             | JSON Schema Type |
+| -------------------- | ---------------- |
+| `string`             | `"string"`       |
+| `int`                | `"integer"`      |
+| `float`              | `"number"`       |
+| `bool`               | `"boolean"`      |
+| `array`              | `"array"`        |
+| `object`, `stdClass` | `"object"`       |
 
 **Example with multiple types:**
 
@@ -200,21 +205,27 @@ $agent->tools($tools);
 Understanding the tool execution lifecycle helps you debug and optimize your tools. Here's what happens under the hood:
 
 ### 1. Registration Phase
+
 When you call `$agent->tool()`, Pagent:
+
 - Creates a `Tool` instance using `Tool::fromClosure()`
 - Uses PHP reflection to extract parameter information
 - Stores the tool in the agent's internal tool registry
 - Caches the JSON schema for performance
 
 ### 2. Prompt Phase
+
 When you call `$agent->prompt()`, Pagent:
+
 - Includes tool schemas in the API request
 - Sends your prompt along with available tools to the LLM
 
 ### 3. LLM Response Phase
+
 The LLM can respond in two ways:
 
 **Option A: Direct text response**
+
 ```php
 // LLM decides no tool is needed
 {
@@ -223,6 +234,7 @@ The LLM can respond in two ways:
 ```
 
 **Option B: Tool call request**
+
 ```php
 // LLM requests to call a tool
 {
@@ -237,7 +249,9 @@ The LLM can respond in two ways:
 ```
 
 ### 4. Automatic Tool Execution
+
 When the LLM requests a tool call, Pagent automatically:
+
 1. Validates the tool exists
 2. Validates the arguments match the tool's signature
 3. Executes the tool: `$result = $tool->execute([15, 27])`
@@ -245,7 +259,9 @@ When the LLM requests a tool call, Pagent automatically:
 5. Sends the result back to the LLM in the conversation
 
 ### 5. Final Response
+
 The LLM receives the tool result and generates a final response:
+
 ```php
 // After receiving tool result: 42
 {
@@ -295,6 +311,7 @@ echo $result; // 15
 ```
 
 This is particularly useful for:
+
 - Testing tool implementations
 - Debugging tool logic
 - Building custom orchestration flows
@@ -319,6 +336,7 @@ foreach ($tools as $tool) {
 ```
 
 This returns an array of `ToolInterface` instances, each with:
+
 - `name`: The tool's name
 - `description`: The tool's description
 - `arguments`: Array of `ToolArgument` objects with type information
@@ -363,6 +381,7 @@ echo count($agent->getTools()); // 0
 ```
 
 The `clearTools()` method:
+
 - Removes all registered tools
 - Clears the internal schema cache
 - Allows you to start fresh with new tools
@@ -432,6 +451,7 @@ $agent->tool(new DatabaseQuery());
 ```
 
 Class-based tools give you more control over:
+
 - Schema definition (for complex parameter structures)
 - Error handling and validation
 - Dependency injection (constructor arguments)
@@ -496,6 +516,7 @@ echo $response->content;
 ```
 
 This agent demonstrates:
+
 - Multiple related tools working together
 - Tools that call external functions (simulated API)
 - Different parameter types (string, float)

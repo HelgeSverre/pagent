@@ -1,6 +1,7 @@
 # Chapter 9: Tool Orchestration Patterns
 
 **Learning Objectives:**
+
 - Understand how Pagent executes tools sequentially
 - Master manual vs. LLM-driven orchestration strategies
 - Implement data pipeline and workflow patterns
@@ -67,6 +68,7 @@ foreach ($response->tool_calls as $toolCall) {
 ```
 
 **Why sequential?** Sequential execution provides:
+
 - **Predictable ordering:** Tools run in the exact order the LLM specifies
 - **Dependency handling:** Later tools can depend on earlier results
 - **Simpler debugging:** Clear execution trace in conversation history
@@ -87,6 +89,7 @@ Every tool execution leaves a trace in `$agent->messages`:
 ```
 
 This full history allows:
+
 - **LLM context:** The model sees all tool results for final synthesis
 - **Debugging:** Inspect exactly what tools returned
 - **Auditing:** Track the entire decision chain
@@ -140,6 +143,7 @@ $result = $agent->prompt('
 ```
 
 **When LLM orchestration shines:**
+
 - The workflow involves decision-making
 - Tool selection depends on data content
 - You want natural language workflow definitions
@@ -174,6 +178,7 @@ $response = $agent->prompt("
 ```
 
 The LLM naturally handles:
+
 - **Conditional logic:** Only refund if order exists and is eligible
 - **Multi-step workflows:** Check → Refund → Notify
 - **Context awareness:** Use customer info from conversation history
@@ -229,6 +234,7 @@ echo "Result: {$product}"; // Result: 16
 ```
 
 **Use cases for manual execution:**
+
 - **Deterministic workflows:** Fixed sequence every time
 - **Performance optimization:** Skip LLM overhead for simple chains
 - **Testing:** Validate tool behavior in isolation
@@ -276,6 +282,7 @@ $report = $agent->prompt("
 ```
 
 **Why hybrid?** You get:
+
 - Predictable data gathering (manual)
 - Creative presentation (LLM)
 - Cost efficiency (fewer LLM calls)
@@ -353,6 +360,7 @@ while (!empty($response->tool_calls)) {
 ```
 
 **Implications:**
+
 - Deep workflows may need manual orchestration
 - Consider batching related operations in single tools
 - Design tools to return complete results, not partial
@@ -605,13 +613,13 @@ $agent->telemetry(true);
 
 ## Common Patterns Summary
 
-| Pattern | When to Use | Orchestration Type |
-|---------|-------------|-------------------|
-| **Multi-Step Pipeline** | Sequential data processing | LLM-driven |
-| **Conditional Workflow** | Decision-based tool selection | LLM-driven |
-| **Information Aggregation** | Gather from multiple sources | LLM-driven |
-| **Hybrid Orchestration** | Mix manual + LLM creativity | Manual + LLM |
-| **Error-Resilient Pipeline** | Critical workflows with validation | Manual |
+| Pattern                      | When to Use                        | Orchestration Type |
+| ---------------------------- | ---------------------------------- | ------------------ |
+| **Multi-Step Pipeline**      | Sequential data processing         | LLM-driven         |
+| **Conditional Workflow**     | Decision-based tool selection      | LLM-driven         |
+| **Information Aggregation**  | Gather from multiple sources       | LLM-driven         |
+| **Hybrid Orchestration**     | Mix manual + LLM creativity        | Manual + LLM       |
+| **Error-Resilient Pipeline** | Critical workflows with validation | Manual             |
 
 ## What We Learned
 

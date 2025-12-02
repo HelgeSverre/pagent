@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 By the end of this chapter, you'll be able to:
+
 - Design meaningful evaluation metrics for AI agents
 - Create comprehensive test datasets for different scenarios
 - Implement scoring functions to measure agent performance
@@ -836,6 +837,7 @@ echo "Score difference: " . sprintf("%.2f%%",
 ## Summary
 
 You've built a comprehensive evaluation framework that can:
+
 - Measure agent performance across multiple dimensions
 - Handle different types of expected outputs
 - Compare agents systematically with A/B testing

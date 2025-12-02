@@ -5,6 +5,7 @@
 A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-inspired fluent API for building LLM agents in PHP 8.3+.
 
 **Target Audience:**
+
 - PHP 8.3+ developers with OpenAI/Anthropic API experience
 - Understand LLM basics (prompts, tokens, function calling)
 - Want to master Pagent framework patterns, production deployment, and multi-agent orchestration
@@ -14,11 +15,13 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ---
 
 ## Part 1: Foundations (Chapters 1-5)
-*Building the core mental model for Pagent development*
+
+_Building the core mental model for Pagent development_
 
 ### Chapter 1: Introduction to Pagent
 
 **Learning Objectives:**
+
 - Understand Pagent's philosophy and design principles
 - Set up development environment with Composer
 - Create and run your first agent
@@ -26,12 +29,14 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Learn about provider abstraction
 
 **Key Concepts:**
+
 - Agent builder pattern
 - Provider interface
 - Fluent method chaining
 - Global helper functions (`agent()`, `anthropic()`, `openai()`)
 
 **Code Example Themes:**
+
 - Hello World agent
 - Basic prompt-response interaction
 - Provider switching demonstration
@@ -46,6 +51,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 2: Working with Providers
 
 **Learning Objectives:**
+
 - Configure Anthropic, OpenAI, and Ollama providers
 - Understand provider-specific features and limitations
 - Switch between providers dynamically
@@ -53,6 +59,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Use mock providers for testing
 
 **Key Concepts:**
+
 - Provider configuration
 - API key management
 - Model selection
@@ -60,6 +67,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Mock provider for testing
 
 **Code Example Themes:**
+
 - Multi-provider weather bot
 - Provider fallback patterns
 - Mock provider for unit tests
@@ -74,6 +82,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 3: Messages and Conversations
 
 **Learning Objectives:**
+
 - Build multi-turn conversations
 - Manage conversation history
 - Implement different message roles (system, user, assistant)
@@ -81,6 +90,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Create conversational agents
 
 **Key Concepts:**
+
 - Message structure
 - Conversation history management
 - Context window optimization
@@ -88,6 +98,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - History truncation strategies
 
 **Code Example Themes:**
+
 - Customer service chatbot
 - Code review assistant
 - Multi-turn reasoning agent
@@ -102,6 +113,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 4: Prompting Strategies
 
 **Learning Objectives:**
+
 - Design effective system prompts
 - Implement few-shot learning
 - Use chain-of-thought prompting
@@ -109,6 +121,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Handle prompt injection concerns
 
 **Key Concepts:**
+
 - System vs user prompts
 - Prompt engineering patterns
 - Template variables
@@ -116,6 +129,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Prompt versioning
 
 **Code Example Themes:**
+
 - Data extraction agent
 - Classification system
 - Creative writing assistant
@@ -130,6 +144,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 5: Response Processing
 
 **Learning Objectives:**
+
 - Parse and validate responses
 - Extract structured data from text
 - Handle response formats (JSON, markdown)
@@ -137,6 +152,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Process partial responses
 
 **Key Concepts:**
+
 - Response validation
 - JSON mode usage
 - Regular expression extraction
@@ -144,6 +160,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Error recovery patterns
 
 **Code Example Themes:**
+
 - Form data extractor
 - Sentiment analysis processor
 - Code generation validator
@@ -156,11 +173,13 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ---
 
 ## Part 2: Tool Calling (Chapters 6-9)
-*Extending agents with function calling capabilities*
+
+_Extending agents with function calling capabilities_
 
 ### Chapter 6: Introduction to Tool Calling
 
 **Learning Objectives:**
+
 - Understand function calling in LLMs
 - Define tools with schemas
 - Handle tool execution results
@@ -168,6 +187,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Implement error handling for tools
 
 **Key Concepts:**
+
 - Tool definition structure
 - Schema validation
 - Automatic tool discovery
@@ -175,6 +195,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Error propagation
 
 **Code Example Themes:**
+
 - Calculator tool
 - Weather API integration
 - Database query tool
@@ -189,6 +210,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 7: Building Custom Tools
 
 **Learning Objectives:**
+
 - Create PHP callable tools
 - Design tool interfaces for reusability
 - Implement tool validation logic
@@ -196,6 +218,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Create tool documentation
 
 **Key Concepts:**
+
 - Tool class structure
 - Parameter validation
 - Return type handling
@@ -203,6 +226,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Documentation generation
 
 **Code Example Themes:**
+
 - Email sending tool
 - Data transformation pipeline
 - API wrapper tools
@@ -217,6 +241,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 8: Recursive Tool Execution
 
 **Learning Objectives:**
+
 - Enable recursive tool calling
 - Manage execution depth limits
 - Handle circular dependencies
@@ -224,6 +249,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Debug recursive call chains
 
 **Key Concepts:**
+
 - Recursive execution patterns
 - Depth limiting strategies
 - Execution graph tracking
@@ -231,6 +257,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Recursive debugging
 
 **Code Example Themes:**
+
 - Multi-step research assistant
 - Recursive web scraper
 - Nested API orchestrator
@@ -245,6 +272,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 9: Tool Orchestration Patterns
 
 **Learning Objectives:**
+
 - Implement sequential tool execution
 - Build parallel tool operations
 - Create conditional tool flows
@@ -252,6 +280,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Optimize tool call batching
 
 **Key Concepts:**
+
 - Execution strategies
 - Dependency resolution
 - Parallel execution
@@ -259,6 +288,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Performance optimization
 
 **Code Example Themes:**
+
 - Data pipeline orchestrator
 - Multi-source aggregator
 - Conditional workflow executor
@@ -271,11 +301,13 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ---
 
 ## Part 3: Streaming (Chapters 10-11)
-*Real-time response handling and user experience*
+
+_Real-time response handling and user experience_
 
 ### Chapter 10: Streaming Fundamentals
 
 **Learning Objectives:**
+
 - Enable streaming responses
 - Handle SSE and NDJSON formats
 - Process partial responses
@@ -283,6 +315,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Display real-time updates
 
 **Key Concepts:**
+
 - Stream configuration
 - Chunk processing
 - Event handling
@@ -290,6 +323,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Buffer management
 
 **Code Example Themes:**
+
 - Real-time chatbot interface
 - Progress indicator implementation
 - Live code generation
@@ -304,6 +338,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 11: Advanced Streaming Patterns
 
 **Learning Objectives:**
+
 - Stream with tool calling
 - Handle streaming errors gracefully
 - Implement backpressure control
@@ -311,6 +346,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Optimize streaming performance
 
 **Key Concepts:**
+
 - Tool streaming integration
 - Error recovery in streams
 - Flow control mechanisms
@@ -318,6 +354,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Performance tuning
 
 **Code Example Themes:**
+
 - Live dashboard updater
 - Streaming code analyzer
 - Real-time translation system
@@ -330,11 +367,13 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ---
 
 ## Part 4: Memory & Persistence (Chapters 12-13)
-*Stateful agents with memory management*
+
+_Stateful agents with memory management_
 
 ### Chapter 12: Memory Systems
 
 **Learning Objectives:**
+
 - Implement conversation memory
 - Use SQLite and file adapters
 - Manage memory lifecycle
@@ -342,6 +381,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Implement memory pruning
 
 **Key Concepts:**
+
 - Memory adapter interface
 - SQLite integration
 - File-based storage
@@ -349,6 +389,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Retention policies
 
 **Code Example Themes:**
+
 - Personal assistant with memory
 - Learning system that improves
 - Context-aware support bot
@@ -363,6 +404,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 13: Advanced Memory Patterns
 
 **Learning Objectives:**
+
 - Build semantic memory search
 - Implement memory summarization
 - Create memory hierarchies
@@ -370,6 +412,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Optimize memory performance
 
 **Key Concepts:**
+
 - Vector embeddings
 - Memory compression
 - Hierarchical storage
@@ -377,6 +420,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Cache optimization
 
 **Code Example Themes:**
+
 - Semantic search assistant
 - Long-term memory system
 - Multi-tier cache implementation
@@ -389,11 +433,13 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ---
 
 ## Part 5: Safety & Reliability (Chapters 14-15)
-*Production-ready safety features*
+
+_Production-ready safety features_
 
 ### Chapter 14: Safety Guards
 
 **Learning Objectives:**
+
 - Implement PII detection and redaction
 - Add content filtering guards
 - Detect prompt injection attempts
@@ -401,6 +447,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Handle guard violations
 
 **Key Concepts:**
+
 - Guard interface
 - PII patterns and detection
 - Content classification
@@ -408,6 +455,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Violation handling
 
 **Code Example Themes:**
+
 - GDPR-compliant assistant
 - Content moderation system
 - Secure data processor
@@ -422,6 +470,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 15: Reliability Patterns
 
 **Learning Objectives:**
+
 - Implement retry strategies
 - Add circuit breakers
 - Configure timeout handling
@@ -429,6 +478,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Monitor reliability metrics
 
 **Key Concepts:**
+
 - Retry policies
 - Circuit breaker pattern
 - Timeout configuration
@@ -436,6 +486,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Health monitoring
 
 **Code Example Themes:**
+
 - Resilient API gateway
 - High-availability assistant
 - Fault-tolerant processor
@@ -448,11 +499,13 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ---
 
 ## Part 6: Multi-Agent Orchestration (Chapters 16-19)
-*Coordinating multiple agents for complex tasks*
+
+_Coordinating multiple agents for complex tasks_
 
 ### Chapter 16: Multi-Agent Fundamentals
 
 **Learning Objectives:**
+
 - Understand agent orchestration concepts
 - Create agent hierarchies
 - Implement agent communication
@@ -460,6 +513,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Handle agent lifecycle
 
 **Key Concepts:**
+
 - Agent composition
 - Communication protocols
 - Shared memory patterns
@@ -467,6 +521,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Coordination primitives
 
 **Code Example Themes:**
+
 - Manager-worker pattern
 - Collaborative research team
 - Multi-stage pipeline
@@ -481,6 +536,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 17: Pipeline Pattern
 
 **Learning Objectives:**
+
 - Build sequential agent pipelines
 - Implement data transformation between stages
 - Handle pipeline errors
@@ -488,6 +544,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Monitor pipeline execution
 
 **Key Concepts:**
+
 - Pipeline architecture
 - Stage interfaces
 - Data flow management
@@ -495,6 +552,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Performance profiling
 
 **Code Example Themes:**
+
 - Document processing pipeline
 - ETL system with agents
 - Content generation workflow
@@ -509,6 +567,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 18: Handoff Pattern
 
 **Learning Objectives:**
+
 - Implement agent handoff logic
 - Define handoff conditions
 - Manage context transfer
@@ -516,6 +575,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Track handoff metrics
 
 **Key Concepts:**
+
 - Handoff protocols
 - Context serialization
 - Condition evaluation
@@ -523,6 +583,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Metrics collection
 
 **Code Example Themes:**
+
 - Customer service escalation
 - Specialized expert system
 - Multi-language support bot
@@ -537,6 +598,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 19: Delegation Pattern
 
 **Learning Objectives:**
+
 - Design delegation strategies
 - Implement work distribution
 - Handle parallel delegation
@@ -544,6 +606,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Optimize delegation decisions
 
 **Key Concepts:**
+
 - Delegation algorithms
 - Load balancing
 - Parallel execution
@@ -551,6 +614,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Decision optimization
 
 **Code Example Themes:**
+
 - Research coordinator
 - Parallel task executor
 - Voting system implementation
@@ -563,11 +627,13 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ---
 
 ## Part 7: Evaluation & Testing (Chapters 20-21)
-*Measuring and improving agent performance*
+
+_Measuring and improving agent performance_
 
 ### Chapter 20: Evaluation Framework
 
 **Learning Objectives:**
+
 - Design evaluation metrics
 - Create test datasets
 - Implement scoring functions
@@ -575,6 +641,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Generate performance reports
 
 **Key Concepts:**
+
 - Metric definition
 - Dataset structure
 - Scoring algorithms
@@ -582,6 +649,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Report generation
 
 **Code Example Themes:**
+
 - Accuracy measurement system
 - A/B testing framework
 - Benchmark suite
@@ -596,6 +664,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 21: Testing Strategies
 
 **Learning Objectives:**
+
 - Write unit tests for agents
 - Create integration test suites
 - Implement mock providers
@@ -603,6 +672,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Automate regression testing
 
 **Key Concepts:**
+
 - Test structure with Pest
 - Mock provider usage
 - Fixture management
@@ -610,6 +680,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - CI/CD integration
 
 **Code Example Themes:**
+
 - Comprehensive test suite
 - Mock-driven development
 - Regression test automation
@@ -622,11 +693,13 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ---
 
 ## Part 8: Observability (Chapters 22-23)
-*Monitoring and debugging production agents*
+
+_Monitoring and debugging production agents_
 
 ### Chapter 22: OpenTelemetry Integration
 
 **Learning Objectives:**
+
 - Configure OpenTelemetry exporters
 - Instrument agent operations
 - Create custom spans
@@ -634,6 +707,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Visualize traces in Jaeger
 
 **Key Concepts:**
+
 - OTLP configuration
 - Span creation and management
 - Metric collection
@@ -641,6 +715,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Trace visualization
 
 **Code Example Themes:**
+
 - Full observability setup
 - Custom instrumentation
 - Performance monitoring
@@ -655,6 +730,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 23: Debugging and Monitoring
 
 **Learning Objectives:**
+
 - Debug agent conversations
 - Monitor token usage
 - Track costs across providers
@@ -662,6 +738,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Create alerting rules
 
 **Key Concepts:**
+
 - Debug mode configuration
 - Token tracking
 - Cost calculation
@@ -669,6 +746,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Alert configuration
 
 **Code Example Themes:**
+
 - Debug dashboard
 - Cost optimization system
 - Performance analyzer
@@ -681,11 +759,13 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ---
 
 ## Part 9: Framework Integration (Chapter 24)
-*Using Pagent with popular PHP frameworks*
+
+_Using Pagent with popular PHP frameworks_
 
 ### Chapter 24: Laravel and Symfony Integration
 
 **Learning Objectives:**
+
 - Integrate Pagent with Laravel
 - Use with Symfony components
 - Implement queue workers
@@ -693,6 +773,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Configure dependency injection
 
 **Key Concepts:**
+
 - Service provider setup
 - Queue job integration
 - Controller patterns
@@ -700,6 +781,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - DI configuration
 
 **Code Example Themes:**
+
 - Laravel chat application
 - Symfony console commands
 - Queue-based processor
@@ -712,11 +794,13 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ---
 
 ## Part 10: Advanced Topics (Chapters 25-28)
-*Expert-level patterns and optimization*
+
+_Expert-level patterns and optimization_
 
 ### Chapter 25: Custom Middleware
 
 **Learning Objectives:**
+
 - Create custom middleware
 - Implement middleware chains
 - Build rate limiting middleware
@@ -724,6 +808,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Create audit logging
 
 **Key Concepts:**
+
 - Middleware interface
 - Chain of responsibility
 - Rate limiting strategies
@@ -731,6 +816,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Audit trail design
 
 **Code Example Themes:**
+
 - Rate limiter implementation
 - Response cache middleware
 - Audit logger
@@ -745,6 +831,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 26: Performance Optimization
 
 **Learning Objectives:**
+
 - Optimize token usage
 - Implement response caching
 - Reduce API latency
@@ -752,6 +839,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Profile performance bottlenecks
 
 **Key Concepts:**
+
 - Token optimization
 - Cache strategies
 - Latency reduction
@@ -759,6 +847,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Performance profiling
 
 **Code Example Themes:**
+
 - Token-efficient assistant
 - High-performance cache
 - Batch processor
@@ -773,6 +862,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 27: Production Deployment
 
 **Learning Objectives:**
+
 - Configure production environment
 - Implement secure key management
 - Set up monitoring and alerting
@@ -780,6 +870,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Handle production incidents
 
 **Key Concepts:**
+
 - Environment configuration
 - Secret management
 - Monitoring setup
@@ -787,6 +878,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Incident response
 
 **Code Example Themes:**
+
 - Production configuration
 - Kubernetes deployment
 - Auto-scaling setup
@@ -801,6 +893,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ### Chapter 28: Building Complex Systems
 
 **Learning Objectives:**
+
 - Design agent architectures
 - Implement event-driven patterns
 - Create plugin systems
@@ -808,6 +901,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Develop agent marketplaces
 
 **Key Concepts:**
+
 - Architecture patterns
 - Event sourcing
 - Plugin architecture
@@ -815,6 +909,7 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 - Marketplace design
 
 **Code Example Themes:**
+
 - Enterprise agent system
 - Plugin-based framework
 - Event-driven orchestrator
@@ -829,15 +924,19 @@ A comprehensive 28-chapter tutorial for mastering the Pagent framework - a Pest-
 ## Learning Path Recommendations
 
 ### Quick Start Path (5 chapters)
+
 Chapters 1 → 2 → 3 → 6 → 10
 
 ### Production Path (12 chapters)
+
 Chapters 1-5 → 14-15 → 20-21 → 22-23 → 27
 
 ### Full Stack Path (18 chapters)
+
 Chapters 1-9 → 12-13 → 14-15 → 22-24 → 27
 
 ### Expert Path (All 28 chapters)
+
 Complete sequential progression through all parts
 
 ---

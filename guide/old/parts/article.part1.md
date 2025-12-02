@@ -197,6 +197,7 @@ foreach ($agent->messages as $message) {
 ```
 
 Output:
+
 ```
 First response: 15% of 80 is 12.
 
@@ -350,6 +351,7 @@ Each method returns the agent instance, allowing you to chain calls naturally. T
 Pagent's methods fall into three categories:
 
 **1. Configuration Methods** (called during setup):
+
 ```php
 agent('name')
     ->provider($provider)      // Set the LLM provider
@@ -361,6 +363,7 @@ agent('name')
 ```
 
 **2. Runtime Methods** (called during use):
+
 ```php
 $agent = agent('name');
 $agent->prompt($message);          // Send message, get response
@@ -370,6 +373,7 @@ $agent->clearMessages();                // Reset conversation
 ```
 
 **3. Extension Methods** (add capabilities):
+
 ```php
 agent('name')
     ->tool($name, $description, $function)  // Add callable tools
@@ -615,6 +619,7 @@ Congratulations! You've learned the fundamentals of Pagent:
 ✅ Explored common patterns and troubleshooting
 
 In Chapter 2, we'll dive into **advanced agent features**:
+
 - **Tool Calling**: Give your agents the ability to execute functions
 - **Streaming Responses**: Build ChatGPT-like interfaces with real-time text
 - **Guards and Middleware**: Add safety checks and request processing
@@ -636,6 +641,7 @@ Create a file called `practice.php` and implement a "Translation Service" with t
 <summary>💡 Click here for a hint</summary>
 
 Start with:
+
 ```php
 agent('translator')
     ->provider('anthropic')
@@ -647,6 +653,7 @@ agent('reviewer')
     ->system('You review translations for accuracy')
     ->temperature(0.1);
 ```
+
 </details>
 
 <details>
@@ -696,6 +703,7 @@ echo "Original: " . $result['original'] . "\n";
 echo "Translation: " . $result['translation'] . "\n";
 echo "Review: " . $result['review'] . "\n";
 ```
+
 </details>
 
 ---
@@ -705,6 +713,7 @@ echo "Review: " . $result['review'] . "\n";
 In this chapter, you've learned that Pagent brings the elegance of Pest's testing philosophy to LLM interactions. The fluent API isn't just syntactic sugar—it fundamentally changes how you think about building AI agents. Instead of managing messages arrays and API calls, you focus on agent behavior and conversation flow.
 
 Key takeaways:
+
 - **Agents are stateful**: They remember conversations automatically
 - **Providers are swappable**: Change LLMs without changing code structure
 - **Configuration is chainable**: Build complex agents with readable method chains

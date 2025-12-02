@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 By the end of this chapter, you'll be able to:
+
 - Design effective delegation strategies for distributing work across agents
 - Implement parallel delegation with proper coordination
 - Handle result aggregation from multiple agents
@@ -951,6 +952,7 @@ The delegation pattern transforms single-threaded AI interactions into powerful 
 ## Next Steps
 
 In Chapter 20, we'll explore **Autonomous Agent Systems**, where agents operate independently with minimal supervision:
+
 - Self-directed goal pursuit
 - Autonomous decision making
 - Environmental awareness

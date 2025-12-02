@@ -222,6 +222,7 @@ final class EmailTool extends Tool
 ```
 
 This email tool showcases:
+
 - **Dependency injection** for configuration
 - **Comprehensive validation** to prevent errors
 - **Error handling** with try-catch blocks

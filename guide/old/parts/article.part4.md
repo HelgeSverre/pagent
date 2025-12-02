@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 After completing this chapter, you'll be able to:
+
 - Design effective system prompts that guide AI behavior
 - Implement few-shot learning with concrete examples
 - Use chain-of-thought prompting for complex reasoning
@@ -716,18 +717,22 @@ class PromptTester
 ## Common Pitfalls and Solutions
 
 ### Pitfall 1: Over-Prompting
+
 **Problem**: Adding too many instructions makes the prompt confusing.
 **Solution**: Start simple, add constraints only when needed.
 
 ### Pitfall 2: Ambiguous Instructions
+
 **Problem**: Vague prompts lead to inconsistent results.
 **Solution**: Use concrete examples and specific output formats.
 
 ### Pitfall 3: Ignoring Context Length
+
 **Problem**: Prompts that are too long hit token limits.
 **Solution**: Prioritize essential instructions, use compression techniques.
 
 ### Pitfall 4: Rigid Structures
+
 **Problem**: Over-specifying prevents creative solutions.
 **Solution**: Balance structure with flexibility for complex tasks.
 
@@ -741,6 +746,7 @@ You've learned four powerful prompting strategies:
 4. **Creative Enhancement**: Balance structure with creative freedom
 
 Key takeaways:
+
 - System prompts define persistent behavior
 - Few-shot examples improve consistency
 - Templates enable reusable prompt patterns
@@ -750,6 +756,7 @@ Key takeaways:
 ## Next Steps
 
 In Chapter 5, you'll learn about streaming responses and real-time interactions. You'll build agents that can:
+
 - Stream responses for better user experience
 - Handle long-running conversations
 - Implement progress indicators

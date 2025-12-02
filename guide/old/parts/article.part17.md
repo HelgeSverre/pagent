@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 By the end of this chapter, you'll be able to:
+
 - Build sequential agent pipelines that process data through multiple stages
 - Implement data transformation between pipeline stages
 - Handle errors gracefully with proper propagation strategies

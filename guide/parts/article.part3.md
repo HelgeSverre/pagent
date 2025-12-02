@@ -31,6 +31,7 @@ print_r($agent->messages);
 Every time you call `prompt()`, Pagent automatically adds two messages to the history: your user message and the assistant's response. This happens transparently - you don't need to manage the array yourself.
 
 The message structure is deliberately simple. Each message is an array with two required keys:
+
 - `role`: Either "user" or "assistant" (system messages are handled differently, as we'll see)
 - `content`: The message text
 
@@ -152,14 +153,14 @@ The exported JSON contains the complete message history plus metadata like the a
 
 ```json
 {
-    "agent": "persistent-bot",
-    "messages": [
-        {"role": "user", "content": "Remember this: my favorite color is blue"},
-        {"role": "assistant", "content": "I'll remember that!"},
-        {"role": "user", "content": "What should I wear to a summer wedding?"},
-        {"role": "assistant", "content": "For a summer wedding..."}
-    ],
-    "exported_at": "2025-01-15T10:30:00+00:00"
+  "agent": "persistent-bot",
+  "messages": [
+    { "role": "user", "content": "Remember this: my favorite color is blue" },
+    { "role": "assistant", "content": "I'll remember that!" },
+    { "role": "user", "content": "What should I wear to a summer wedding?" },
+    { "role": "assistant", "content": "For a summer wedding..." }
+  ],
+  "exported_at": "2025-01-15T10:30:00+00:00"
 }
 ```
 
@@ -332,6 +333,7 @@ $agent->prompt('Hello again');
 ```
 
 Direct manipulation is powerful but use it carefully. The automatic tracking handles most scenarios correctly. Manual manipulation is useful for:
+
 - Testing specific conversation states
 - Implementing custom pruning strategies
 - Migrating conversations between agents

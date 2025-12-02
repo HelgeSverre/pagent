@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 By the end of this chapter, you'll be able to:
+
 - Define tools with proper JSON schemas for LLM function calling
 - Implement automatic tool discovery and registration
 - Handle tool execution results and continue conversations
@@ -21,6 +22,7 @@ By the end of this chapter, you'll be able to:
 ## Final Result
 
 You'll build a working AI assistant that can:
+
 - Perform calculations using a calculator tool
 - Fetch weather data from an API
 - Query databases for information
@@ -71,6 +73,7 @@ The AI recognized it needed the current time, called our tool, and used the resu
 Every tool needs three essential components:
 
 ### 1. Name
+
 A unique identifier for the tool (snake_case by convention):
 
 ```php
@@ -78,6 +81,7 @@ A unique identifier for the tool (snake_case by convention):
 ```
 
 ### 2. Description
+
 Clear explanation of what the tool does - this helps the AI decide when to use it:
 
 ```php
@@ -85,6 +89,7 @@ Clear explanation of what the tool does - this helps the AI decide when to use i
 ```
 
 ### 3. Input Schema
+
 A JSON Schema defining the tool's parameters:
 
 ```php
@@ -848,6 +853,7 @@ echo $response->content;
 ## Summary
 
 You've learned how to:
+
 - Define tools with JSON schemas for LLM function calling
 - Create tool handlers that execute when the AI needs them
 - Implement automatic tool discovery for scalability
@@ -855,6 +861,7 @@ You've learned how to:
 - Build robust error handling with retries and fallbacks
 
 Key takeaways:
+
 - **Clear descriptions** help the AI choose the right tool
 - **Schema validation** prevents runtime errors
 - **Error handling** keeps your assistant helpful even when tools fail
@@ -864,6 +871,7 @@ Key takeaways:
 ## Next Steps
 
 In Chapter 7, we'll explore streaming responses and real-time interactions. You'll learn to:
+
 - Stream responses as they're generated
 - Handle partial tool calls in streams
 - Build interactive CLI applications

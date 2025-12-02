@@ -458,28 +458,28 @@ Define Pagent services in `config/services.yaml`:
 
 ```yaml
 services:
-    # Register the Registry as a singleton
-    Pagent\Registry:
-        public: true
-        shared: true
+  # Register the Registry as a singleton
+  Pagent\Registry:
+    public: true
+    shared: true
 
-    # Factory for creating agents
-    pagent.agent.factory:
-        class: Closure
-        factory: ['App\Factory\AgentFactory', 'create']
-        arguments:
-            - '@Pagent\Registry'
+  # Factory for creating agents
+  pagent.agent.factory:
+    class: Closure
+    factory: ['App\Factory\AgentFactory', "create"]
+    arguments:
+      - '@Pagent\Registry'
 
-    # Pre-configured agents
-    pagent.agent.support:
-        class: Pagent\Agent
-        factory: ['@App\Factory\AgentFactory', 'createSupport']
-        shared: true
+  # Pre-configured agents
+  pagent.agent.support:
+    class: Pagent\Agent
+    factory: ['@App\Factory\AgentFactory', "createSupport"]
+    shared: true
 
-    pagent.agent.analyzer:
-        class: Pagent\Agent
-        factory: ['@App\Factory\AgentFactory', 'createAnalyzer']
-        shared: true
+  pagent.agent.analyzer:
+    class: Pagent\Agent
+    factory: ['@App\Factory\AgentFactory', "createAnalyzer"]
+    shared: true
 ```
 
 Create an agent factory:
@@ -536,10 +536,10 @@ Register the factory in `services.yaml`:
 
 ```yaml
 services:
-    App\Factory\AgentFactory:
-        arguments:
-            $anthropicKey: '%env(ANTHROPIC_API_KEY)%'
-            $openaiKey: '%env(OPENAI_API_KEY)%'
+  App\Factory\AgentFactory:
+    arguments:
+      $anthropicKey: "%env(ANTHROPIC_API_KEY)%"
+      $openaiKey: "%env(OPENAI_API_KEY)%"
 ```
 
 ### Controller Integration
@@ -770,12 +770,12 @@ Configure async transport in `config/packages/messenger.yaml`:
 
 ```yaml
 framework:
-    messenger:
-        transports:
-            async: '%env(MESSENGER_TRANSPORT_DSN)%'
+  messenger:
+    transports:
+      async: "%env(MESSENGER_TRANSPORT_DSN)%"
 
-        routing:
-            App\Message\ProcessAgentTask: async
+    routing:
+      App\Message\ProcessAgentTask: async
 ```
 
 ### Event Subscribers

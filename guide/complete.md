@@ -3169,6 +3169,7 @@ This architecture separates agent-specific concerns from cross-cutting applicati
 Every agent instance has its own `EventDispatcher` that manages listeners specific to that agent. This is what you use when you call `$agent->on()`, `$agent->once()`, or `$agent->listen()`.
 
 **Use per-agent events when:**
+
 - Listening to events from a specific agent instance
 - Building features tied to a particular agent's lifecycle
 - Implementing agent-specific logging or behavior modification
@@ -3205,6 +3206,7 @@ $customerAgent->prompt('I need help');          // Logged
 The `EventManager` is a singleton that provides a global event bus for listening to events from **all agents** in your application. This is essential for cross-cutting concerns.
 
 **Use global events when:**
+
 - Implementing application-wide telemetry or observability
 - Tracking usage across all agents
 - Global logging or monitoring
@@ -4875,12 +4877,14 @@ This chapter explains the architecture behind Pagent's two-tier tool system, int
 **Purpose:** Quick, inline tool definitions with automatic schema generation
 
 **Best for:**
+
 - Simple, one-off tools
 - Rapid prototyping
 - Application-specific logic
 - Tools that don't need reuse across projects
 
 **Key Features:**
+
 - Automatic argument detection via PHP reflection
 - Automatic schema generation for both Anthropic and OpenAI
 - Type inference from PHP type hints
@@ -4914,6 +4918,7 @@ Closure-based tools are created using `Tool::fromClosure()` internally and autom
 **Purpose:** Production-ready, reusable tools with encapsulated logic and security features
 
 **Best for:**
+
 - Reusable tools across multiple projects
 - Complex tools with state or configuration
 - Tools requiring security controls (path traversal, SSRF protection, etc.)
@@ -4921,6 +4926,7 @@ Closure-based tools are created using `Tool::fromClosure()` internally and autom
 - Tools with complex validation or error handling
 
 **Key Features:**
+
 - Full encapsulation of logic and state
 - Constructor-based configuration
 - Built-in security features in standard tools
@@ -4954,6 +4960,7 @@ Pagent ships with a comprehensive library of production-ready, security-hardened
 **Purpose:** Read files with path traversal protection
 
 **Security Features:**
+
 - Base directory restriction
 - Path traversal prevention
 - Configurable allowed extensions
@@ -4980,6 +4987,7 @@ echo $result['content'];
 **Purpose:** Write files with security controls
 
 **Security Features:**
+
 - Base directory restriction
 - Path traversal prevention
 - Overwrite protection (optional)
@@ -5009,6 +5017,7 @@ $tool->execute([
 **Purpose:** Make HTTP requests with security controls
 
 **Security Features:**
+
 - SSRF protection (blocks private/local IPs)
 - Allowed domain whitelist
 - Timeout control
@@ -5036,6 +5045,7 @@ echo $result['body'];
 **Purpose:** Execute shell commands with command whitelisting
 
 **Security Features:**
+
 - Command whitelist (only allowed commands can run)
 - Working directory restriction
 - Timeout control
@@ -5379,22 +5389,26 @@ When building custom class-based tools:
 ### Closure-Based Tools
 
 **Pros:**
+
 - No instantiation overhead
 - Direct function calls
 - Minimal memory footprint
 
 **Cons:**
+
 - No state reuse between calls
 - Harder to optimize complex logic
 
 ### Class-Based Tools
 
 **Pros:**
+
 - State can be cached (DB connections, API clients)
 - Constructor-based initialization
 - Can implement caching internally
 
 **Cons:**
+
 - Small instantiation overhead
 - Slightly larger memory footprint
 

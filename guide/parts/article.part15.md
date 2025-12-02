@@ -235,6 +235,7 @@ try {
 ```
 
 This helper function implements:
+
 - Configurable maximum attempts
 - Exponential backoff (1s, 2s, 4s, ...)
 - Clear error messages showing attempt count
@@ -348,6 +349,7 @@ try {
 ```
 
 The circuit breaker:
+
 - Tracks consecutive failures
 - Opens after hitting the threshold (default 5)
 - Rejects requests during cooldown (default 60s)
@@ -484,6 +486,7 @@ try {
 ```
 
 This layered approach provides:
+
 1. **Rate limiting** - Prevents quota violations
 2. **Content guards** - Blocks unsafe output with fallbacks
 3. **Retry logic** - Handles transient failures

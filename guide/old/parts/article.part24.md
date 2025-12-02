@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 By the end of this chapter, you'll be able to:
+
 - Set up Pagent as a Laravel service provider with proper dependency injection
 - Create Symfony console commands that leverage AI capabilities
 - Build queue workers for asynchronous AI processing
@@ -24,6 +25,7 @@ By the end of this chapter, you'll be able to:
 ## Final Result
 
 You'll have a fully integrated AI-powered application with:
+
 - Laravel service provider for Pagent configuration
 - Queue jobs for background AI processing
 - RESTful API for chat interactions
@@ -1066,6 +1068,7 @@ You've successfully learned how to integrate Pagent with Laravel and Symfony fra
 ### Common Integration Issues
 
 **Provider Not Found**
+
 ```bash
 # Register service provider in config/app.php
 'providers' => [
@@ -1075,6 +1078,7 @@ You've successfully learned how to integrate Pagent with Laravel and Symfony fra
 ```
 
 **Queue Jobs Failing**
+
 ```bash
 # Check queue worker is running
 php artisan queue:work --queue=ai-processing
@@ -1084,6 +1088,7 @@ php artisan queue:failed
 ```
 
 **Rate Limiting Not Working**
+
 ```bash
 # Clear rate limiter cache
 php artisan cache:clear
@@ -1093,12 +1098,13 @@ php artisan route:list
 ```
 
 **Symfony Command Not Found**
+
 ```yaml
 # Register in services.yaml
 services:
-    App\Command\:
-        resource: '../src/Command/'
-        tags: ['console.command']
+  App\Command\:
+    resource: "../src/Command/"
+    tags: ["console.command"]
 ```
 
 ## Additional Resources

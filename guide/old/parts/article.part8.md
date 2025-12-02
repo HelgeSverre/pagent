@@ -1,6 +1,7 @@
 # Chapter 8: Recursive Tool Execution
 
 **Learning Objectives:**
+
 - Enable recursive tool calling
 - Manage execution depth limits
 - Handle circular dependencies
@@ -24,6 +25,7 @@ Recursive tool execution allows agents to call tools that, in turn, trigger addi
 ### Real-World Analogies
 
 Think of recursive tool execution like a research assistant who needs to gather information from multiple sources. They might:
+
 1. Search for initial information
 2. Discover references that need investigation
 3. Follow each reference to gather more details
@@ -681,6 +683,7 @@ test('executes complex workflow', function () {
 ## Summary
 
 You've learned how to implement recursive tool execution in Pagent, including:
+
 - Building execution context managers
 - Preventing infinite loops and circular dependencies
 - Optimizing recursive workflows with memoization and parallelization

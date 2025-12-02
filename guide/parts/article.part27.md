@@ -1,6 +1,7 @@
 # Chapter 27: Production Deployment
 
 **Learning Objectives:**
+
 - Configure production environments with secure credential management
 - Implement comprehensive monitoring and observability
 - Design scalable agent architectures for production workloads
@@ -46,6 +47,7 @@ $response = $agent->prompt('Hello');
 ```
 
 The provider resolution order is:
+
 1. Explicit `api_key` in configuration array
 2. `$_ENV` superglobal
 3. `getenv()` function call
@@ -561,6 +563,7 @@ function handleRequest(string $input): object
 ```
 
 This pattern works perfectly in:
+
 - PHP-FPM with multiple worker processes
 - Containerized environments (Docker, Kubernetes)
 - Serverless functions (AWS Lambda, Google Cloud Functions)
@@ -615,37 +618,37 @@ spec:
         app: agent-service
     spec:
       containers:
-      - name: php-fpm
-        image: your-registry/agent-service:latest
-        env:
-        - name: ANTHROPIC_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: agent-secrets
-              key: anthropic-api-key
-        - name: TELEMETRY_ENABLED
-          value: "true"
-        - name: TELEMETRY_ENDPOINT
-          value: "http://otel-collector:4318/v1/traces"
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 9000
-          initialDelaySeconds: 10
-          periodSeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 9000
-          initialDelaySeconds: 5
-          periodSeconds: 10
+        - name: php-fpm
+          image: your-registry/agent-service:latest
+          env:
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: anthropic-api-key
+            - name: TELEMETRY_ENABLED
+              value: "true"
+            - name: TELEMETRY_ENDPOINT
+              value: "http://otel-collector:4318/v1/traces"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service
@@ -655,8 +658,8 @@ spec:
   selector:
     app: agent-service
   ports:
-  - port: 80
-    targetPort: 9000
+    - port: 80
+      targetPort: 9000
   type: LoadBalancer
 ```
 
@@ -678,18 +681,18 @@ spec:
   minReplicas: 2
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
 ```
 
 ### Health Check Endpoints
@@ -873,36 +876,42 @@ $robust = new FallbackAgent($primary, $fallback);
 Before deploying to production, verify:
 
 **Configuration:**
+
 - [ ] API keys loaded from environment variables or secret store
 - [ ] No hardcoded credentials in code
 - [ ] Environment-specific configuration files
 - [ ] Proper .gitignore to exclude secrets
 
 **Security:**
+
 - [ ] Guards configured (PII, content filter, prompt injection)
 - [ ] Fallback responses for guard violations
 - [ ] Rate limiting implemented
 - [ ] Input validation and sanitization
 
 **Observability:**
+
 - [ ] Telemetry enabled with OTLP exporter
 - [ ] Custom attributes added for business context
 - [ ] Monitoring dashboards configured
 - [ ] Alerts set up for error rates, latency, guard violations
 
 **Scaling:**
+
 - [ ] Stateless agent architecture
 - [ ] Memory adapters for persistent conversations
 - [ ] Health check endpoints implemented
 - [ ] Auto-scaling rules configured
 
 **Error Handling:**
+
 - [ ] Structured logging with context
 - [ ] Exception handling for all error types
 - [ ] Circuit breaker for provider failures
 - [ ] Graceful degradation strategy
 
 **Testing:**
+
 - [ ] Integration tests with real providers
 - [ ] Load testing under expected traffic
 - [ ] Chaos testing for failure scenarios

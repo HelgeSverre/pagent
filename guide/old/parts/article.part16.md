@@ -14,6 +14,7 @@ In this chapter, you'll master multi-agent orchestration in Pagent, enabling sop
 ## Prerequisites
 
 Before starting this chapter, you should have completed:
+
 - Chapter 1: Getting Started
 - Chapter 2: Basic Agent Creation
 - Chapter 3: Provider Configuration
@@ -33,6 +34,7 @@ Before starting this chapter, you should have completed:
 Multi-agent systems represent a paradigm shift from single, monolithic AI assistants to teams of specialized agents that collaborate to achieve complex goals. Think of it like a well-organized company where different departments handle specific responsibilities, communicating and coordinating to deliver results.
 
 In Pagent, multi-agent orchestration enables you to:
+
 - Divide complex tasks into manageable pieces
 - Create specialized agents with focused expertise
 - Build fault-tolerant systems with fallback strategies
@@ -106,6 +108,7 @@ echo "Manager Review: {$result->manager_review}\n";
 ```
 
 The delegation flow works as follows:
+
 1. Manager receives the main task
 2. Work passes to each agent in sequence
 3. Each agent builds on the previous output

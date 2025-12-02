@@ -152,6 +152,7 @@ Here's what gets instrumented:
 **Agent Operations**: Every `prompt()`, `stream()`, and `continue()` call creates an `agent.prompt` or `agent.stream` span. This tracks the overall operation from start to finish.
 
 **LLM Requests**: API calls to your LLM provider create `llm.request` spans with detailed attributes following the OpenTelemetry GenAI semantic conventions:
+
 - `gen_ai.system`: Provider name ("anthropic", "openai", "ollama")
 - `gen_ai.request.model`: Model identifier
 - `gen_ai.request.temperature`: Temperature setting
@@ -161,11 +162,13 @@ Here's what gets instrumented:
 - `gen_ai.usage.total_tokens`: Total tokens used
 
 **Tool Executions**: When agents call tools, `tool.execute` spans capture:
+
 - `tool.name`: The tool that was invoked
 - `tool.arguments`: JSON-encoded arguments passed to the tool
 - `tool.result`: The tool's response (truncated if large)
 
 **Guard Checks**: Guard validations create `guard.check` spans with:
+
 - `guard.name`: Which guard was evaluated
 - `guard.passed`: Boolean indicating if validation succeeded
 - `guard.reason`: Explanation if the guard failed

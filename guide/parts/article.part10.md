@@ -45,6 +45,7 @@ echo "\n\nTotal length: " . strlen($fullContent) . " characters";
 This simple example demonstrates the core pattern: provide a callback that receives each chunk, check if it's text content with `isText()`, then process it however you need. The `flush()` call ensures output reaches the browser immediately rather than buffering.
 
 The `streamTo()` method handles several things automatically:
+
 - Adds your message to conversation history
 - Streams the response through your callback
 - Collects the full content
@@ -87,6 +88,7 @@ echo "Stopped because: " . $stopReason;
 ```
 
 The `StreamResponse` object provides:
+
 - `getStream()`: Returns the underlying PHP Generator for manual iteration
 - `collect()`: Iterates through all chunks and returns the full content
 - `streamTo(callable $callback)`: Streams to a callback function
@@ -136,6 +138,7 @@ $agent->streamTo('Count to five', function ($chunk) {
 ```
 
 The `StreamChunk` provides these methods:
+
 - `isText()`: True for text content chunks
 - `isStart()`: True for stream start marker
 - `isEnd()`: True for stream completion marker
@@ -145,6 +148,7 @@ The `StreamChunk` provides these methods:
 - `getMetadata(string $key, mixed $default = null)`: Retrieves metadata like usage stats
 
 And these public properties:
+
 - `type`: Chunk type string ("text", "start", "done", "error", etc.)
 - `content`: The actual text content
 - `delta`: Additional delta information (optional)
@@ -179,6 +183,7 @@ echo "Tokens: " . ($usage['total_tokens'] ?? 'unknown');
 ```
 
 The `collect()` method:
+
 - Iterates through the entire stream automatically
 - Accumulates all text content
 - Collects metadata from the final chunk (usage, stop reason)
@@ -271,6 +276,7 @@ echo "Total exchanges: " . (count($agent->messages) / 2) . "\n";
 ```
 
 This demonstrates several important patterns:
+
 - Streaming works seamlessly with conversation history
 - Each `streamTo()` call automatically adds messages to history
 - You can measure generation time around streaming calls
@@ -314,6 +320,7 @@ try {
 ```
 
 Common error scenarios:
+
 - Invalid API keys throw `RuntimeException` before streaming starts
 - Network interruptions throw exceptions during streaming
 - Provider errors appear as error chunks in the stream
@@ -324,6 +331,7 @@ Common error scenarios:
 Pagent abstracts away the differences, but it's helpful to understand what's happening under the hood:
 
 **Anthropic** uses Server-Sent Events (SSE). The underlying format looks like:
+
 ```
 event: message_start
 data: {"type":"message_start","message":{"id":"msg_123"...}}
@@ -338,6 +346,7 @@ data: {"type":"message_stop"}
 Pagent's `AnthropicStreamParser` parses these SSE events and converts them into normalized `StreamChunk` objects.
 
 **OpenAI** uses newline-delimited JSON (NDJSON). Each line is a JSON object:
+
 ```json
 {"id":"chatcmpl-123","object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello"}}]}
 {"id":"chatcmpl-123","object":"chat.completion.chunk","choices":[{"delta":{"content":" world"}}]}
@@ -385,6 +394,7 @@ $agent->streamTo("What's my name?", function ($chunk) {
 ```
 
 The memory integration works identically to `prompt()`:
+
 - Conversation loads automatically on first `streamTo()` call
 - Each streaming response is saved to memory
 - Session persistence works across streaming and non-streaming calls
@@ -417,6 +427,7 @@ try {
 ```
 
 This means:
+
 - Content streams in real-time
 - After streaming completes, guards check the full content
 - If a guard fails, the exception is thrown after all chunks have streamed
@@ -429,12 +440,14 @@ For real-time content filtering during streaming, you'd need to implement checks
 Streaming trades bandwidth efficiency for responsiveness. Each chunk creates overhead, so streaming a 50-word response might actually use slightly more bandwidth than getting it all at once. However, the user experience improvement typically outweighs this cost.
 
 Consider streaming when:
+
 - Responses are likely to be lengthy (>100 words)
 - User experience and perceived speed matter
 - You want to show progress for long-running operations
 - You're building interactive chat interfaces
 
 Stick with `prompt()` when:
+
 - Responses are short and fast
 - You need tool calling functionality
 - Bandwidth efficiency is critical
@@ -443,12 +456,14 @@ Stick with `prompt()` when:
 ## When to Use stream() vs streamTo()
 
 Choose `streamTo()` when:
+
 - You want simplest integration (like upgrading from `prompt()`)
 - You need automatic conversation management
 - You want memory integration
 - You want guard execution
 
 Choose `stream()` when:
+
 - You need access to `StreamResponse` metadata before consuming the stream
 - You want to pass the `StreamResponse` to another function
 - You need fine control over iteration

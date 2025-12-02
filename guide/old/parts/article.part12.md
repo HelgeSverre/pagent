@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 By the end of this chapter, you'll be able to:
+
 - Implement persistent conversation memory for your agents
 - Use SQLite and file-based storage adapters
 - Query and search through historical conversations
@@ -23,6 +24,7 @@ By the end of this chapter, you'll be able to:
 ## Final Result
 
 You'll build four memory-enabled agents:
+
 1. A personal assistant that remembers user preferences
 2. A learning system that improves responses over time
 3. A context-aware support bot
@@ -494,7 +496,7 @@ echo $assistant->chat("Write an email to the team about the project update");
 
 Let's build an agent that improves its responses based on feedback:
 
-```php
+````php
 <?php
 
 declare(strict_types=1);
@@ -684,7 +686,7 @@ $learner->receiveFeedback(
 $result = $learner->respond("How do I improve API performance?");
 echo $result['response'];
 // Now includes more practical examples based on feedback
-```
+````
 
 ---
 
@@ -836,15 +838,19 @@ $manager->consolidateMemories('assistant_user123');
 ## Exercises
 
 ### Exercise 1: Implement File-Based Memory
+
 Create a file-based memory adapter that stores conversations as JSON files. Include indexing for fast searches.
 
 ### Exercise 2: Context Window Management
+
 Build a system that automatically selects the most relevant memories to fit within token limits.
 
 ### Exercise 3: Memory Embeddings
+
 Integrate vector embeddings to find semantically similar conversations rather than keyword matches.
 
 ### Exercise 4: Distributed Memory
+
 Implement a memory system that can sync across multiple agents or instances.
 
 ---
@@ -854,12 +860,14 @@ Implement a memory system that can sync across multiple agents or instances.
 ### Common Issues and Solutions
 
 **SQLite Locked Error**
+
 ```php
 // Use WAL mode for concurrent access
 $this->db->exec('PRAGMA journal_mode=WAL');
 ```
 
 **Memory Growing Too Large**
+
 ```php
 // Implement automatic pruning
 if ($this->getMemorySize() > $this->maxSize) {
@@ -868,6 +876,7 @@ if ($this->getMemorySize() > $this->maxSize) {
 ```
 
 **Slow Search Performance**
+
 ```php
 // Add appropriate indexes
 $this->db->exec('CREATE INDEX idx_search ON messages(content)');

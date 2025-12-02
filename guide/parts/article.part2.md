@@ -1,6 +1,7 @@
 # Chapter 2: Working with Providers
 
 **Learning Objectives:**
+
 - Configure Anthropic, OpenAI, and Ollama providers
 - Understand provider-specific features and limitations
 - Switch between providers dynamically
@@ -383,36 +384,40 @@ The `clearAgents()` function removes all registered agents from the global regis
 
 Different providers have different strengths. Here's a practical comparison:
 
-| Feature | Anthropic | OpenAI | Ollama | Mock |
-|---------|-----------|--------|--------|------|
-| **API Key Required** | Yes | Yes | No | No |
-| **Default Model** | claude-sonnet-4-20250514 | gpt-3.5-turbo | qwen3:8b | mock |
-| **System Messages** | Separate field | First message | First message | N/A |
-| **Streaming Support** | Yes | Yes | Yes | No |
-| **Tool Calling** | Yes | Yes | Yes | No |
-| **Token Usage Details** | Detailed | Detailed | Detailed | Simple |
-| **Cost** | Paid | Paid | Free (local) | Free |
-| **Latency** | Network | Network | Local | Instant |
+| Feature                 | Anthropic                | OpenAI        | Ollama        | Mock    |
+| ----------------------- | ------------------------ | ------------- | ------------- | ------- |
+| **API Key Required**    | Yes                      | Yes           | No            | No      |
+| **Default Model**       | claude-sonnet-4-20250514 | gpt-3.5-turbo | qwen3:8b      | mock    |
+| **System Messages**     | Separate field           | First message | First message | N/A     |
+| **Streaming Support**   | Yes                      | Yes           | Yes           | No      |
+| **Tool Calling**        | Yes                      | Yes           | Yes           | No      |
+| **Token Usage Details** | Detailed                 | Detailed      | Detailed      | Simple  |
+| **Cost**                | Paid                     | Paid          | Free (local)  | Free    |
+| **Latency**             | Network                  | Network       | Local         | Instant |
 
 ### When to Use Each Provider
 
 **Use Anthropic** when you need:
+
 - Claude's strong reasoning and tool use capabilities
 - Detailed control over system prompts
 - High-quality long-form generation
 
 **Use OpenAI** when you need:
+
 - GPT-4's multimodal capabilities
 - Structured outputs (JSON mode)
 - Broader model selection (o1, o3, etc.)
 
 **Use Ollama** when you need:
+
 - Zero-cost local development
 - Privacy (no data leaves your machine)
 - Offline operation
 - Fast iteration without API limits
 
 **Use Mock** when you need:
+
 - Deterministic testing
 - CI/CD without API credentials
 - Rapid prototyping without costs
@@ -555,6 +560,7 @@ In the next chapter, we'll explore how to build multi-turn conversations by mana
 ---
 
 **Key Takeaways:**
+
 - All providers implement the `Provider` interface with a single `prompt()` method
 - Anthropic, OpenAI, and Ollama each have provider-specific defaults and behaviors
 - Mock providers enable testing without API calls or costs

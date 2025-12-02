@@ -45,12 +45,12 @@ This contract guarantees that switching providers requires minimal code changes�
 
 Not all providers are created equal. Each has unique strengths and limitations:
 
-| Provider | Streaming | Tool Use | Vision | Context Window | Best For |
-|----------|-----------|----------|--------|----------------|----------|
-| Anthropic | ✓ | ✓ | ✓ | 200K | Complex reasoning, code generation |
-| OpenAI | ✓ | ✓ | ✓ | 128K | General purpose, wide model selection |
-| Ollama | ✓ | Limited | Model-dependent | Varies | Local deployment, privacy |
-| Mock | ✓ | ✓ | N/A | Unlimited | Testing, development |
+| Provider  | Streaming | Tool Use | Vision          | Context Window | Best For                              |
+| --------- | --------- | -------- | --------------- | -------------- | ------------------------------------- |
+| Anthropic | ✓         | ✓        | ✓               | 200K           | Complex reasoning, code generation    |
+| OpenAI    | ✓         | ✓        | ✓               | 128K           | General purpose, wide model selection |
+| Ollama    | ✓         | Limited  | Model-dependent | Varies         | Local deployment, privacy             |
+| Mock      | ✓         | ✓        | N/A             | Unlimited      | Testing, development                  |
 
 ### Configuration Hierarchy
 
@@ -220,7 +220,7 @@ echo $testBot->getWeather('Paris') . "\n";  // Will use mock
 
 Each provider offers unique capabilities. Here's how to leverage them effectively:
 
-```php
+````php
 // Anthropic: Superior at following complex instructions
 $codeReviewer = anthropic()
     ->system('You are a senior PHP developer reviewing code for security issues.')
@@ -267,7 +267,7 @@ $documentProcessor = ollama()
         'top_p' => 0.9,
     ])
     ->ask($sensitiveDocument);
-```
+````
 
 ### Error Handling Patterns
 

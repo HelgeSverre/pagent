@@ -342,7 +342,7 @@ Streaming shines in interactive applications where responsiveness matters. Here 
 
 Stream code analysis results as they're generated:
 
-```php
+````php
 $agent = agent('code-reviewer')
     ->provider('anthropic')
     ->system('You are a code reviewer. Analyze code and suggest improvements.')
@@ -368,7 +368,7 @@ $agent->streamTo(
 );
 
 echo "</div>";
-```
+````
 
 Users see analysis appearing in real-time instead of waiting for the complete response.
 

@@ -13,6 +13,7 @@ In this chapter, you'll master streaming responses in Pagent, enabling real-time
 ## Prerequisites
 
 Before starting this chapter, you should have completed:
+
 - Chapter 1: Getting Started
 - Chapter 2: Basic Agent Creation
 - Chapter 3: Provider Configuration
@@ -222,40 +223,48 @@ And the accompanying HTML client:
 <!-- chat-client.html -->
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Streaming Chat</title>
     <style>
-        #chat-output {
-            border: 1px solid #ccc;
-            padding: 10px;
-            height: 400px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            font-family: monospace;
-        }
+      #chat-output {
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-family: monospace;
+      }
 
-        .typing-indicator {
-            display: none;
-            color: #666;
-        }
+      .typing-indicator {
+        display: none;
+        color: #666;
+      }
 
-        .typing-indicator.active {
-            display: inline;
-        }
+      .typing-indicator.active {
+        display: inline;
+      }
 
-        .typing-indicator::after {
-            content: '...';
-            animation: dots 1.5s infinite;
-        }
+      .typing-indicator::after {
+        content: "...";
+        animation: dots 1.5s infinite;
+      }
 
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
+      @keyframes dots {
+        0%,
+        20% {
+          content: ".";
         }
+        40% {
+          content: "..";
+        }
+        60%,
+        100% {
+          content: "...";
+        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Streaming Chat Interface</h1>
 
     <input type="text" id="message-input" placeholder="Type your message..." />
@@ -265,60 +274,60 @@ And the accompanying HTML client:
     <span class="typing-indicator" id="typing">Assistant is typing</span>
 
     <script>
-        let eventSource = null;
+      let eventSource = null;
 
-        function sendMessage() {
-            const input = document.getElementById('message-input');
-            const output = document.getElementById('chat-output');
-            const typing = document.getElementById('typing');
-            const message = input.value;
+      function sendMessage() {
+        const input = document.getElementById("message-input");
+        const output = document.getElementById("chat-output");
+        const typing = document.getElementById("typing");
+        const message = input.value;
 
-            if (!message) return;
+        if (!message) return;
 
-            // Display user message
-            output.innerHTML += `\nYou: ${message}\n`;
-            output.innerHTML += 'Assistant: ';
-            input.value = '';
+        // Display user message
+        output.innerHTML += `\nYou: ${message}\n`;
+        output.innerHTML += "Assistant: ";
+        input.value = "";
 
-            // Show typing indicator
-            typing.classList.add('active');
+        // Show typing indicator
+        typing.classList.add("active");
 
-            // Close previous connection if exists
-            if (eventSource) {
-                eventSource.close();
-            }
-
-            // Create new SSE connection
-            eventSource = new EventSource(`streaming-chat.php?message=${encodeURIComponent(message)}`);
-
-            eventSource.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-
-                if (data.content) {
-                    // Append streaming content
-                    output.innerHTML += data.content;
-                    output.scrollTop = output.scrollHeight;
-                } else if (data.done) {
-                    // Stream complete
-                    typing.classList.remove('active');
-                    output.innerHTML += '\n';
-                    eventSource.close();
-                } else if (data.error) {
-                    // Handle error
-                    output.innerHTML += `\n[Error: ${data.error}]\n`;
-                    typing.classList.remove('active');
-                    eventSource.close();
-                }
-            };
-
-            eventSource.onerror = function() {
-                typing.classList.remove('active');
-                output.innerHTML += '\n[Connection error]\n';
-                eventSource.close();
-            };
+        // Close previous connection if exists
+        if (eventSource) {
+          eventSource.close();
         }
+
+        // Create new SSE connection
+        eventSource = new EventSource(`streaming-chat.php?message=${encodeURIComponent(message)}`);
+
+        eventSource.onmessage = function (event) {
+          const data = JSON.parse(event.data);
+
+          if (data.content) {
+            // Append streaming content
+            output.innerHTML += data.content;
+            output.scrollTop = output.scrollHeight;
+          } else if (data.done) {
+            // Stream complete
+            typing.classList.remove("active");
+            output.innerHTML += "\n";
+            eventSource.close();
+          } else if (data.error) {
+            // Handle error
+            output.innerHTML += `\n[Error: ${data.error}]\n`;
+            typing.classList.remove("active");
+            eventSource.close();
+          }
+        };
+
+        eventSource.onerror = function () {
+          typing.classList.remove("active");
+          output.innerHTML += "\n[Connection error]\n";
+          eventSource.close();
+        };
+      }
     </script>
-</body>
+  </body>
 </html>
 ```
 
@@ -464,7 +473,7 @@ $result = $handler->process(function($chunk) {
 
 Stream code generation with syntax highlighting:
 
-```php
+````php
 // code-streamer.php
 <?php
 use Pagent\Agent;
@@ -535,7 +544,7 @@ foreach ($stream as $chunk) {
 }
 
 echo "</pre>";
-```
+````
 
 ## Performance Considerations
 
@@ -588,6 +597,7 @@ Streaming transforms the user experience by providing immediate feedback and ena
 ## Next Steps
 
 With streaming mastered, you're ready to explore:
+
 - Chapter 11: Advanced Tool Integration
 - Chapter 12: Multi-Agent Orchestration
 - Chapter 13: Production Deployment

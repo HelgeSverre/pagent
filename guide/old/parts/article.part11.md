@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 By the end of this chapter, you'll be able to:
+
 - Integrate tool calling with streaming responses
 - Implement robust error recovery for streaming operations
 - Control flow and backpressure in stream processing
@@ -210,7 +211,7 @@ Streaming operations can fail due to network issues, timeouts, or API errors. Im
 
 Here's a resilient code analyzer that handles streaming failures:
 
-```php
+````php
 <?php
 
 declare(strict_types=1);
@@ -435,7 +436,7 @@ $results = $analyzer->analyzeCode($code, 'php');
 
 echo "Analysis Results:\n";
 echo json_encode($results, JSON_PRETTY_PRINT);
-```
+````
 
 This implementation provides checkpointing, exponential backoff, and partial result recovery—essential for production streaming applications.
 

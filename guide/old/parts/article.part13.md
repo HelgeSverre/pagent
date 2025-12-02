@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 After completing this chapter, you'll be able to:
+
 - Build semantic memory search systems using vector embeddings
 - Implement intelligent memory summarization for long conversations
 - Create hierarchical memory structures for efficient retrieval

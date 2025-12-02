@@ -1,6 +1,7 @@
 # Chapter 28: Building Complex Systems
 
 **Learning Objectives:**
+
 - Design scalable agent architectures using extension interfaces
 - Implement event-driven patterns for agent coordination
 - Create reusable extension patterns via interface composition

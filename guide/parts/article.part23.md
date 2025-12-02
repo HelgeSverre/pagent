@@ -405,21 +405,25 @@ Each exporter sends traces to a different backend. Choose based on your infrastr
 When telemetry is enabled, Pagent automatically creates spans for:
 
 **Agent operations:**
+
 - `agent.prompt` - Each prompt/response cycle
 - `agent.build` - Agent construction
 - Attributes: agent name, operation type
 
 **LLM requests:**
+
 - `llm.request` - Every API call to the provider
 - Attributes: provider, model, temperature, max tokens
 - Usage metrics: input/output/total tokens
 
 **Tool executions:**
+
 - `tool.execute` - When agents use tools
 - Attributes: tool name, arguments
 - Results and errors
 
 **Guard checks:**
+
 - `guard.check` - When content guards run
 - Attributes: guard name, passed/failed
 
@@ -492,13 +496,13 @@ Jaeger is especially powerful for multi-agent systems, showing how agents delega
 
 Pagent includes a complete Docker-based observability stack with five platforms:
 
-| Platform | Port  | Purpose                     |
-|----------|-------|-----------------------------|
-| Jaeger   | 16686 | Distributed tracing         |
-| Phoenix  | 6006  | LLM observability (Arize)   |
-| Langfuse | 3000  | LLM monitoring & prompts    |
-| Helicone | 3001  | LLM cost tracking           |
-| Opik     | 5173  | LLM experiment tracking     |
+| Platform | Port  | Purpose                   |
+| -------- | ----- | ------------------------- |
+| Jaeger   | 16686 | Distributed tracing       |
+| Phoenix  | 6006  | LLM observability (Arize) |
+| Langfuse | 3000  | LLM monitoring & prompts  |
+| Helicone | 3001  | LLM cost tracking         |
+| Opik     | 5173  | LLM experiment tracking   |
 
 Start the entire stack:
 

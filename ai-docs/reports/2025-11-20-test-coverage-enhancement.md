@@ -24,6 +24,7 @@ Comprehensive enhancement of test coverage and documentation addressing critical
 **Coverage:** 15 tests, 27 assertions
 
 **What Was Tested:**
+
 - Singleton pattern behavior and reset functionality
 - Global event dispatch across multiple agents
 - Listener priority ordering
@@ -45,6 +46,7 @@ The EventManager is central to the observability system, allowing cross-agent ev
 **Lines Added:** ~300 lines
 
 **Content:**
+
 - Two-tier event system explanation (per-agent vs global)
 - EventManager singleton API documentation
 - When to use per-agent EventDispatcher vs global EventManager
@@ -67,6 +69,7 @@ Previously undocumented global event architecture is now clearly explained, enab
 **Coverage:** 66 total tests (28 original + 38 new), ~160 assertions
 
 **Original Tests (28):**
+
 - Basic GET/POST/PUT/DELETE/PATCH requests
 - JSON payload handling
 - Custom headers
@@ -76,6 +79,7 @@ Previously undocumented global event architecture is now clearly explained, enab
 - Basic authentication
 
 **New Tests (38 - Phase 3):**
+
 - Complete status code coverage (201, 204, 301, 302, 400, 401, 403, 405, 429, 502, 503, 504)
 - Bearer token authentication
 - Multiple custom headers and content negotiation
@@ -102,6 +106,7 @@ CurlTransport is the core HTTP client used by all providers and the MCP system. 
 **Coverage:** 19 tests, 31 assertions
 
 **What Was Tested:**
+
 - Transport construction and initialization
 - Connection state management (connected, disconnected)
 - Connection/disconnection lifecycle
@@ -124,6 +129,7 @@ StdioTransport handles process spawning and JSON-RPC communication for MCP stdio
 **Lines Added:** ~630 lines
 
 **Content:**
+
 - Two-tier tool system architecture (closure vs class-based)
 - Complete documentation of all 9 built-in class-based tools:
   - **FileRead** - Path traversal protection
@@ -150,10 +156,12 @@ Resolved major confusion about the two-namespace tool architecture. Developers n
 #### 6. Reference Documentation Updates ✅
 
 **Files Updated:**
+
 - `ai-docs/FEATURES.md` - Version 1.4
 - `guide/README.md` - Updated stats
 
 **Changes:**
+
 - Added documentation references for Chapter 5B and 7B
 - Updated guide statistics (30 chapters, ~70,000 words, ~600KB)
 - Enhanced quality metrics
@@ -166,6 +174,7 @@ Resolved major confusion about the two-namespace tool architecture. Developers n
 #### 7. Workflow Data Class Edge Case Tests ✅
 
 **Files Created:**
+
 - `tests/Unit/Workflow/StepResultTest.php` - 31 tests
 - `tests/Unit/Workflow/WorkflowResultTest.php` - 24 tests
 - `tests/Unit/Workflow/MetadataTest.php` - 23 tests
@@ -175,6 +184,7 @@ Resolved major confusion about the two-namespace tool architecture. Developers n
 **What Was Tested:**
 
 **StepResult (31 tests):**
+
 - JSON parsing (valid, invalid, malformed)
 - Non-JSON output handling (integers, booleans, null, objects)
 - Empty JSON objects and arrays
@@ -184,6 +194,7 @@ Resolved major confusion about the two-namespace tool architecture. Developers n
 - Array conversion via `toArray()`
 
 **WorkflowResult (24 tests):**
+
 - Step retrieval by name
 - Step existence checking (`has()`)
 - JSON parsing from final output
@@ -195,6 +206,7 @@ Resolved major confusion about the two-namespace tool architecture. Developers n
 - `export()` alias verification
 
 **Metadata/StepMetadata (23 tests):**
+
 - Factory method timestamp generation
 - Array conversion (snake_case keys)
 - Zero, negative, and very small values
@@ -217,12 +229,14 @@ Workflow data classes had only integration test coverage. These edge case tests 
 **What Was Tested:**
 
 **Connection Tests:**
+
 - Initialization with client name/version
 - Server capabilities retrieval
 - Idempotent multiple connects
 - Clean disconnection
 
 **Tool Tests:**
+
 - Tool discovery (3 tools: echo, add, get_time)
 - Tool schema structure validation
 - Successful tool execution
@@ -231,14 +245,17 @@ Workflow data classes had only integration test coverage. These edge case tests 
 - Rapid consecutive tool calls
 
 **Resource Tests:**
+
 - Resource reading (text, JSON)
 - Error handling for non-existent resources
 
 **Prompt Tests:**
+
 - Prompt retrieval with arguments
 - Error handling for non-existent prompts
 
 **Edge Cases:**
+
 - Large text payloads
 - Unicode characters
 - Special characters
@@ -261,6 +278,7 @@ MCP integration had basic tests. These comprehensive tests cover the full protoc
 **What Was Tested:**
 
 **Construction (10 tests):**
+
 - HTTP/HTTPS URLs
 - Trailing slashes, paths, query parameters
 - Custom headers and timeouts (100ms to 5 minutes)
@@ -268,26 +286,32 @@ MCP integration had basic tests. These comprehensive tests cover the full protoc
 - All parameter combinations
 
 **Connection State (5 tests):**
+
 - Pre-connection state
 - Idempotent disconnects
 - Invalid URL/port handling
 
 **Error Handling (4 tests):**
+
 - Not connected errors
 - Request ID variants (null, string, integer)
 
 **URL Configuration (6 tests):**
+
 - Ports, subdomains, authentication
 - Query parameters, fragments
 
 **Headers (5 tests):**
+
 - Empty, multiple, special characters
 - Unicode values
 
 **Timeouts (3 tests):**
+
 - Small to very long timeouts
 
 **Edge Cases (4 tests):**
+
 - Long URLs
 - localhost variants
 - Different schemes
@@ -306,6 +330,7 @@ HttpSseTransport had only 7 minimal tests. This comprehensive coverage ensures t
 **Categories:**
 
 **Status Codes (13 tests):**
+
 - 2xx: 201 Created, 204 No Content
 - 3xx: 301 Moved Permanently, 302 Found
 - 4xx: 400, 401, 403, 405, 429
@@ -313,10 +338,12 @@ HttpSseTransport had only 7 minimal tests. This comprehensive coverage ensures t
 - Batch status code testing
 
 **Authentication (2 tests):**
+
 - Bearer token authentication
 - Basic auth via URL
 
 **Headers (5 tests):**
+
 - Multiple custom headers
 - Content negotiation (Accept header)
 - Custom Content-Type
@@ -324,6 +351,7 @@ HttpSseTransport had only 7 minimal tests. This comprehensive coverage ensures t
 - Preservation through redirects
 
 **Advanced Features (7 tests):**
+
 - Delayed responses
 - Redirect chains (absolute, multiple)
 - Cookie handling
@@ -331,11 +359,13 @@ HttpSseTransport had only 7 minimal tests. This comprehensive coverage ensures t
 - PATCH method
 
 **Query Parameters (3 tests):**
+
 - Multiple parameters (10+)
 - Special characters
 - URL encoding
 
 **Edge Cases (8 tests):**
+
 - Empty responses with success
 - JSON error responses
 - Various combinations
@@ -349,40 +379,40 @@ Expanded CurlTransport from basic scenarios to production-grade HTTP client test
 
 ### Test Coverage Added
 
-| Component | Tests | Assertions | File |
-|-----------|-------|------------|------|
-| EventManager | 15 | 27 | EventManagerTest.php |
-| CurlTransport (Phase 1) | 28 | 72 | CurlTransportTest.php |
-| CurlTransport (Phase 3) | +38 | +80 | CurlTransportTest.php |
-| StdioTransport | 19 | 31 | StdioTransportTest.php |
-| StepResult | 31 | ~60 | StepResultTest.php |
-| WorkflowResult | 24 | ~48 | WorkflowResultTest.php |
-| Metadata/StepMetadata | 23 | ~40 | MetadataTest.php |
-| MCP Integration | 24 | 57 | McpComprehensiveIntegrationTest.php |
-| HTTP SSE Transport | 37 | 63 | HttpSseTransportTest.php |
-| **TOTAL** | **239** | **~478** | **8 new test files** |
+| Component               | Tests   | Assertions | File                                |
+| ----------------------- | ------- | ---------- | ----------------------------------- |
+| EventManager            | 15      | 27         | EventManagerTest.php                |
+| CurlTransport (Phase 1) | 28      | 72         | CurlTransportTest.php               |
+| CurlTransport (Phase 3) | +38     | +80        | CurlTransportTest.php               |
+| StdioTransport          | 19      | 31         | StdioTransportTest.php              |
+| StepResult              | 31      | ~60        | StepResultTest.php                  |
+| WorkflowResult          | 24      | ~48        | WorkflowResultTest.php              |
+| Metadata/StepMetadata   | 23      | ~40        | MetadataTest.php                    |
+| MCP Integration         | 24      | 57         | McpComprehensiveIntegrationTest.php |
+| HTTP SSE Transport      | 37      | 63         | HttpSseTransportTest.php            |
+| **TOTAL**               | **239** | **~478**   | **8 new test files**                |
 
 ### Documentation Added
 
-| Document | Lines | Content |
-|----------|-------|---------|
-| Chapter 5B: Event System | ~300 | Two-tier event architecture |
-| Chapter 7B: Tool Architecture | ~630 | Closure vs class-based tools |
-| FEATURES.md v1.4 | ~10 | Documentation references |
-| README.md updates | ~10 | Stats updates |
-| **TOTAL** | **~950** | **Comprehensive guides** |
+| Document                      | Lines    | Content                      |
+| ----------------------------- | -------- | ---------------------------- |
+| Chapter 5B: Event System      | ~300     | Two-tier event architecture  |
+| Chapter 7B: Tool Architecture | ~630     | Closure vs class-based tools |
+| FEATURES.md v1.4              | ~10      | Documentation references     |
+| README.md updates             | ~10      | Stats updates                |
+| **TOTAL**                     | **~950** | **Comprehensive guides**     |
 
 ### Grand Total (Including Pre-Existing Tests)
 
 Adding today's work to the pre-existing 28 CurlTransport tests and ~70 workflow tests covered by integration:
 
-| Metric | Count |
-|--------|-------|
-| **New Test Files** | 8 |
-| **New Tests** | 239 |
-| **New Assertions** | ~478 |
-| **Documentation Lines** | ~950 |
-| **Total Work** | ~2,100 lines (tests + docs) |
+| Metric                  | Count                       |
+| ----------------------- | --------------------------- |
+| **New Test Files**      | 8                           |
+| **New Tests**           | 239                         |
+| **New Assertions**      | ~478                        |
+| **Documentation Lines** | ~950                        |
+| **Total Work**          | ~2,100 lines (tests + docs) |
 
 ---
 
@@ -391,6 +421,7 @@ Adding today's work to the pre-existing 28 CurlTransport tests and ~70 workflow 
 ### Coverage Improvements
 
 **Before:**
+
 - EventManager: No dedicated tests
 - CurlTransport: 28 basic tests
 - StdioTransport: No direct tests
@@ -401,6 +432,7 @@ Adding today's work to the pre-existing 28 CurlTransport tests and ~70 workflow 
 - Tool Architecture: Confusing two-namespace setup
 
 **After:**
+
 - EventManager: 15 comprehensive tests ✅
 - CurlTransport: 66 comprehensive tests ✅
 - StdioTransport: 19 unit tests ✅
@@ -412,20 +444,20 @@ Adding today's work to the pre-existing 28 CurlTransport tests and ~70 workflow 
 
 ### Test Count Growth
 
-| Category | Before | After | Growth |
-|----------|--------|-------|--------|
-| **Event System** | 36 | 51 (+15) | +42% |
-| **HTTP Transport** | 35 | 138 (+103) | +294% |
-| **MCP** | 69 | 93 (+24) | +35% |
-| **Workflow** | ~10 | 88 (+78) | +780% |
+| Category           | Before | After      | Growth |
+| ------------------ | ------ | ---------- | ------ |
+| **Event System**   | 36     | 51 (+15)   | +42%   |
+| **HTTP Transport** | 35     | 138 (+103) | +294%  |
+| **MCP**            | 69     | 93 (+24)   | +35%   |
+| **Workflow**       | ~10    | 88 (+78)   | +780%  |
 
 ### Documentation Growth
 
-| Metric | Before | After | Growth |
-|--------|--------|-------|--------|
-| **Guide Chapters** | 28 | 30 (+2) | +7% |
-| **Guide Lines** | ~18,500 | ~19,500 (+1,000) | +5% |
-| **Guide Words** | ~66,000 | ~70,000 (+4,000) | +6% |
+| Metric             | Before  | After            | Growth |
+| ------------------ | ------- | ---------------- | ------ |
+| **Guide Chapters** | 28      | 30 (+2)          | +7%    |
+| **Guide Lines**    | ~18,500 | ~19,500 (+1,000) | +5%    |
+| **Guide Words**    | ~66,000 | ~70,000 (+4,000) | +6%    |
 
 ---
 
@@ -434,6 +466,7 @@ Adding today's work to the pre-existing 28 CurlTransport tests and ~70 workflow 
 ### 1. Production-Ready HTTP Client
 
 CurlTransport now has enterprise-grade test coverage:
+
 - All HTTP methods (GET, POST, PUT, DELETE, PATCH)
 - Complete status code range (2xx, 3xx, 4xx, 5xx)
 - Authentication (Bearer, Basic)
@@ -444,6 +477,7 @@ CurlTransport now has enterprise-grade test coverage:
 ### 2. Comprehensive MCP Testing
 
 MCP protocol implementation verified with:
+
 - Full tool execution lifecycle
 - Resource and prompt retrieval
 - Error handling and edge cases
@@ -452,6 +486,7 @@ MCP protocol implementation verified with:
 ### 3. Robust Workflow Data Handling
 
 Workflow classes now handle all edge cases:
+
 - Malformed JSON
 - Unexpected types
 - Null/empty/missing data
@@ -461,12 +496,14 @@ Workflow classes now handle all edge cases:
 ### 4. Clear Architectural Documentation
 
 Two major documentation chapters resolve confusion:
+
 - **Chapter 5B** - Event System Architecture (per-agent vs global)
 - **Chapter 7B** - Tool Architecture (closure vs class-based, 9 built-in tools)
 
 ### 5. Event System Foundation
 
 EventManager singleton now has:
+
 - Comprehensive test coverage
 - Clear documentation
 - Production-ready for cross-agent observability

@@ -98,15 +98,15 @@ TelemetryManager::instance()->initialize([
 Create a `docker-compose.yml` for local development:
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   # OpenTelemetry Collector
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     ports:
-      - "4318:4318"   # OTLP HTTP
-      - "4317:4317"   # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "4317:4317" # OTLP gRPC
     volumes:
       - ./otel-config.yaml:/etc/otelcol-contrib/config.yaml
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
@@ -266,6 +266,7 @@ class DocumentProcessor
 ```
 
 This example demonstrates:
+
 - Creating parent and child spans for operation hierarchy
 - Setting attributes for searchability
 - Adding events for important milestones

@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 By the end of this chapter, you'll be able to:
+
 - Configure Pagent for production environments with optimal settings
 - Implement secure API key management using industry best practices
 - Set up comprehensive monitoring and alerting for AI operations
@@ -591,50 +592,50 @@ spec:
     spec:
       serviceAccountName: pagent
       containers:
-      - name: pagent
-        image: your-registry/pagent:1.0.0
-        ports:
-        - containerPort: 8080
-          name: http
-        - containerPort: 9090
-          name: metrics
-        env:
-        - name: APP_ENV
-          value: production
-        - name: OTEL_EXPORTER_OTLP_ENDPOINT
-          value: http://otel-collector:4317
-        - name: REDIS_HOST
-          value: redis-service.production.svc.cluster.local
-        envFrom:
-        - secretRef:
-            name: pagent-secrets
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "1000m"
-        livenessProbe:
-          httpGet:
-            path: /health/live
-            port: 8080
-          initialDelaySeconds: 10
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /health/ready
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        volumeMounts:
-        - name: config
-          mountPath: /app/config
-          readOnly: true
+        - name: pagent
+          image: your-registry/pagent:1.0.0
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 9090
+              name: metrics
+          env:
+            - name: APP_ENV
+              value: production
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://otel-collector:4317
+            - name: REDIS_HOST
+              value: redis-service.production.svc.cluster.local
+          envFrom:
+            - secretRef:
+                name: pagent-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
       volumes:
-      - name: config
-        configMap:
-          name: pagent-config
+        - name: config
+          configMap:
+            name: pagent-config
 ```
 
 ### Horizontal Pod Autoscaling
@@ -656,51 +657,51 @@ spec:
   minReplicas: 3
   maxReplicas: 20
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
-  - type: Pods
-    pods:
-      metric:
-        name: pagent_requests_per_second
-      target:
-        type: AverageValue
-        averageValue: "100"
-  - type: External
-    external:
-      metric:
-        name: pagent_api_latency_p95
-        selector:
-          matchLabels:
-            queue: ai_requests
-      target:
-        type: Value
-        value: "2000m"  # 2 seconds
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: pagent_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "100"
+    - type: External
+      external:
+        metric:
+          name: pagent_api_latency_p95
+          selector:
+            matchLabels:
+              queue: ai_requests
+        target:
+          type: Value
+          value: "2000m" # 2 seconds
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 60
       policies:
-      - type: Percent
-        value: 100
-        periodSeconds: 60
-      - type: Pods
-        value: 4
-        periodSeconds: 60
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+        - type: Pods
+          value: 4
+          periodSeconds: 60
     scaleDown:
       stabilizationWindowSeconds: 300
       policies:
-      - type: Percent
-        value: 50
-        periodSeconds: 180
+        - type: Percent
+          value: 50
+          periodSeconds: 180
 ```
 
 ## Incident Response Automation

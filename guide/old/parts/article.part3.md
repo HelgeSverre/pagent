@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 After completing this chapter, you'll be able to:
+
 - Build multi-turn conversations with persistent context
 - Manage conversation history effectively
 - Implement different message roles (system, user, assistant)
@@ -465,6 +466,7 @@ The key to effective conversational AI is balancing context (keeping enough hist
 ## Next Steps
 
 In Chapter 4, you'll learn about:
+
 - Streaming responses for real-time interactions
 - Handling long-running operations
 - Building responsive user interfaces

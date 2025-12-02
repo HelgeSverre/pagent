@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 After completing this chapter, you'll be able to:
+
 - Parse and validate LLM responses with confidence
 - Extract structured data from unstructured text
 - Handle different response formats (JSON, markdown, plain text)
@@ -300,7 +301,7 @@ foreach ($results as $result) {
 
 LLMs often return formatted content. Here's a code generation validator:
 
-```php
+````php
 <?php
 
 declare(strict_types=1);
@@ -451,7 +452,7 @@ foreach ($tasks as $task) {
 
     echo "\n";
 }
-```
+````
 
 ## Implementing Retry Logic
 
@@ -702,18 +703,22 @@ Try this challenge: Create a response processor that can extract email addresses
 ## Common Pitfalls and Solutions
 
 ### Pitfall 1: Assuming Perfect JSON
+
 **Problem:** Expecting valid JSON without validation
 **Solution:** Always use try-catch blocks and validate structure
 
 ### Pitfall 2: Ignoring Partial Responses
+
 **Problem:** Response cut off due to token limits
 **Solution:** Check for completeness indicators, request continuation if needed
 
 ### Pitfall 3: Over-strict Validation
+
 **Problem:** Rejecting slightly imperfect but usable responses
 **Solution:** Implement graduated validation with fallbacks
 
 ### Pitfall 4: No Retry Strategy
+
 **Problem:** Single failures cause complete process failure
 **Solution:** Implement intelligent retry with prompt refinement
 
@@ -734,6 +739,7 @@ In Chapter 6, we'll explore streaming responses and real-time processing, buildi
 **Practice Exercise:** Build a response processor that can handle a customer service conversation, extracting customer sentiment, identifying issues, and suggesting responses, all while handling various response formats and potential failures.
 
 **Additional Resources:**
+
 - [PHP JSON Documentation](https://www.php.net/manual/en/book.json.php)
 - [Regular Expressions in PHP](https://www.php.net/manual/en/book.pcre.php)
 - [Error Handling Best Practices](https://www.php.net/manual/en/language.exceptions.php)

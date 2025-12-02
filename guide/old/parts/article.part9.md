@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 By the end of this chapter, you'll be able to:
+
 - Implement sequential tool execution with proper dependency handling
 - Build parallel tool operations for efficient data processing
 - Create conditional tool flows based on runtime decisions

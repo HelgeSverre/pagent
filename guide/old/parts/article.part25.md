@@ -583,7 +583,7 @@ $response = $agent->prompt('Complex question requiring rate limiting and caching
 
 Let's build a content transformer middleware that modifies responses:
 
-```php
+````php
 <?php
 
 declare(strict_types=1);
@@ -671,7 +671,7 @@ final class MarkdownEnhancerMiddleware implements Middleware
         );
     }
 }
-```
+````
 
 ## Testing Your Middleware
 

@@ -1,6 +1,7 @@
 # Chapter 8: Recursive Tool Execution
 
 **Learning Objectives:**
+
 - Understand automatic recursive tool calling
 - Manage execution depth limits
 - Handle multi-step tool workflows

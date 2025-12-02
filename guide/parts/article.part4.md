@@ -651,11 +651,13 @@ echo $translation->content;
 ### 1. Be Specific and Direct
 
 **Bad:**
+
 ```php
 ->system('Help users')
 ```
 
 **Good:**
+
 ```php
 ->system('You are a technical support specialist for web hosting. Provide clear, step-by-step solutions for common issues like DNS configuration, SSL setup, and email routing.')
 ```
@@ -663,11 +665,13 @@ echo $translation->content;
 ### 2. Use Constraints to Control Output
 
 **Bad:**
+
 ```php
 ->system('Extract data from text')
 ```
 
 **Good:**
+
 ```php
 ->system('Extract contact information and return ONLY valid JSON with keys: name, email, phone, company. No additional text or explanation.')
 ```
@@ -744,6 +748,7 @@ In the next chapter, we'll explore response processing techniques—parsing stru
 ---
 
 **Chapter Summary:**
+
 - Learned to design effective system prompts with constraints and examples
 - Implemented few-shot learning and chain-of-thought reasoning
 - Created dynamic prompt templates using PHP patterns

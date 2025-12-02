@@ -32,6 +32,7 @@ print_r($response->usage);
 ```
 
 The response object provides everything you need to understand what happened with your prompt:
+
 - `content`: The actual text response from the LLM
 - `model`: Which model was used (useful for logging and debugging)
 - `tokens`: Total token count (input + output combined)
@@ -114,6 +115,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 ```
 
 This pattern works reliably when you:
+
 1. Explicitly instruct the LLM in the system prompt to output JSON
 2. Specify the exact structure you expect
 3. Include error handling for malformed JSON
@@ -255,6 +257,7 @@ print_r($result);
 ```
 
 This retry pattern:
+
 1. Attempts the prompt up to `$maxRetries` times
 2. Validates the response with a custom validator function
 3. Provides feedback to the LLM about what went wrong
@@ -297,6 +300,7 @@ $response = $agent->prompt('What is 2+2?');
 ```
 
 The middleware interface has two methods:
+
 - `before(string $message, array $options): array` - Called before the prompt is sent, can modify options
 - `after(object $response): object` - Called after the response is received, can transform it
 
@@ -386,6 +390,7 @@ $agent = agent('rate-limited-bot')
 ```
 
 These middleware provide production-ready functionality:
+
 - `LoggingMiddleware`: Logs all interactions using PSR-3 compatible loggers
 - `MetricsMiddleware`: Collects duration and token usage statistics
 - `RateLimitMiddleware`: Enforces request rate limits to prevent API abuse
@@ -462,6 +467,7 @@ print_r($formData);
 ```
 
 This extractor:
+
 1. Uses a clear system prompt defining expected output format
 2. Parses JSON response with proper error handling
 3. Validates the structure matches requirements
@@ -569,6 +575,7 @@ foreach ($reviews as $review) {
 ```
 
 This analyzer demonstrates:
+
 - Retry logic with conversation-based feedback
 - Comprehensive validation (structure, types, ranges)
 - Clear error messages at each validation stage
@@ -655,6 +662,7 @@ try {
 ```
 
 This generator:
+
 1. Validates non-empty response
 2. Checks SQL syntax requirements (semicolon)
 3. Prevents SQL injection attempts in SELECT contexts

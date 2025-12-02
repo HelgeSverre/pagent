@@ -53,6 +53,7 @@ echo $result; // Formatted markdown summary
 This example demonstrates the core pattern: create a pipeline with a descriptive name, add agents in sequence using the `agent()` method, then execute the pipeline with `run()`. Each agent processes the output from the previous stage.
 
 The `run()` method:
+
 - Accepts the initial input (string or any data type)
 - Passes it to the first agent
 - Takes that agent's response and passes it to the next agent
@@ -159,6 +160,7 @@ foreach ($results as $result) {
 ```
 
 Each result in the array contains:
+
 - `stage`: Numeric index (0, 1, 2, ...)
 - `agent`: Agent name (string)
 - `input`: What was sent to this agent
@@ -238,11 +240,13 @@ echo $result;
 ```
 
 The error handler receives three parameters:
+
 - `$exception`: The caught exception
 - `$stageIndex`: Which stage failed (0, 1, 2, ...)
 - `$agentName`: Name of the agent that failed
 
 Your error handler can:
+
 - Return a fallback value (becomes the final pipeline output)
 - Log the error and re-throw it
 - Implement retry logic
@@ -335,6 +339,7 @@ echo "\nTotal tokens used: {$moderated['total_tokens']}";
 ```
 
 This demonstrates several advanced patterns:
+
 - Transform functions that access external data (the original `$content` via closure)
 - Result inspection to build a comprehensive response
 - Token usage aggregation across all stages
@@ -532,18 +537,21 @@ error_log("Pipeline '{$pipe->getName()}' completed with {count($pipe->getResults
 When should you use pipelines versus other approaches?
 
 **Use Pipelines When**:
+
 - You need sequential processing with clear stages
 - Each stage specializes in one task
 - You want to inspect intermediate results
 - Data transforms naturally through steps (extract → transform → load)
 
 **Use Single Agents When**:
+
 - The task doesn't naturally decompose into stages
 - You need tool calling (pipelines don't support automatic tool calling)
 - Latency is critical (one API call vs. multiple)
 - The task is simple enough for one agent
 
 **Use Orchestration When**:
+
 - You need parallel execution
 - You need conditional branching
 - You need loops or retries

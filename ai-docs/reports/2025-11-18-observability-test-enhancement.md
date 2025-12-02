@@ -48,23 +48,23 @@ Comprehensively reviewed and enhanced observability integration tests to ensure 
 
 ### Test Results
 
-| Metric         | Before    | After     | Change |
-|----------------|-----------|-----------|--------|
-| Tests Passing  | 47        | 59        | **+12** |
-| Tests Failing  | 7         | 1         | **-6** |
-| Tests Skipped  | 9         | 3         | **-6** |
-| Test Duration  | 147.46s   | ~110s     | **-37s** |
+| Metric        | Before  | After | Change   |
+| ------------- | ------- | ----- | -------- |
+| Tests Passing | 47      | 59    | **+12**  |
+| Tests Failing | 7       | 1     | **-6**   |
+| Tests Skipped | 9       | 3     | **-6**   |
+| Test Duration | 147.46s | ~110s | **-37s** |
 
 ### Test Coverage by Backend
 
-| Backend   | Infrastructure Tests | OTLP Tests     | Status |
-|-----------|---------------------|----------------|--------|
-| Jaeger    | ✅ 1 passing        | ✅ 4 passing   | **Excellent** |
-| Phoenix   | ✅ 1 passing        | ✅ 4 passing   | **Excellent** |
-| Zipkin    | ✅ 1 passing        | ✅ 2 passing   | **Excellent** |
-| Langfuse  | ✅ 3 passing (NEW)  | ⏸️ 3 skip (NEW) | **Infrastructure Working** |
-| Opik      | ✅ 3 passing (NEW)  | ⏸️ 3 skip (NEW) | **Infrastructure Working** |
-| Helicone  | ✅ 4 passing (NEW)  | N/A            | **Infrastructure Only** |
+| Backend  | Infrastructure Tests | OTLP Tests      | Status                     |
+| -------- | -------------------- | --------------- | -------------------------- |
+| Jaeger   | ✅ 1 passing         | ✅ 4 passing    | **Excellent**              |
+| Phoenix  | ✅ 1 passing         | ✅ 4 passing    | **Excellent**              |
+| Zipkin   | ✅ 1 passing         | ✅ 2 passing    | **Excellent**              |
+| Langfuse | ✅ 3 passing (NEW)   | ⏸️ 3 skip (NEW) | **Infrastructure Working** |
+| Opik     | ✅ 3 passing (NEW)   | ⏸️ 3 skip (NEW) | **Infrastructure Working** |
+| Helicone | ✅ 4 passing (NEW)   | N/A             | **Infrastructure Only**    |
 
 ### Code Quality
 
@@ -80,6 +80,7 @@ Comprehensively reviewed and enhanced observability integration tests to ensure 
 ### Section 1: Test Skip Analysis & Fixes
 
 **Problem Identified:**
+
 - 9 tests were being skipped
 - 6 had "stupid reasons" (claimed to need API keys but only tested Docker startup)
 - Tests weren't validating actual OTLP/telemetry functionality
@@ -119,6 +120,7 @@ Comprehensively reviewed and enhanced observability integration tests to ensure 
 The Opik frontend was marked "unhealthy" despite nginx running successfully.
 
 **Issues Found:**
+
 1. Port mapping mismatch: Docker mapped `5173:5173` but nginx listened on `8080`
 2. Healthcheck used `wget` (not available) instead of `curl`
 3. Healthcheck checked wrong port `5173` instead of `8080`
@@ -326,18 +328,21 @@ All OTLP tests now follow the same pattern established by Jaeger/Phoenix/Zipkin:
 ## Test Execution Summary
 
 ### Before This Session
+
 ```
 Tests: 1 deprecated, 7 failed, 9 skipped, 47 passed (197 assertions)
 Duration: 147.46s
 ```
 
 ### After This Session
+
 ```
 Tests: 1 deprecated, 1 failed, 3 skipped, 59 passed (207 assertions)
 Duration: ~110s
 ```
 
 ### Improvement Metrics
+
 - **+12 passing tests** (47 → 59)
 - **-6 test failures** (7 → 1)
 - **-6 skipped tests** (9 → 3, all legitimate)
@@ -349,21 +354,25 @@ Duration: ~110s
 ## Backend-Specific Notes
 
 ### Jaeger (Fully Working ✅)
+
 - Infrastructure: 1 test passing
 - OTLP: 4 tests passing
 - Notes: One test has intermittent "agent span not found" failure (pre-existing issue)
 
 ### Phoenix (Fully Working ✅)
+
 - Infrastructure: 1 test passing
 - OTLP: 4 tests passing
 - Notes: Excellent reference implementation for OTLP testing
 
 ### Zipkin (Fully Working ✅)
+
 - Infrastructure: 1 test passing
 - OTLP: 2 tests passing
 - Notes: Solid OTLP integration
 
 ### Langfuse (Infrastructure Working, OTLP Needs Config ⏸️)
+
 - Infrastructure: 3 tests passing
 - OTLP: 3 tests skip (need `TEST_LANGFUSE_PUBLIC_KEY` and `TEST_LANGFUSE_SECRET_KEY`)
 - Notes: Requires Langfuse v3.22.0+ for local OTLP support
@@ -371,6 +380,7 @@ Duration: ~110s
 - Auth: HTTP Basic with `base64(publicKey:secretKey)`
 
 ### Opik (Infrastructure Working, OTLP Blocked 🔴)
+
 - Infrastructure: 3 tests passing
 - OTLP: 3 tests fail (endpoint returns 404)
 - Notes: Known issue [#2566](https://github.com/comet-ml/opik/issues/2566)
@@ -378,6 +388,7 @@ Duration: ~110s
 - Auth: Optional Bearer token
 
 ### Helicone (Infrastructure Only ✅)
+
 - Infrastructure: 4 tests passing
 - OTLP: N/A (proxy architecture, not OTLP receiver)
 - Notes: All infrastructure tests working, proxy-based testing not implemented
@@ -445,6 +456,7 @@ This session continued from the previous work to fix critical bugs that emerged 
 #### Critical Bug: getDuration() Method Missing
 
 **Problem:**
+
 - All tests started failing with `Call to undefined method Pagent\Observability\Span::getDuration()`
 - 29 tests failing due to this single issue
 - Error occurred at `Agent.php:1314` when firing `AfterLLMResponseEvent`
@@ -467,11 +479,13 @@ $this->fireEvent(new AfterLLMResponseEvent(..., $duration));
 Applied to both telemetry-enabled and telemetry-disabled code paths in `Agent.php`.
 
 **Files Modified:**
+
 - `src/Agent.php` (lines 1256, 1300, 1316, 1269)
 
 #### Test Pollution: JaegerBackendTest Flakiness
 
 **Problem:**
+
 - `JaegerBackendTest::exports traces to Jaeger via OTLP` passed when run individually
 - Failed when run as part of full test suite
 - Test was checking `$traces[0]` which could be from a previous test run
@@ -499,6 +513,7 @@ foreach ($traces as $trace) {
 ```
 
 **Files Modified:**
+
 - `tests/Integration/Observability/JaegerBackendTest.php` (lines 64-82)
 
 #### OpikTest Authentication Fix
@@ -508,12 +523,14 @@ Test expected 401/403 for protected endpoints but got 200 (test was already fixe
 
 **Solution:**
 Acknowledged that local Opik may not require authentication, updated test to accept both:
+
 ```php
 // Updated to accept both authenticated and unauthenticated responses
 expect($response['status'])->toBeIn([200, 401, 403, 404]);
 ```
 
 **Files Modified:**
+
 - `tests/Integration/Observability/OpikTest.php` (already fixed, just needed to run tests)
 
 ### Documentation Created
@@ -521,6 +538,7 @@ expect($response['status'])->toBeIn([200, 401, 403, 404]);
 **New File:** `tests/Integration/Observability/README.md`
 
 Comprehensive test setup guide including:
+
 - Quick start instructions
 - Backend-specific setup requirements
 - Service endpoint reference table
@@ -532,11 +550,13 @@ Comprehensive test setup guide including:
 ### Final Results
 
 **Before This Session (from previous report):**
+
 ```Tests: 1 deprecated, 1 failed, 3 skipped, 58 passed (207 assertions)
 Duration: ~110s
 ```
 
 **After This Session:**
+
 ```
 Tests: 1 deprecated, 0 failed, 6 skipped, 63 passed (215 assertions)
 Duration: 137.87s
@@ -544,22 +564,22 @@ Duration: 137.87s
 
 ### Improvements
 
-| Metric           | Before | After | Change    |
-|------------------|--------|-------|-----------|
-| **Tests Passing**| 58     | 63    | **+5** ✅  |
-| **Tests Failing**| 1      | 0     | **-1** ✅  |
-| **Tests Skipped**| 3      | 6     | +3 *      |
-| **Assertions**   | 207    | 215   | +8        |
+| Metric            | Before | After | Change    |
+| ----------------- | ------ | ----- | --------- |
+| **Tests Passing** | 58     | 63    | **+5** ✅ |
+| **Tests Failing** | 1      | 0     | **-1** ✅ |
+| **Tests Skipped** | 3      | 6     | +3 \*     |
+| **Assertions**    | 207    | 215   | +8        |
 
-*Skipped tests increased because Langfuse OTLP tests (3) were added in previous session and are legitimately skipped without API keys. Opik API test also skips without key.
+\*Skipped tests increased because Langfuse OTLP tests (3) were added in previous session and are legitimately skipped without API keys. Opik API test also skips without key.
 
 ### Skipped Tests Breakdown
 
 All 6 skipped tests are legitimate and expected:
 
 1. **AgentTelemetryTest** - `it tracks context pruning events` (1 deprecated)
-2-4. **LangfuseBackendTest** - 3 OTLP tests (need `TEST_LANGFUSE_PUBLIC_KEY` and `TEST_LANGFUSE_SECRET_KEY`)
-5-6. **LangfuseTest** - 2 tests (need API keys)
+   2-4. **LangfuseBackendTest** - 3 OTLP tests (need `TEST_LANGFUSE_PUBLIC_KEY` and `TEST_LANGFUSE_SECRET_KEY`)
+   5-6. **LangfuseTest** - 2 tests (need API keys)
 
 ### Achievements
 
@@ -573,13 +593,16 @@ All 6 skipped tests are legitimate and expected:
 ### Files Modified in This Session
 
 **Source Code:**
+
 - `src/Agent.php` - Added manual duration tracking for LLM operations
 
 **Tests:**
+
 - `tests/Integration/Observability/JaegerBackendTest.php` - Fixed test pollution by searching all traces
 - `tests/Integration/Observability/OpikTest.php` - Updated authentication expectations (already uncommitted)
 
 **Documentation:**
+
 - `tests/Integration/Observability/README.md` - Created comprehensive test setup guide
 
 ### Lessons Learned

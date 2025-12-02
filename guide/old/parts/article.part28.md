@@ -3,6 +3,7 @@
 ## What You'll Learn
 
 By the end of this chapter, you'll be able to:
+
 - Design scalable agent architectures for enterprise applications
 - Implement event-driven patterns for agent communication
 - Create plugin systems that extend agent capabilities
@@ -1056,6 +1057,7 @@ foreach ($events as $event) {
 ## Summary
 
 You've learned how to build complex agent systems with:
+
 - Scalable agent architectures using registries and factories
 - Event-driven patterns for decoupled communication
 - Plugin systems for extensible capabilities
@@ -1067,6 +1069,7 @@ These patterns enable you to build production-ready AI systems that can scale wi
 ## Next Steps
 
 In the next chapter, we'll explore testing strategies for complex agent systems, including:
+
 - Unit testing agent behaviors
 - Integration testing workflows
 - Mocking LLM responses

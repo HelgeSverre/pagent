@@ -1,6 +1,7 @@
 # Chapter 18: Handoff Pattern
 
 **Learning Objectives:**
+
 - Understand when and why to use agent handoffs
 - Implement seamless context transfer between agents
 - Build multi-agent routing and escalation systems
@@ -43,6 +44,7 @@ $techAgent->prompt('Which endpoint are you having trouble with?');
 ```
 
 The `technical-expert` agent receives:
+
 - All messages from the `supportAgent` conversation
 - The reason: "Customer needs API documentation help"
 - A clean slate to continue helping the customer
@@ -120,6 +122,7 @@ $targetAgent = $sourceAgent->handoff('target');
 ```
 
 **What happens:**
+
 1. `sourceAgent` packages its entire conversation history
 2. Resolves the `target` agent from the registry
 3. Adds context message to `target`'s messages array
@@ -148,6 +151,7 @@ $billing = $support->handoff(
 ```
 
 The reason helps the new agent understand:
+
 - **Context** - What triggered the handoff
 - **Priority** - How urgent or important the matter is
 - **Expectations** - What the user needs
@@ -214,12 +218,14 @@ $this->toAgent->messages[] = [
 ### What Gets Transferred
 
 **Included in handoff:**
+
 - All user messages
 - All assistant responses
 - Tool call results (formatted as JSON)
 - Handoff reason (if provided)
 
 **Not included:**
+
 - Source agent's system prompt (target has its own)
 - Source agent's configuration (temperature, model, etc.)
 - Registered tools (target defines its own)
@@ -762,6 +768,7 @@ echo "[Journey] " . $session->getJourney() . "\n";
 ```
 
 This example demonstrates:
+
 - **Automatic escalation** based on conversation content
 - **Handoff tracking** for analytics
 - **Seamless context transfer** between agents

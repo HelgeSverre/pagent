@@ -1,6 +1,7 @@
 # Chapter 26: Performance Optimization
 
 **Learning Objectives:**
+
 - Optimize token usage with context windowing
 - Implement response caching strategies
 - Reduce API latency through configuration
