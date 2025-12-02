@@ -2,112 +2,392 @@
 
 declare(strict_types=1);
 
+use Pagent\Mcp\Exceptions\McpConnectionException;
+use Pagent\Mcp\Exceptions\McpProtocolException;
+use Pagent\Mcp\McpClient;
+use Pagent\Mcp\Transports\HttpSseTransport;
+
 /**
- * Integration tests for MCP HTTP/SSE transport with context7.
+ * Integration tests for MCP HTTP/SSE transport.
  *
- * These tests require an HTTP/SSE transport implementation and context7 MCP server.
- * Currently marked as TODO pending HTTP transport implementation.
+ * These tests require an MCP server running via HTTP/SSE.
+ * Default: Run via mcp-proxy with the Everything server:
+ *   mcp-proxy --port 3333 -- npx -y @modelcontextprotocol/server-everything
+ *
+ * Set MCP_HTTP_URL environment variable to use a different server.
  */
-test('can connect to context7 MCP server via HTTP', function () {
-    // Skip if context7 is not available
-    $context7Url = getenv('CONTEXT7_MCP_URL') ?: 'http://localhost:3000';
 
-    $transport = new \Pagent\Mcp\Transports\HttpSseTransport(
-        baseUrl: $context7Url,
-        headers: [],
-        timeoutMs: 5000
-    );
+/**
+ * Get the MCP server URL, skipping if not available.
+ */
+function getMcpServerUrl(object $test): string
+{
+    $url = getenv('MCP_HTTP_URL') ?: 'http://localhost:3333';
 
-    try {
-        $client = new \Pagent\Mcp\McpClient($transport);
-        $client->connect();
+    // Quick check if server is available
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'timeout' => 2,
+        ],
+    ]);
 
-        expect($client->isConnected())->toBeTrue();
-
-        $client->disconnect();
-    } catch (\Pagent\Mcp\Exceptions\McpConnectionException $e) {
-        $this->markTestSkipped("context7 MCP server not available at {$context7Url}: ".$e->getMessage());
+    $result = @file_get_contents("{$url}/sse", false, $context);
+    if ($result === false) {
+        $test->markTestSkipped("MCP HTTP server not available at {$url}. Start with: mcp-proxy --port 3333 -- npx -y @modelcontextprotocol/server-everything");
     }
-})->group('integration', 'mcp', 'http');
 
-test('can discover context7 tools via HTTP', function () {
-    $context7Url = getenv('CONTEXT7_MCP_URL') ?: 'http://localhost:3000';
+    return $url;
+}
 
-    $transport = new \Pagent\Mcp\Transports\HttpSseTransport(
-        baseUrl: $context7Url,
-        timeoutMs: 5000
-    );
+// ===== Connection Tests =====
 
-    try {
-        $client = new \Pagent\Mcp\McpClient($transport);
-        $client->connect();
+test('can connect to MCP server via HTTP/SSE', function () {
+    $url = getMcpServerUrl($this);
 
-        $tools = $client->discoverTools();
-
-        expect($tools)->toBeArray()
-            ->and($tools)->not->toBeEmpty();
-
-        // Expect context7 specific tools
-        $toolNames = array_column($tools, 'name');
-        $hasExpectedTool = in_array('resolve-library-id', $toolNames, true)
-            || in_array('get-library-docs', $toolNames, true);
-        expect($hasExpectedTool)->toBeTrue('Expected to find resolve-library-id or get-library-docs tool');
-
-        $client->disconnect();
-    } catch (\Pagent\Mcp\Exceptions\McpConnectionException $e) {
-        $this->markTestSkipped("context7 MCP server not available at {$context7Url}: ".$e->getMessage());
-    }
-})->group('integration', 'mcp', 'http');
-
-test('can call context7 get-library-docs tool', function () {
-    $context7Url = getenv('CONTEXT7_MCP_URL') ?: 'http://localhost:3000';
-
-    $transport = new \Pagent\Mcp\Transports\HttpSseTransport(
-        baseUrl: $context7Url,
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
         timeoutMs: 10000
     );
 
-    try {
-        $client = new \Pagent\Mcp\McpClient($transport);
-        $client->connect();
+    $client = new McpClient($transport, 'test-client', '1.0.0');
+    $client->connect();
 
-        $result = $client->callTool('get-library-docs', [
-            'libraryId' => 'react@18.2.0',
-            'query' => 'useState hook',
-        ]);
+    expect($client->isConnected())->toBeTrue();
 
-        expect($result)->toBeArray()
-            ->and($result)->toHaveKey('content');
+    $capabilities = $client->getServerCapabilities();
+    expect($capabilities)->toBeArray();
 
-        $client->disconnect();
-    } catch (\Pagent\Mcp\Exceptions\McpConnectionException $e) {
-        $this->markTestSkipped("context7 MCP server not available at {$context7Url}: ".$e->getMessage());
-    } catch (\Pagent\Mcp\Exceptions\McpProtocolException $e) {
-        // Tool might not exist or different schema
-        $this->markTestSkipped('context7 tool call failed: '.$e->getMessage());
-    }
+    $client->disconnect();
+    expect($client->isConnected())->toBeFalse();
 })->group('integration', 'mcp', 'http');
 
-/*
- * Future HTTP/SSE Transport Implementation Notes:
- *
- * The HTTP/SSE transport for MCP requires:
- * 1. HTTP client for sending requests (POST to /messages endpoint)
- * 2. Server-Sent Events (SSE) for receiving responses
- * 3. Session management with session IDs
- * 4. Proper JSON-RPC 2.0 message framing over HTTP
- *
- * MCP HTTP/SSE Protocol:
- * - Client POSTs JSON-RPC messages to server endpoint
- * - Server responds via SSE stream
- * - Each message has a session ID for multiplexing
- *
- * Implementation steps for v0.8.0:
- * 1. Create HttpTransport implementing McpTransport
- * 2. Add Guzzle or native curl support for HTTP requests
- * 3. Implement SSE parsing for response handling
- * 4. Add session management
- * 5. Update these tests with real implementations
- *
- * See: https://spec.modelcontextprotocol.io/specification/2024-11-05/basic/transports/#http-with-sse
- */
+test('handles connection timeout gracefully', function () {
+    $transport = new HttpSseTransport(
+        baseUrl: 'http://localhost:59999',  // Non-existent port
+        timeoutMs: 1000
+    );
+
+    $client = new McpClient($transport);
+
+    expect(fn () => $client->connect())
+        ->toThrow(McpConnectionException::class);
+})->group('integration', 'mcp', 'http');
+
+// ===== Tool Discovery Tests =====
+
+test('discovers tools via HTTP transport', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    $tools = $client->discoverTools();
+
+    expect($tools)->toBeArray()
+        ->and($tools)->not->toBeEmpty();
+
+    // Every tool should have required fields
+    foreach ($tools as $tool) {
+        expect($tool)->toHaveKey('name')
+            ->and($tool)->toHaveKey('description');
+    }
+
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
+
+test('Everything server provides expected tools', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    $tools = $client->discoverTools();
+    $toolNames = array_column($tools, 'name');
+
+    // Everything server should have these tools
+    expect($toolNames)->toContain('echo')
+        ->and($toolNames)->toContain('add');
+
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
+
+// ===== Tool Execution Tests =====
+
+test('executes echo tool via HTTP transport', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    $result = $client->callTool('echo', ['message' => 'Hello HTTP MCP!']);
+
+    expect($result)->toBeArray()
+        ->and($result)->toHaveKey('content')
+        ->and($result['content'])->toBeArray()
+        ->and($result['content'][0]['type'])->toBe('text')
+        ->and($result['content'][0]['text'])->toContain('Hello HTTP MCP!');
+
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
+
+test('executes add tool via HTTP transport', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    $result = $client->callTool('add', ['a' => 15, 'b' => 27]);
+
+    expect($result)->toBeArray()
+        ->and($result['content'][0]['text'])->toContain('42');
+
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
+
+test('handles tool with unicode characters', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    $result = $client->callTool('echo', ['message' => 'Hello 世界! 🚀']);
+
+    expect($result['content'][0]['text'])->toContain('世界');
+
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
+
+test('handles non-existent tool error', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    expect(fn () => $client->callTool('nonexistent_tool', []))
+        ->toThrow(McpProtocolException::class);
+
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
+
+// ===== Resource Tests =====
+
+test('discovers resources via HTTP transport', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    $resources = $client->discoverResources();
+
+    expect($resources)->toBeArray()
+        ->and($resources)->toHaveKey('resources')
+        ->and($resources['resources'])->toBeArray();
+
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
+
+test('reads resource via HTTP transport', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    $resources = $client->discoverResources();
+
+    if (empty($resources['resources'])) {
+        $this->markTestSkipped('No resources available on server');
+    }
+
+    $uri = $resources['resources'][0]['uri'];
+    $content = $client->readResource($uri);
+
+    expect($content)->toBeArray()
+        ->and($content)->toHaveKey('contents');
+
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
+
+// ===== Prompt Tests =====
+
+test('discovers prompts via HTTP transport', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    $prompts = $client->discoverPrompts();
+
+    expect($prompts)->toBeArray()
+        ->and($prompts)->toHaveKey('prompts')
+        ->and($prompts['prompts'])->toBeArray();
+
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
+
+test('gets prompt via HTTP transport', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    $prompts = $client->discoverPrompts();
+
+    if (empty($prompts['prompts'])) {
+        $this->markTestSkipped('No prompts available on server');
+    }
+
+    // Find the first prompt and provide required arguments
+    $promptDef = $prompts['prompts'][0];
+    $promptName = $promptDef['name'];
+
+    // Build arguments based on prompt's required args
+    $args = [];
+    if (isset($promptDef['arguments'])) {
+        foreach ($promptDef['arguments'] as $arg) {
+            $args[$arg['name']] = 'test-value';
+        }
+    }
+
+    try {
+        $prompt = $client->getPrompt($promptName, $args);
+        expect($prompt)->toBeArray()
+            ->and($prompt)->toHaveKey('messages');
+    } catch (\Pagent\Mcp\Exceptions\McpProtocolException $e) {
+        // Some prompts may have complex requirements
+        $this->markTestSkipped('Prompt requires specific arguments: '.$e->getMessage());
+    }
+
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
+
+// ===== Edge Cases =====
+
+test('handles rapid consecutive calls via HTTP', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    $results = [];
+    for ($i = 1; $i <= 5; $i++) {
+        $result = $client->callTool('add', ['a' => $i, 'b' => $i]);
+        $results[] = $result['content'][0]['text'];
+    }
+
+    expect($results)->toHaveCount(5);
+
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
+
+test('maintains connection across multiple operations', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    // Perform multiple different operations
+    $tools = $client->discoverTools();
+    expect($tools)->toBeArray();
+
+    $resources = $client->discoverResources();
+    expect($resources)->toBeArray();
+
+    $prompts = $client->discoverPrompts();
+    expect($prompts)->toBeArray();
+
+    $result = $client->callTool('echo', ['message' => 'test']);
+    expect($result)->toBeArray();
+
+    // Connection should still be active
+    expect($client->isConnected())->toBeTrue();
+
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
+
+test('handles reconnection after disconnect', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+
+    // First connection
+    $client->connect();
+    expect($client->isConnected())->toBeTrue();
+    $client->disconnect();
+    expect($client->isConnected())->toBeFalse();
+
+    // Second connection (should work with new transport)
+    $transport2 = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+    $client2 = new McpClient($transport2);
+    $client2->connect();
+    expect($client2->isConnected())->toBeTrue();
+    $client2->disconnect();
+})->group('integration', 'mcp', 'http');

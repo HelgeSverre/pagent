@@ -174,6 +174,86 @@ actions-run job:
     @echo "Running job: {{job}}"
     act -j {{job}} --container-architecture linux/amd64
 
+# === MCP Test Server ===
+
+[group('mcp')]
+[doc('Start MCP test server (Everything server on port 3333)')]
+mcp-up:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Starting MCP test server (Everything server) on port 3333..."
+
+    # Check if mcp-proxy is installed
+    if ! command -v mcp-proxy &> /dev/null; then
+        echo "❌ mcp-proxy not found. Install with: pip install mcp-proxy"
+        exit 1
+    fi
+
+    # Check if server is already running
+    if curl -s http://localhost:3333/sse -H "Accept: text/event-stream" --max-time 1 2>/dev/null | grep -q "event: endpoint"; then
+        echo "✓ MCP server already running on port 3333"
+        exit 0
+    fi
+
+    # Start the server in background
+    nohup mcp-proxy --port 3333 -- npx -y @modelcontextprotocol/server-everything > /tmp/mcp-server.log 2>&1 &
+    echo $! > /tmp/mcp-server.pid
+
+    # Wait for server to be ready
+    echo "Waiting for server to start..."
+    for i in {1..15}; do
+        if curl -s http://localhost:3333/sse -H "Accept: text/event-stream" --max-time 1 2>/dev/null | grep -q "event: endpoint"; then
+            echo "✓ MCP test server started successfully!"
+            echo "  URL: http://localhost:3333"
+            echo "  Log: /tmp/mcp-server.log"
+            exit 0
+        fi
+        sleep 1
+    done
+
+    echo "❌ Failed to start MCP server. Check /tmp/mcp-server.log"
+    exit 1
+
+[group('mcp')]
+[doc('Stop MCP test server')]
+mcp-down:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Stopping MCP test server..."
+
+    if [ -f /tmp/mcp-server.pid ]; then
+        pid=$(cat /tmp/mcp-server.pid)
+        if kill -0 "$pid" 2>/dev/null; then
+            kill "$pid" 2>/dev/null || true
+            rm -f /tmp/mcp-server.pid
+            echo "✓ MCP server stopped (PID: $pid)"
+        else
+            rm -f /tmp/mcp-server.pid
+            echo "✓ MCP server was not running"
+        fi
+    else
+        # Try to find and kill any mcp-proxy process on port 3333
+        pkill -f "mcp-proxy.*3333" 2>/dev/null || true
+        echo "✓ MCP server cleanup complete"
+    fi
+
+[group('mcp')]
+[doc('Show MCP test server status')]
+mcp-status:
+    #!/usr/bin/env bash
+    echo "MCP Test Server Status:"
+    echo ""
+    if curl -s http://localhost:3333/sse -H "Accept: text/event-stream" --max-time 1 2>/dev/null | grep -q "event: endpoint"; then
+        echo "✓ Server is RUNNING on http://localhost:3333"
+        if [ -f /tmp/mcp-server.pid ]; then
+            echo "  PID: $(cat /tmp/mcp-server.pid)"
+        fi
+    else
+        echo "✗ Server is NOT RUNNING"
+        echo ""
+        echo "Start with: just mcp-up"
+    fi
+
 # === Observability Stack ===
 
 [group('observability')]
