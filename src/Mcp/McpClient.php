@@ -76,11 +76,12 @@ final class McpClient
             $this->transport->connect();
 
             // Send initialize request
+            // Note: capabilities must be objects (not arrays) in JSON
             $response = $this->sendRequest('initialize', [
                 'protocolVersion' => '2024-11-05',
-                'capabilities' => [
-                    'experimental' => [],
-                    'sampling' => [],
+                'capabilities' => (object) [
+                    'experimental' => (object) [],
+                    'sampling' => (object) [],
                 ],
                 'clientInfo' => [
                     'name' => $this->clientName,
@@ -475,7 +476,8 @@ final class McpClient
             'jsonrpc' => '2.0',
             'id' => $this->requestId++,
             'method' => $method,
-            'params' => $params,
+            // Cast to object to ensure JSON encodes as {} not []
+            'params' => empty($params) ? (object) [] : $params,
         ];
 
         $response = $this->transport->sendRequest($request);
@@ -503,7 +505,8 @@ final class McpClient
         $notification = [
             'jsonrpc' => '2.0',
             'method' => $method,
-            'params' => $params,
+            // Cast to object to ensure JSON encodes as {} not []
+            'params' => empty($params) ? (object) [] : $params,
         ];
 
         $this->transport->sendNotification($notification);

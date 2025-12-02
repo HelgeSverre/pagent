@@ -49,8 +49,9 @@ test('can discover context7 tools via HTTP', function () {
 
         // Expect context7 specific tools
         $toolNames = array_column($tools, 'name');
-        expect($toolNames)->toContain('resolve-library-id')
-            ->or($toolNames)->toContain('get-library-docs');
+        $hasExpectedTool = in_array('resolve-library-id', $toolNames, true)
+            || in_array('get-library-docs', $toolNames, true);
+        expect($hasExpectedTool)->toBeTrue('Expected to find resolve-library-id or get-library-docs tool');
 
         $client->disconnect();
     } catch (\Pagent\Mcp\Exceptions\McpConnectionException $e) {

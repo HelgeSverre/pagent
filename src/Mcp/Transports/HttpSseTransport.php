@@ -32,6 +32,11 @@ final class HttpSseTransport implements McpTransport
     private $sseHandle = null;
 
     /**
+     * The message endpoint URL received from the server via the 'endpoint' event.
+     */
+    private ?string $messageEndpoint = null;
+
+    /**
      * Create a new HTTP/SSE transport.
      *
      * @param  string  $baseUrl  Base URL of the MCP server (e.g., 'http://localhost:3000')
@@ -71,6 +76,30 @@ final class HttpSseTransport implements McpTransport
         stream_set_blocking($this->sseHandle, false);
 
         $this->connected = true;
+
+        // Wait for the endpoint event from the server
+        $this->waitForEndpointEvent();
+    }
+
+    /**
+     * Wait for the 'endpoint' event that provides the message POST URL.
+     *
+     * @throws McpTimeoutException
+     */
+    private function waitForEndpointEvent(): void
+    {
+        $startTime = microtime(true);
+        $timeoutSeconds = $this->timeoutMs / 1000;
+
+        while ($this->messageEndpoint === null) {
+            $elapsed = microtime(true) - $startTime;
+            if ($elapsed > $timeoutSeconds) {
+                throw McpTimeoutException::requestTimedOut($this->timeoutMs);
+            }
+
+            $this->processSseStream();
+            usleep(10000); // 10ms
+        }
     }
 
     public function disconnect(): void
@@ -87,6 +116,7 @@ final class HttpSseTransport implements McpTransport
         $this->connected = false;
         $this->sseBuffer = '';
         $this->responseBuffer = [];
+        $this->messageEndpoint = null;
     }
 
     public function isConnected(): bool
@@ -129,7 +159,12 @@ final class HttpSseTransport implements McpTransport
      */
     private function postMessage(array $message): void
     {
-        $messageUrl = rtrim($this->baseUrl, '/').'/message';
+        if ($this->messageEndpoint === null) {
+            throw McpConnectionException::connectionFailed('No message endpoint received from server');
+        }
+
+        // Build full URL from the endpoint path
+        $messageUrl = rtrim($this->baseUrl, '/').$this->messageEndpoint;
         $jsonMessage = json_encode($message, JSON_THROW_ON_ERROR);
 
         $context = stream_context_create([
@@ -227,7 +262,8 @@ final class HttpSseTransport implements McpTransport
                 break; // No data available
             }
 
-            $this->sseBuffer .= $chunk;
+            // Normalize line endings (CRLF to LF)
+            $this->sseBuffer .= str_replace("\r\n", "\n", $chunk);
 
             // Process complete SSE events (separated by double newline)
             while (($pos = strpos($this->sseBuffer, "\n\n")) !== false) {
@@ -276,7 +312,14 @@ final class HttpSseTransport implements McpTransport
             }
         }
 
-        // Process the event
+        // Process the event based on type
+        if ($eventType === 'endpoint' && ! empty($data)) {
+            // Server sends the message endpoint URL
+            $this->messageEndpoint = implode('', $data);
+
+            return;
+        }
+
         if ($eventType === 'message' && ! empty($data)) {
             $jsonData = implode("\n", $data);
 
