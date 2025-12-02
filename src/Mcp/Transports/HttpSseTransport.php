@@ -340,16 +340,17 @@ final class HttpSseTransport implements McpTransport
         if ($eventType === 'message' && ! empty($data)) {
             $jsonData = implode("\n", $data);
 
-            try {
-                $message = json_decode($jsonData, true, 512, JSON_THROW_ON_ERROR);
+            // Use json_validate for fast early validation (PHP 8.3+)
+            if (! json_validate($jsonData)) {
+                return; // Invalid JSON, skip
+            }
 
-                if (is_array($message) && isset($message['jsonrpc']) && $message['jsonrpc'] === '2.0') {
-                    // Store response indexed by request ID
-                    $id = $message['id'] ?? 'notification';
-                    $this->responseBuffer[$id] = $message;
-                }
-            } catch (\JsonException $e) {
-                // Invalid JSON, skip
+            $message = json_decode($jsonData, true, 512, JSON_THROW_ON_ERROR);
+
+            if (is_array($message) && isset($message['jsonrpc']) && $message['jsonrpc'] === '2.0') {
+                // Store response indexed by request ID
+                $id = $message['id'] ?? 'notification';
+                $this->responseBuffer[$id] = $message;
             }
         }
     }

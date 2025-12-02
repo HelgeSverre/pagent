@@ -204,23 +204,24 @@ final class StdioTransport implements McpTransport
 
             // Check if we have a complete JSON line
             if (str_ends_with(trim($buffer), '}')) {
-                try {
-                    $response = json_decode($buffer, true, 512, JSON_THROW_ON_ERROR);
-
-                    if (! is_array($response)) {
-                        throw McpProtocolException::invalidResponse('Response is not a JSON object');
-                    }
-
-                    // Validate JSON-RPC 2.0 response
-                    if (! isset($response['jsonrpc']) || $response['jsonrpc'] !== '2.0') {
-                        throw McpProtocolException::invalidResponse('Missing or invalid jsonrpc field');
-                    }
-
-                    return $response;
-                } catch (\JsonException $e) {
-                    // Not complete JSON yet, continue reading
+                // Use json_validate for fast early validation (PHP 8.3+)
+                if (! json_validate($buffer)) {
+                    // Not complete/valid JSON yet, continue reading
                     continue;
                 }
+
+                $response = json_decode($buffer, true, 512, JSON_THROW_ON_ERROR);
+
+                if (! is_array($response)) {
+                    throw McpProtocolException::invalidResponse('Response is not a JSON object');
+                }
+
+                // Validate JSON-RPC 2.0 response
+                if (! isset($response['jsonrpc']) || $response['jsonrpc'] !== '2.0') {
+                    throw McpProtocolException::invalidResponse('Missing or invalid jsonrpc field');
+                }
+
+                return $response;
             }
         }
     }
