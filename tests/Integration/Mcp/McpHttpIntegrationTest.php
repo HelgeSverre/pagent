@@ -270,7 +270,7 @@ test('discovers prompts via HTTP transport', function () {
     $client->disconnect();
 })->group('integration', 'mcp', 'http');
 
-test('gets prompt via HTTP transport', function () {
+test('gets complex_prompt with temperature argument', function () {
     $url = getMcpServerUrl($this);
 
     $transport = new HttpSseTransport(
@@ -281,32 +281,34 @@ test('gets prompt via HTTP transport', function () {
     $client = new McpClient($transport);
     $client->connect();
 
-    $prompts = $client->discoverPrompts();
+    $prompt = $client->getPrompt('complex_prompt', ['temperature' => '0.7']);
 
-    if (empty($prompts['prompts'])) {
-        $this->markTestSkipped('No prompts available on server');
-    }
+    expect($prompt)->toBeArray()
+        ->and($prompt)->toHaveKey('messages')
+        ->and($prompt['messages'])->toBeArray()
+        ->and($prompt['messages'])->not->toBeEmpty();
 
-    // Find the first prompt and provide required arguments
-    $promptDef = $prompts['prompts'][0];
-    $promptName = $promptDef['name'];
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
 
-    // Build arguments based on prompt's required args
-    $args = [];
-    if (isset($promptDef['arguments'])) {
-        foreach ($promptDef['arguments'] as $arg) {
-            $args[$arg['name']] = 'test-value';
-        }
-    }
+test('gets resource_prompt with resourceId argument', function () {
+    $url = getMcpServerUrl($this);
 
-    try {
-        $prompt = $client->getPrompt($promptName, $args);
-        expect($prompt)->toBeArray()
-            ->and($prompt)->toHaveKey('messages');
-    } catch (\Pagent\Mcp\Exceptions\McpProtocolException $e) {
-        // Some prompts may have complex requirements
-        $this->markTestSkipped('Prompt requires specific arguments: '.$e->getMessage());
-    }
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    // Note: resourceId must be a string, not an integer
+    $prompt = $client->getPrompt('resource_prompt', ['resourceId' => '42']);
+
+    expect($prompt)->toBeArray()
+        ->and($prompt)->toHaveKey('messages')
+        ->and($prompt['messages'])->toBeArray()
+        ->and($prompt['messages'])->not->toBeEmpty();
 
     $client->disconnect();
 })->group('integration', 'mcp', 'http');
