@@ -681,3 +681,346 @@ test('custom event listeners can be registered', function () {
 
     expect($calledCount)->toBe(2);
 });
+
+// ===== Resources Error Handling Tests =====
+
+test('discoverResources throws exception on invalid response', function () {
+    // Setup connected client
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'protocolVersion' => '2024-11-05',
+            'capabilities' => [],
+        ],
+    ]);
+    $this->client->connect();
+
+    // Queue invalid resources/list response
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => [
+            // Missing 'resources' array
+        ],
+    ]);
+
+    expect(fn () => $this->client->discoverResources())
+        ->toThrow(McpProtocolException::class, 'Missing or invalid resources array');
+});
+
+test('discoverResources throws exception when not connected', function () {
+    expect(fn () => $this->client->discoverResources())
+        ->toThrow(McpConnectionException::class, 'Not connected to MCP server');
+});
+
+test('readResource throws exception on missing result', function () {
+    // Setup connected client
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'protocolVersion' => '2024-11-05',
+            'capabilities' => [],
+        ],
+    ]);
+    $this->client->connect();
+
+    // Queue invalid resources/read response
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        // Missing 'result'
+    ]);
+
+    expect(fn () => $this->client->readResource('file:///test.txt'))
+        ->toThrow(McpProtocolException::class, 'Missing result in resources/read response');
+});
+
+test('readResource throws exception when not connected', function () {
+    expect(fn () => $this->client->readResource('file:///test.txt'))
+        ->toThrow(McpConnectionException::class, 'Not connected to MCP server');
+});
+
+test('getAvailableResources returns cached resources', function () {
+    // Setup connected client
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'protocolVersion' => '2024-11-05',
+            'capabilities' => [],
+        ],
+    ]);
+    $this->client->connect();
+
+    // Queue resources/list response
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => [
+            'resources' => [
+                ['uri' => 'file:///a.txt', 'name' => 'A'],
+                ['uri' => 'file:///b.txt', 'name' => 'B'],
+            ],
+        ],
+    ]);
+
+    $this->client->discoverResources();
+
+    expect($this->client->getAvailableResources())->toHaveCount(2);
+});
+
+test('discoverResources supports pagination cursor', function () {
+    // Setup connected client
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'protocolVersion' => '2024-11-05',
+            'capabilities' => [],
+        ],
+    ]);
+    $this->client->connect();
+
+    // Queue resources/list response with pagination
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => [
+            'resources' => [['uri' => 'file:///a.txt']],
+            'nextCursor' => 'page2',
+        ],
+    ]);
+
+    $result = $this->client->discoverResources();
+
+    expect($result)->toHaveKey('nextCursor')
+        ->and($result['nextCursor'])->toBe('page2');
+});
+
+// ===== Prompts Error Handling Tests =====
+
+test('discoverPrompts throws exception on invalid response', function () {
+    // Setup connected client
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'protocolVersion' => '2024-11-05',
+            'capabilities' => [],
+        ],
+    ]);
+    $this->client->connect();
+
+    // Queue invalid prompts/list response
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => [
+            // Missing 'prompts' array
+        ],
+    ]);
+
+    expect(fn () => $this->client->discoverPrompts())
+        ->toThrow(McpProtocolException::class, 'Missing or invalid prompts array');
+});
+
+test('discoverPrompts throws exception when not connected', function () {
+    expect(fn () => $this->client->discoverPrompts())
+        ->toThrow(McpConnectionException::class, 'Not connected to MCP server');
+});
+
+test('getPrompt throws exception on missing result', function () {
+    // Setup connected client
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'protocolVersion' => '2024-11-05',
+            'capabilities' => [],
+        ],
+    ]);
+    $this->client->connect();
+
+    // Queue invalid prompts/get response
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        // Missing 'result'
+    ]);
+
+    expect(fn () => $this->client->getPrompt('greeting', []))
+        ->toThrow(McpProtocolException::class, 'Missing result in prompts/get response');
+});
+
+test('getPrompt throws exception when not connected', function () {
+    expect(fn () => $this->client->getPrompt('greeting', []))
+        ->toThrow(McpConnectionException::class, 'Not connected to MCP server');
+});
+
+test('getAvailablePrompts returns cached prompts', function () {
+    // Setup connected client
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'protocolVersion' => '2024-11-05',
+            'capabilities' => [],
+        ],
+    ]);
+    $this->client->connect();
+
+    // Queue prompts/list response
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => [
+            'prompts' => [
+                ['name' => 'prompt1'],
+                ['name' => 'prompt2'],
+                ['name' => 'prompt3'],
+            ],
+        ],
+    ]);
+
+    $this->client->discoverPrompts();
+
+    expect($this->client->getAvailablePrompts())->toHaveCount(3);
+});
+
+test('discoverPrompts supports pagination cursor', function () {
+    // Setup connected client
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'protocolVersion' => '2024-11-05',
+            'capabilities' => [],
+        ],
+    ]);
+    $this->client->connect();
+
+    // Queue prompts/list response with pagination
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => [
+            'prompts' => [['name' => 'prompt1']],
+            'nextCursor' => 'next-page',
+        ],
+    ]);
+
+    $result = $this->client->discoverPrompts();
+
+    expect($result)->toHaveKey('nextCursor')
+        ->and($result['nextCursor'])->toBe('next-page');
+});
+
+// ===== Tool Call Error Handling Tests =====
+
+test('callTool throws exception on missing result', function () {
+    // Setup connected client
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'protocolVersion' => '2024-11-05',
+            'capabilities' => [],
+        ],
+    ]);
+    $this->client->connect();
+
+    // Queue invalid tools/call response
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        // Missing 'result'
+    ]);
+
+    expect(fn () => $this->client->callTool('test', []))
+        ->toThrow(McpProtocolException::class, 'Missing result in tools/call response');
+});
+
+// ===== Notification Handling Tests =====
+
+test('handleNotification ignores unknown notification methods', function () {
+    // Should not throw
+    $this->client->handleNotification([
+        'jsonrpc' => '2.0',
+        'method' => 'notifications/unknown',
+        'params' => ['data' => 'test'],
+    ]);
+
+    expect(true)->toBeTrue(); // No exception thrown
+});
+
+test('handleNotification handles missing method gracefully', function () {
+    // Should not throw
+    $this->client->handleNotification([
+        'jsonrpc' => '2.0',
+        'params' => ['data' => 'test'],
+    ]);
+
+    expect(true)->toBeTrue(); // No exception thrown
+});
+
+test('handleNotification handles missing params gracefully', function () {
+    // Should not throw
+    $this->client->handleNotification([
+        'jsonrpc' => '2.0',
+        'method' => 'notifications/progress',
+    ]);
+
+    expect(true)->toBeTrue(); // No exception thrown
+});
+
+// ===== Server Error Code Tests =====
+
+test('callTool handles various server error codes', function () {
+    // Setup connected client
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'protocolVersion' => '2024-11-05',
+            'capabilities' => [],
+        ],
+    ]);
+    $this->client->connect();
+
+    $errorCodes = [
+        -32700 => 'Parse error',
+        -32600 => 'Invalid Request',
+        -32601 => 'Method not found',
+        -32602 => 'Invalid params',
+        -32603 => 'Internal error',
+    ];
+
+    foreach ($errorCodes as $code => $message) {
+        $this->transport->queueResponse([
+            'jsonrpc' => '2.0',
+            'id' => 2,
+            'error' => [
+                'code' => $code,
+                'message' => $message,
+            ],
+        ]);
+
+        expect(fn () => $this->client->callTool('test', []))
+            ->toThrow(McpProtocolException::class);
+
+        // Re-connect for next iteration
+        $this->transport = new FakeTransport;
+        $this->client = new McpClient($this->transport, 'test-client', '1.0.0');
+        $this->transport->queueResponse([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => [
+                'protocolVersion' => '2024-11-05',
+                'capabilities' => [],
+            ],
+        ]);
+        $this->client->connect();
+    }
+});
