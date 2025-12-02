@@ -26,7 +26,7 @@ final class HttpSseTransport implements McpTransport
     /** @var array<int|string, array<string, mixed>> */
     private array $responseBuffer = [];
 
-    private ?string $sseBuffer = '';
+    private string $sseBuffer = '';
 
     /** @var resource|false|null */
     private $sseHandle = null;
@@ -66,10 +66,23 @@ final class HttpSseTransport implements McpTransport
             ],
         ]);
 
-        $this->sseHandle = @fopen($sseUrl, 'r', false, $context);
+        // Use custom error handler to capture connection errors cleanly
+        $errorMessage = null;
+        set_error_handler(function (int $errno, string $errstr) use (&$errorMessage): bool {
+            $errorMessage = $errstr;
+
+            return true; // Suppress the error
+        });
+
+        try {
+            $this->sseHandle = fopen($sseUrl, 'r', false, $context);
+        } finally {
+            restore_error_handler();
+        }
 
         if ($this->sseHandle === false) {
-            throw McpConnectionException::connectionFailed("Failed to connect to SSE endpoint: {$sseUrl}");
+            $message = $errorMessage ?? "Failed to connect to SSE endpoint: {$sseUrl}";
+            throw McpConnectionException::connectionFailed($message);
         }
 
         // Set stream to non-blocking for polling
@@ -130,6 +143,7 @@ final class HttpSseTransport implements McpTransport
             throw McpConnectionException::notConnected();
         }
 
+        /** @var int|string|null $requestId */
         $requestId = $request['id'] ?? null;
 
         // Send request via HTTP POST
@@ -187,9 +201,11 @@ final class HttpSseTransport implements McpTransport
             throw McpConnectionException::connectionFailed($error['message'] ?? 'Failed to post message');
         }
 
-        // Check HTTP status code
-        if (isset($http_response_header)) {
-            $statusLine = $http_response_header[0] ?? '';
+        // Check HTTP status code from $http_response_header (set by file_get_contents)
+        // @phpstan-ignore-next-line Variable $http_response_header is populated by file_get_contents
+        $headers = $http_response_header ?? [];
+        if ($headers !== []) {
+            $statusLine = $headers[0] ?? '';
             if (preg_match('/HTTP\/\d\.\d\s+(\d+)/', $statusLine, $matches)) {
                 $statusCode = (int) $matches[1];
                 if ($statusCode !== 200 && $statusCode !== 202 && $statusCode !== 204) {
@@ -250,13 +266,14 @@ final class HttpSseTransport implements McpTransport
      */
     private function processSseStream(): void
     {
-        if ($this->sseHandle === null || $this->sseHandle === false || ! is_resource($this->sseHandle)) {
+        $handle = $this->sseHandle;
+        if (! is_resource($handle)) {
             return;
         }
 
         // Read available data from SSE stream
-        while (! feof($this->sseHandle)) {
-            $chunk = fgets($this->sseHandle);
+        while (! feof($handle)) {
+            $chunk = fgets($handle);
 
             if ($chunk === false) {
                 break; // No data available
