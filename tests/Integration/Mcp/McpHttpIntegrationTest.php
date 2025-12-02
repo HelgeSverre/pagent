@@ -270,6 +270,27 @@ test('discovers prompts via HTTP transport', function () {
     $client->disconnect();
 })->group('integration', 'mcp', 'http');
 
+test('gets simple_prompt without arguments', function () {
+    $url = getMcpServerUrl($this);
+
+    $transport = new HttpSseTransport(
+        baseUrl: $url,
+        timeoutMs: 10000
+    );
+
+    $client = new McpClient($transport);
+    $client->connect();
+
+    $prompt = $client->getPrompt('simple_prompt', []);
+
+    expect($prompt)->toBeArray()
+        ->and($prompt)->toHaveKey('messages')
+        ->and($prompt['messages'])->toBeArray()
+        ->and($prompt['messages'])->not->toBeEmpty();
+
+    $client->disconnect();
+})->group('integration', 'mcp', 'http');
+
 test('gets complex_prompt with temperature argument', function () {
     $url = getMcpServerUrl($this);
 

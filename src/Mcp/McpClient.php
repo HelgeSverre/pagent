@@ -409,7 +409,8 @@ final class McpClient
 
         $response = $this->sendRequest('prompts/get', [
             'name' => $name,
-            'arguments' => $arguments,
+            // Cast to object to ensure JSON encodes as {} not []
+            'arguments' => empty($arguments) ? (object) [] : $arguments,
         ]);
 
         if (! isset($response['result'])) {
