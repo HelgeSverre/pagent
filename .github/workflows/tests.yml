@@ -45,9 +45,13 @@ jobs:
       - name: Run unit tests
         run: composer test:unit
 
-      - name: Run integration tests (if API keys available)
-        run: composer test:integration
-        continue-on-error: true
+      - name: Run integration tests
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ] && [ -z "$OPENAI_API_KEY" ]; then
+            echo "Skipped: missing ANTHROPIC_API_KEY and OPENAI_API_KEY - add to repository secrets"
+            exit 0
+          fi
+          composer test:integration
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
