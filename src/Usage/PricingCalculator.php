@@ -49,9 +49,12 @@ final class PricingCalculator
             return 0.0;
         }
 
-        $inputTokens = (int) ($usage['input_tokens'] ?? 0);
-        $outputTokens = (int) ($usage['output_tokens'] ?? 0);
-        $cachedInputTokens = (int) ($usage['cache_read_input_tokens'] ?? 0);
+        /** @var int $inputTokens */
+        $inputTokens = is_numeric($usage['input_tokens'] ?? null) ? (int) $usage['input_tokens'] : 0;
+        /** @var int $outputTokens */
+        $outputTokens = is_numeric($usage['output_tokens'] ?? null) ? (int) $usage['output_tokens'] : 0;
+        /** @var int $cachedInputTokens */
+        $cachedInputTokens = is_numeric($usage['cache_read_input_tokens'] ?? null) ? (int) $usage['cache_read_input_tokens'] : 0;
 
         // Calculate base cost (input + output)
         $inputCost = ($inputTokens / 1_000_000) * $modelPricing['input'];

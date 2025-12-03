@@ -181,7 +181,9 @@ final class UsageTracker implements EventListener
                 $property = $reflection->getProperty('sessionId');
                 $property->setAccessible(true);
 
-                return $property->getValue($agent);
+                $value = $property->getValue($agent);
+
+                return is_string($value) ? $value : null;
             }
         } catch (\ReflectionException) {
             // Property doesn't exist or can't be accessed

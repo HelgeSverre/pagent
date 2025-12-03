@@ -43,16 +43,31 @@ final class UsageData
         float $cost,
         ?string $sessionId = null
     ): self {
+        /** @var int $inputTokens */
+        $inputTokens = is_numeric($usage['input_tokens'] ?? null) ? (int) $usage['input_tokens'] : 0;
+        /** @var int $outputTokens */
+        $outputTokens = is_numeric($usage['output_tokens'] ?? null) ? (int) $usage['output_tokens'] : 0;
+        /** @var int $totalTokens */
+        $totalTokens = is_numeric($usage['total_tokens'] ?? null) ? (int) $usage['total_tokens'] : 0;
+        /** @var int|null $cachedInputTokens */
+        $cachedInputTokens = isset($usage['cache_read_input_tokens']) && is_numeric($usage['cache_read_input_tokens'])
+            ? (int) $usage['cache_read_input_tokens']
+            : null;
+        /** @var int|null $cacheCreationTokens */
+        $cacheCreationTokens = isset($usage['cache_creation_input_tokens']) && is_numeric($usage['cache_creation_input_tokens'])
+            ? (int) $usage['cache_creation_input_tokens']
+            : null;
+
         return new self(
             agentName: $agentName,
             provider: $provider,
             model: $model,
-            inputTokens: (int) ($usage['input_tokens'] ?? 0),
-            outputTokens: (int) ($usage['output_tokens'] ?? 0),
-            totalTokens: (int) ($usage['total_tokens'] ?? 0),
+            inputTokens: $inputTokens,
+            outputTokens: $outputTokens,
+            totalTokens: $totalTokens,
             cost: $cost,
-            cachedInputTokens: isset($usage['cache_read_input_tokens']) ? (int) $usage['cache_read_input_tokens'] : null,
-            cacheCreationTokens: isset($usage['cache_creation_input_tokens']) ? (int) $usage['cache_creation_input_tokens'] : null,
+            cachedInputTokens: $cachedInputTokens,
+            cacheCreationTokens: $cacheCreationTokens,
             sessionId: $sessionId,
             timestamp: microtime(true),
         );

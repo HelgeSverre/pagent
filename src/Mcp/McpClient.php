@@ -36,7 +36,7 @@ final class McpClient
     /** @var array<int, array<string, mixed>> */
     private array $availablePrompts = [];
 
-    /** @var callable|null */
+    /** @var (callable(string|int|null, int, int|null): void)|null */
     private $progressCallback = null;
 
     private int $requestId = 1;
@@ -94,11 +94,12 @@ final class McpClient
                 throw McpProtocolException::invalidResponse('Missing result in initialize response');
             }
 
+            /** @var array<string, mixed> $result */
             $result = $response['result'];
 
             // Store server capabilities
             /** @var array<string, mixed> $capabilities */
-            $capabilities = $result['capabilities'] ?? [];
+            $capabilities = is_array($result['capabilities'] ?? null) ? $result['capabilities'] : [];
             $this->serverCapabilities = $capabilities;
 
             // Mark as initialized
@@ -111,12 +112,12 @@ final class McpClient
 
             // Fire connection established event
             /** @var array<string, mixed> $serverInfo */
-            $serverInfo = $result['serverInfo'] ?? [];
+            $serverInfo = is_array($result['serverInfo'] ?? null) ? $result['serverInfo'] : [];
             $this->fireEvent(new \Pagent\Events\Events\Mcp\McpConnectionEstablishedEvent(
                 client: $this,
                 clientName: $this->clientName,
                 clientVersion: $this->clientVersion,
-                serverCapabilities: $this->serverCapabilities,
+                serverCapabilities: $this->serverCapabilities ?? [],
                 serverInfo: $serverInfo,
                 durationMs: $durationMs,
             ));
@@ -187,11 +188,14 @@ final class McpClient
 
         $response = $this->sendRequest('tools/list', []);
 
-        if (! isset($response['result']['tools']) || ! is_array($response['result']['tools'])) {
+        /** @var array<string, mixed> $result */
+        $result = $response['result'] ?? [];
+
+        if (! isset($result['tools']) || ! is_array($result['tools'])) {
             throw McpProtocolException::invalidResponse('Missing or invalid tools array');
         }
 
-        $this->availableTools = $response['result']['tools'];
+        $this->availableTools = $result['tools'];
 
         $durationMs = (microtime(true) - $startTime) * 1000;
 
@@ -249,7 +253,8 @@ final class McpClient
                 throw McpProtocolException::invalidResponse('Missing result in tools/call response');
             }
 
-            $result = $response['result'];
+            /** @var array<string, mixed> $result */
+            $result = is_array($response['result']) ? $response['result'] : [];
             $durationMs = (microtime(true) - $startTime) * 1000;
 
             // Fire tool called event
@@ -305,16 +310,24 @@ final class McpClient
 
         $response = $this->sendRequest('resources/list', $params);
 
-        if (! isset($response['result']['resources']) || ! is_array($response['result']['resources'])) {
+        /** @var array<string, mixed> $result */
+        $result = $response['result'] ?? [];
+
+        if (! isset($result['resources']) || ! is_array($result['resources'])) {
             throw McpProtocolException::invalidResponse('Missing or invalid resources array');
         }
 
-        $this->availableResources = $response['result']['resources'];
+        $this->availableResources = $result['resources'];
 
-        return [
-            'resources' => $this->availableResources,
-            'nextCursor' => $response['result']['nextCursor'] ?? null,
-        ];
+        /** @var string|null $nextCursor */
+        $nextCursor = $result['nextCursor'] ?? null;
+
+        $returnValue = ['resources' => $this->availableResources];
+        if ($nextCursor !== null) {
+            $returnValue['nextCursor'] = $nextCursor;
+        }
+
+        return $returnValue;
     }
 
     /**
@@ -348,7 +361,10 @@ final class McpClient
             throw McpProtocolException::invalidResponse('Missing result in resources/read response');
         }
 
-        return $response['result'];
+        /** @var array<string, mixed> $result */
+        $result = is_array($response['result']) ? $response['result'] : [];
+
+        return $result;
     }
 
     /**
@@ -371,16 +387,24 @@ final class McpClient
 
         $response = $this->sendRequest('prompts/list', $params);
 
-        if (! isset($response['result']['prompts']) || ! is_array($response['result']['prompts'])) {
+        /** @var array<string, mixed> $result */
+        $result = $response['result'] ?? [];
+
+        if (! isset($result['prompts']) || ! is_array($result['prompts'])) {
             throw McpProtocolException::invalidResponse('Missing or invalid prompts array');
         }
 
-        $this->availablePrompts = $response['result']['prompts'];
+        $this->availablePrompts = $result['prompts'];
 
-        return [
-            'prompts' => $this->availablePrompts,
-            'nextCursor' => $response['result']['nextCursor'] ?? null,
-        ];
+        /** @var string|null $nextCursor */
+        $nextCursor = $result['nextCursor'] ?? null;
+
+        $returnValue = ['prompts' => $this->availablePrompts];
+        if ($nextCursor !== null) {
+            $returnValue['nextCursor'] = $nextCursor;
+        }
+
+        return $returnValue;
     }
 
     /**
@@ -417,13 +441,16 @@ final class McpClient
             throw McpProtocolException::invalidResponse('Missing result in prompts/get response');
         }
 
-        return $response['result'];
+        /** @var array<string, mixed> $result */
+        $result = is_array($response['result']) ? $response['result'] : [];
+
+        return $result;
     }
 
     /**
      * Set a progress callback for handling progress notifications.
      *
-     * @param  callable|null  $callback  Callback function(progressToken, progress, total)
+     * @param  (callable(string|int|null, int, int|null): void)|null  $callback  Callback function(progressToken, progress, total)
      */
     public function setProgressCallback(?callable $callback): void
     {
@@ -434,7 +461,7 @@ final class McpClient
      * Register an event listener.
      *
      * @param  string  $event  Event name or class name
-     * @param  Closure|EventListener  $listener  Listener to attach
+     * @param  Closure(Event): void|EventListener  $listener  Listener to attach
      * @param  int  $priority  Priority (higher = executed first)
      * @return string Listener ID for later removal
      */
@@ -451,14 +478,18 @@ final class McpClient
     public function handleNotification(array $notification): void
     {
         $method = $notification['method'] ?? null;
-        $params = $notification['params'] ?? [];
+        /** @var array<string, mixed> $params */
+        $params = is_array($notification['params'] ?? null) ? $notification['params'] : [];
 
         if ($method === 'notifications/progress' && $this->progressCallback !== null) {
-            ($this->progressCallback)(
-                $params['progressToken'] ?? null,
-                $params['progress'] ?? 0,
-                $params['total'] ?? null
-            );
+            /** @var string|int|null $progressToken */
+            $progressToken = $params['progressToken'] ?? null;
+            /** @var int $progress */
+            $progress = is_int($params['progress'] ?? null) ? $params['progress'] : 0;
+            /** @var int|null $total */
+            $total = isset($params['total']) && is_int($params['total']) ? $params['total'] : null;
+
+            ($this->progressCallback)($progressToken, $progress, $total);
         }
     }
 
@@ -485,11 +516,13 @@ final class McpClient
 
         // Check for JSON-RPC errors
         if (isset($response['error'])) {
-            $error = $response['error'];
-            throw McpProtocolException::serverError(
-                $error['message'] ?? 'Unknown error',
-                $error['code'] ?? -1
-            );
+            /** @var array<string, mixed> $error */
+            $error = is_array($response['error']) ? $response['error'] : [];
+            /** @var string $message */
+            $message = is_string($error['message'] ?? null) ? $error['message'] : 'Unknown error';
+            /** @var int $code */
+            $code = is_int($error['code'] ?? null) ? $error['code'] : -1;
+            throw McpProtocolException::serverError($message, $code);
         }
 
         return $response;

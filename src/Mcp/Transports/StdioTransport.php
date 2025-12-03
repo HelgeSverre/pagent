@@ -27,7 +27,7 @@ final class StdioTransport implements McpTransport
     /** @var resource|null */
     private $process = null;
 
-    /** @var array<string, resource>|null */
+    /** @var array<int, resource>|null */
     private ?array $pipes = null;
 
     private bool $connected = false;
@@ -192,8 +192,12 @@ final class StdioTransport implements McpTransport
 
             if ($chunk === false) {
                 // Check if process is still alive
+                if ($this->process === null) {
+                    throw McpConnectionException::connectionLost('MCP server process terminated');
+                }
+
                 $status = proc_get_status($this->process);
-                if ($status === false || ! $status['running']) {
+                if (! $status['running']) {
                     throw McpConnectionException::connectionLost('MCP server process terminated');
                 }
 

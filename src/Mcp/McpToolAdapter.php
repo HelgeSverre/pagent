@@ -100,12 +100,14 @@ final class McpToolAdapter implements Tool
         $adapters = [];
 
         foreach ($mcpTools as $tool) {
-            $adapters[] = new self(
-                $client,
-                $tool['name'],
-                $tool['description'] ?? '',
-                $tool['inputSchema'] ?? ['type' => 'object', 'properties' => []],
-            );
+            /** @var string $name */
+            $name = is_string($tool['name'] ?? null) ? $tool['name'] : '';
+            /** @var string $description */
+            $description = is_string($tool['description'] ?? null) ? $tool['description'] : '';
+            /** @var array<string, mixed> $inputSchema */
+            $inputSchema = is_array($tool['inputSchema'] ?? null) ? $tool['inputSchema'] : ['type' => 'object', 'properties' => []];
+
+            $adapters[] = new self($client, $name, $description, $inputSchema);
         }
 
         return $adapters;
