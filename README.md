@@ -8,7 +8,7 @@ Build intelligent agents with automatic tool calling, multi-provider support, sa
 [![Tests](https://img.shields.io/github/actions/workflow/status/helgesverre/pagent/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/helgesverre/pagent/actions)
 [![Total Downloads](https://img.shields.io/packagist/dt/helgesverre/pagent.svg?style=flat-square)](https://packagist.org/packages/helgesverre/pagent)
 [![PHP Version](https://img.shields.io/packagist/php-v/helgesverre/pagent.svg?style=flat-square)](https://packagist.org/packages/helgesverre/pagent)
-[![License](https://img.shields.io/packagist/l/helgesverre/pagent.svg?style=flat-square)](https://github.com/helgesverre/pagent/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/HelgeSverre/pagent?style=flat-square)](https://github.com/HelgeSverre/pagent/blob/main/LICENSE)
 
 ---
 
