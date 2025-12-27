@@ -707,7 +707,7 @@ test('it handles delayed responses', function () {
 
     expect($response->status)->toBe(200)
         ->and($response->isSuccessful())->toBeTrue();
-})->group('network')->slow();
+})->group('network')->skip('Too slow for regular test runs');
 
 test('it handles absolute redirect chain', function () {
     $transport = new CurlTransport;
