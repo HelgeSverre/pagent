@@ -566,17 +566,7 @@ final class Agent
         }
 
         // Get provider info for events
-        $provider = get_class($this->provider);
-        $providerName = 'mock';
-
-        if (str_contains($provider, 'Anthropic')) {
-            $providerName = 'anthropic';
-        } elseif (str_contains($provider, 'OpenAI')) {
-            $providerName = 'openai';
-        } elseif (str_contains($provider, 'Ollama')) {
-            $providerName = 'ollama';
-        }
-
+        $providerName = $this->getProviderName();
         $model = $mergedOptions['model'] ?? $this->config['model'] ?? 'unknown';
 
         // Fire stream started event
@@ -1078,6 +1068,78 @@ final class Agent
         ], $this->guards);
     }
 
+    /**
+     * Check if agent has any messages in conversation history.
+     */
+    public function hasMessages(): bool
+    {
+        return ! empty($this->messages);
+    }
+
+    /**
+     * Get the number of messages in conversation history.
+     */
+    public function messageCount(): int
+    {
+        return count($this->messages);
+    }
+
+    /**
+     * Get the conversation messages.
+     *
+     * @return array<int, array{role: string, content: string|array}>
+     */
+    public function getMessages(): array
+    {
+        return $this->messages;
+    }
+
+    /**
+     * Get the last message in conversation history.
+     *
+     * @return array{role: string, content: string|array}|null
+     */
+    public function getLastMessage(): ?array
+    {
+        if (empty($this->messages)) {
+            return null;
+        }
+
+        return $this->messages[array_key_last($this->messages)];
+    }
+
+    /**
+     * Get the last assistant message content.
+     */
+    public function getLastAssistantMessage(): ?string
+    {
+        for ($i = count($this->messages) - 1; $i >= 0; $i--) {
+            if ($this->messages[$i]['role'] === 'assistant') {
+                $content = $this->messages[$i]['content'];
+
+                return is_string($content) ? $content : json_encode($content);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the last user message content.
+     */
+    public function getLastUserMessage(): ?string
+    {
+        for ($i = count($this->messages) - 1; $i >= 0; $i--) {
+            if ($this->messages[$i]['role'] === 'user') {
+                $content = $this->messages[$i]['content'];
+
+                return is_string($content) ? $content : json_encode($content);
+            }
+        }
+
+        return null;
+    }
+
     private function runGuards(string $input, string $output): void
     {
         foreach ($this->guards as $guard) {
@@ -1120,17 +1182,13 @@ final class Agent
             return $this->cachedToolSchemas;
         }
 
-        $provider = get_class($this->provider);
+        $providerName = $this->getProviderName();
 
-        if (str_contains($provider, 'Anthropic')) {
-            $this->cachedToolSchemas = array_map(fn ($tool) => $tool->toAnthropicSchema(), $this->tools);
-        } elseif (str_contains($provider, 'OpenAI')) {
-            $this->cachedToolSchemas = array_map(fn ($tool) => $tool->toOpenAISchema(), $this->tools);
-        } elseif (str_contains($provider, 'Ollama')) {
-            $this->cachedToolSchemas = array_map(fn ($tool) => $tool->toOpenAISchema(), $this->tools);
-        } else {
-            $this->cachedToolSchemas = [];
-        }
+        $this->cachedToolSchemas = match ($providerName) {
+            'anthropic' => array_map(fn ($tool) => $tool->toAnthropicSchema(), $this->tools),
+            'openai', 'ollama' => array_map(fn ($tool) => $tool->toOpenAISchema(), $this->tools),
+            default => [],
+        };
 
         return $this->cachedToolSchemas;
     }
@@ -1144,9 +1202,7 @@ final class Agent
         if (isset($response->raw_content)) {
             $assistantMessage['content'] = $response->raw_content;
         } elseif (! empty($response->tool_calls)) {
-            // Check if provider is Ollama
-            $provider = get_class($this->provider);
-            $isOllama = str_contains($provider, 'Ollama');
+            $isOllama = $this->getProviderName() === 'ollama';
 
             // For OpenAI and Ollama, add tool_calls
             $assistantMessage['tool_calls'] = array_map(fn ($call) => [
@@ -1168,9 +1224,7 @@ final class Agent
             $result = $this->executeToolWithSpan($toolCall['name'], $arguments);
 
             // Add tool result to messages
-            $provider = get_class($this->provider);
-
-            if (str_contains($provider, 'Anthropic')) {
+            if ($this->getProviderName() === 'anthropic') {
                 // Anthropic format
                 $this->messages[] = [
                     'role' => 'user',
@@ -1294,19 +1348,8 @@ final class Agent
                 throw new RuntimeException("No provider set for agent '{$this->name}'");
             }
 
-            $provider = get_class($this->provider);
-            $providerName = 'mock';
-
-            if (str_contains($provider, 'Anthropic')) {
-                $providerName = 'anthropic';
-            } elseif (str_contains($provider, 'OpenAI')) {
-                $providerName = 'openai';
-            } elseif (str_contains($provider, 'Ollama')) {
-                $providerName = 'ollama';
-            }
-
+            $providerName = $this->getProviderName();
             $model = $options['model'] ?? $this->config['model'] ?? 'unknown';
-
             $startTime = microtime(true);
 
             // Fire before LLM request event
@@ -1336,17 +1379,7 @@ final class Agent
             throw new RuntimeException("No provider set for agent '{$this->name}'");
         }
 
-        $provider = get_class($this->provider);
-        $providerName = 'mock';
-
-        if (str_contains($provider, 'Anthropic')) {
-            $providerName = 'anthropic';
-        } elseif (str_contains($provider, 'OpenAI')) {
-            $providerName = 'openai';
-        } elseif (str_contains($provider, 'Ollama')) {
-            $providerName = 'ollama';
-        }
-
+        $providerName = $this->getProviderName();
         $model = $options['model'] ?? $this->config['model'] ?? 'unknown';
 
         $llmSpan = TelemetryManager::instance()->startLLMSpan($providerName, $model, [
@@ -1526,5 +1559,26 @@ final class Agent
     private function fireEvent(Event $event): void
     {
         $this->eventDispatcher->dispatch($event);
+    }
+
+    /**
+     * Get the provider name string for the current provider.
+     *
+     * @return string One of: 'anthropic', 'openai', 'ollama', 'mock'
+     */
+    private function getProviderName(): string
+    {
+        if ($this->provider === null) {
+            return 'mock';
+        }
+
+        $providerClass = get_class($this->provider);
+
+        return match (true) {
+            str_contains($providerClass, 'Anthropic') => 'anthropic',
+            str_contains($providerClass, 'OpenAI') => 'openai',
+            str_contains($providerClass, 'Ollama') => 'ollama',
+            default => 'mock',
+        };
     }
 }
