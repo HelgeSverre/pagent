@@ -136,5 +136,5 @@ test('it throws on malformed json response', function (): void {
     $provider = new OpenAI(['api_key' => 'test-key'], $mockHttp);
 
     expect(fn () => $provider->prompt('test'))
-        ->toThrow(JsonException::class);
+        ->toThrow(UnexpectedValueException::class);
 });
