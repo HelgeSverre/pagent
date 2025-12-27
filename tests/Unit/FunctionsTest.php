@@ -4,6 +4,15 @@ declare(strict_types=1);
 
 use Pagent\Agent;
 use Pagent\AgentBuilder;
+use Pagent\Observability\TelemetryManager;
+
+beforeEach(function (): void {
+    TelemetryManager::reset();
+});
+
+afterEach(function (): void {
+    TelemetryManager::reset();
+});
 
 it('creates agent builders with agent() function', function (): void {
     $result = \agent('new-agent');
