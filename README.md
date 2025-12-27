@@ -4,11 +4,11 @@
 
 Build intelligent agents with automatic tool calling, multi-provider support, safety guards, and multi-agent orchestration—all with a clean, fluent API.
 
-[![Latest Version](https://img.shields.io/packagist/v/helgesverre/pagent.svg?style=flat-square)](https://packagist.org/packages/helgesverre/pagent)
-[![Tests](https://img.shields.io/github/actions/workflow/status/helgesverre/pagent/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/helgesverre/pagent/actions)
-[![Total Downloads](https://img.shields.io/packagist/dt/helgesverre/pagent.svg?style=flat-square)](https://packagist.org/packages/helgesverre/pagent)
-[![PHP Version](https://img.shields.io/packagist/php-v/helgesverre/pagent.svg?style=flat-square)](https://packagist.org/packages/helgesverre/pagent)
-[![License](https://img.shields.io/github/license/HelgeSverre/pagent?style=flat-square)](https://github.com/HelgeSverre/pagent/blob/main/LICENSE)
+[![Latest Version](https://img.shields.io/packagist/v/helgesverre/pagent.svg?style=flat-square&v=1735257600)](https://packagist.org/packages/helgesverre/pagent)
+[![Tests](https://img.shields.io/github/actions/workflow/status/helgesverre/pagent/tests.yml?branch=main&label=tests&style=flat-square&v=1735257600)](https://github.com/helgesverre/pagent/actions)
+[![Total Downloads](https://img.shields.io/packagist/dt/helgesverre/pagent.svg?style=flat-square&v=1735257600)](https://packagist.org/packages/helgesverre/pagent)
+[![PHP Version](https://img.shields.io/packagist/php-v/helgesverre/pagent.svg?style=flat-square&v=1735257600)](https://packagist.org/packages/helgesverre/pagent)
+[![License](https://img.shields.io/github/license/HelgeSverre/pagent?style=flat-square&v=1735257600)](https://github.com/HelgeSverre/pagent/blob/main/LICENSE)
 
 ---
 
