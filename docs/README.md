@@ -4,6 +4,16 @@ Comprehensive guides for integrating Pagent into your PHP applications.
 
 ## 📚 Guides
 
+### Core Features
+
+- [Guards](guards.md) - Safety validation for LLM responses (PII, content filtering, prompt injection)
+- [Middleware](middleware.md) - Request/response hooks for logging, metrics, and rate limiting
+- [Events](events.md) - Lifecycle hooks for monitoring and custom behavior
+- [Streaming](streaming.md) - Real-time SSE streaming implementation
+- [Memory & Persistence](memory-persistence.md) - SQLite, File, and custom storage adapters
+- [Observability](observability.md) - OpenTelemetry integration for tracing
+- [MCP Integration](mcp-integration.md) - Model Context Protocol for external tool servers
+
 ### Framework Integration
 
 - [Vanilla PHP Integration](vanilla-php.md) - Simple setup without any framework
@@ -14,24 +24,15 @@ Comprehensive guides for integrating Pagent into your PHP applications.
 ### Patterns & Best Practices
 
 - [Agent Orchestration & Workflows](orchestration-workflows.md) - Pipelines, chains, handoffs, and delegation
-- Testing AI Agents _(coming soon)_ - Mocking and test strategies
-- Production Deployment _(coming soon)_ - Scaling and monitoring
+- [Ollama Integration](ollama-integration.md) - Local LLM setup and usage
 
 ## 🎯 Quick Links
 
 ### Core Documentation
 
 - [Main README](../README.md) - Project overview and quick start
-- [API Reference](../guide/05-api-reference.md) - Complete API documentation
-- [HOW IT WORKS](../HOW_IT_WORKS.md) - Technical deep dive
-
-### Guides by Learning Style
-
-1. [Getting Started (Conversational)](../guide/01-getting-started-conversational.md)
-2. [Recipes (Task-Oriented)](../guide/02-recipes-task-oriented.md)
-3. [Quick Start (Minimal)](../guide/03-quick-start-minimal.md)
-4. [Concepts (Deep Dive)](../guide/04-concepts-deep-dive.md)
-5. [API Reference (Technical)](../guide/05-api-reference.md)
+- [Complete Guide](../guide/complete.md) - Comprehensive 28-chapter tutorial
+- [Guide README](../guide/README.md) - Learning paths and chapter overview
 
 ## 🔧 Integration Overview
 

@@ -549,22 +549,22 @@ cp .env.example .env    # Add your keys to .env
 
 ## Documentation
 
-### Learning Guides
+### The Complete Guide
 
-We've created **5 different guide styles** so you can learn in the way that works best for you:
+The **[Pagent Guide](guide/complete.md)** is a comprehensive 28-chapter tutorial covering everything from basics to advanced patterns:
 
-1. **[Getting Started (Conversational)](guide/01-getting-started-conversational.md)** - Friendly, interactive
-   introduction with examples
-2. **[Recipes (Task-Oriented)](guide/02-recipes-task-oriented.md)** - Step-by-step solutions for common tasks
-3. **[Quick Start (Minimal)](guide/03-quick-start-minimal.md)** - TL;DR reference for when you're in a hurry
-4. **[Concepts (Deep Dive)](guide/04-concepts-deep-dive.md)** - Understand the architecture and design decisions
-5. **[API Reference (Technical)](guide/05-api-reference.md)** - Complete technical documentation
+- **Part 1: Foundations** (Chapters 1-5) - Core concepts and basic usage
+- **Part 2: Tool Integration** (Chapters 6-9) - External system interactions
+- **Part 3: Real-Time Interaction** (Chapters 10-11) - Streaming responses
+- **Part 4: Persistence and State** (Chapters 12-13) - Memory and conversations
+- **Part 5: Reliability and Safety** (Chapters 14-15) - Production robustness
+- **Part 6: Multi-Agent Orchestration** (Chapters 16-19) - Agent coordination
+- **Part 7: Quality Assurance** (Chapters 20-21) - Testing and evaluation
+- **Part 8: Observability** (Chapters 22-23) - Monitoring and debugging
+- **Part 9: Integration** (Chapters 24-25) - Framework integration
+- **Part 10: Production Excellence** (Chapters 26-28) - Optimization and deployment
 
-**New to Pagent?** Start with the [Getting Started Guide](guide/01-getting-started-conversational.md).
-
-**Need something specific?** Check the [Recipes Guide](guide/02-recipes-task-oriented.md).
-
-**In a hurry?** The [Quick Start](guide/03-quick-start-minimal.md) has you covered.
+See **[guide/README.md](guide/README.md)** for learning paths based on your experience level.
 
 ### Integration Guides
 
