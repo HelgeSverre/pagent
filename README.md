@@ -18,7 +18,7 @@ Build intelligent agents with automatic tool calling, multi-provider support, sa
 - **🌊 Real-Time Streaming** - SSE streaming for ChatGPT-like experiences
 - **💾 Memory & Persistence** - SQLite, File, and custom storage adapters
 - **🔧 Automatic Tool Calling** - JSON schema generation from PHP functions
-- **🤖 Multi-Provider** - Anthropic Claude, OpenAI GPT, Ollama (local), Mock (for testing)
+- **🤖 Multi-Provider** - Anthropic Claude, OpenAI GPT, OpenCode Zen/Go, Ollama (local), Mock (for testing)
 - **🛡️ Safety Guards** - PII detection, content filtering, prompt injection prevention
 - **📊 Evaluation Framework** - Test datasets with automated metrics and reports
 - **🔄 Multi-Agent Orchestration** - Pipeline, handoff, and delegation patterns
@@ -109,6 +109,30 @@ $response = $gpt->prompt('Hello!', [
     'model' => 'gpt-4',
     'temperature' => 0.8
 ]);
+```
+
+### OpenCode Zen / Go
+
+```bash
+export OPENCODE_API_KEY="your-key"
+```
+
+This provider supports models exposed through OpenCode's `chat/completions`
+endpoints. Ox Alpha is the default model, with a gateway-specific model ID:
+
+```php
+// Zen: https://opencode.ai/zen/v1, model x-preview-f-free
+$zen = opencode();
+$response = $zen->prompt('Hello!');
+
+// Go: https://opencode.ai/zen/go/v1, model ox-alpha-free
+$go = opencode(['gateway' => 'go']);
+$response = $go->prompt('Hello!');
+
+// String aliases are also available.
+agent('coder')
+    ->provider('opencode-go')
+    ->model('ox-alpha-free');
 ```
 
 ### Ollama (Local LLMs)

@@ -122,6 +122,24 @@ it('works with openai helper function', function (): void {
     expect($agent)->toBeAgent();
 });
 
+it('works with opencode helper function', function (): void {
+    $provider = opencode(['api_key' => 'test-key', 'gateway' => 'go']);
+
+    $agent = (new AgentBuilder('opencode-helper'))
+        ->provider($provider)
+        ->build();
+
+    expect($agent)->toBeAgent();
+});
+
+it('supports OpenCode Zen and Go provider names', function (string $name): void {
+    $agent = (new AgentBuilder("{$name}-agent"))
+        ->provider($name, ['api_key' => 'test-key'])
+        ->build();
+
+    expect($agent)->toBeAgent();
+})->with(['opencode', 'opencode-zen', 'opencode-go']);
+
 it('ignores config parameter when provider instance is passed', function (): void {
     $mockProvider = mock(['hello' => 'from instance']);
 

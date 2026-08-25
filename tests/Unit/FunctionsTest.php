@@ -71,6 +71,12 @@ it('creates openai provider with helper function', function (): void {
     expect($provider)->toBeInstanceOf(Pagent\Providers\OpenAI::class);
 });
 
+it('creates opencode provider with helper function', function (): void {
+    $provider = opencode(['api_key' => 'test-key', 'gateway' => 'go']);
+
+    expect($provider)->toBeInstanceOf(Pagent\Providers\OpenCode::class);
+});
+
 it('creates mock provider with helper function', function (): void {
     $provider = mock(['test' => 'response']);
 

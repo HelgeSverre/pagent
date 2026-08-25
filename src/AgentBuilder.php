@@ -7,6 +7,8 @@ namespace Pagent;
 use InvalidArgumentException;
 use Pagent\Contracts\Provider;
 
+use function array_merge;
+
 final class AgentBuilder
 {
     private Agent $agent;
@@ -50,6 +52,9 @@ final class AgentBuilder
         $providerInstance = match ($provider) {
             'anthropic' => new Providers\Anthropic($config),
             'openai' => new Providers\OpenAI($config),
+            'opencode' => new Providers\OpenCode($config),
+            'opencode-zen' => new Providers\OpenCode(array_merge($config, ['gateway' => 'zen'])),
+            'opencode-go' => new Providers\OpenCode(array_merge($config, ['gateway' => 'go'])),
             'ollama' => new Providers\Ollama($config),
             'mock' => new Providers\Mock($config),
             default => throw new InvalidArgumentException("Unknown provider: {$provider}"),

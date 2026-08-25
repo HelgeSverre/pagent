@@ -64,6 +64,16 @@ if (! function_exists('openai')) {
     }
 }
 
+if (! function_exists('opencode')) {
+    /**
+     * Create an OpenCode Zen or Go provider instance.
+     */
+    function opencode(array $config = []): Pagent\Providers\OpenCode
+    {
+        return new Pagent\Providers\OpenCode($config);
+    }
+}
+
 if (! function_exists('ollama')) {
     /**
      * Create an Ollama provider instance.
