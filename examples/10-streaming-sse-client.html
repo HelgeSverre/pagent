@@ -1,286 +1,293 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pagent Streaming SSE Demo</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
-        }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+      }
 
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
 
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
+      .header h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+      }
 
-        .header p {
-            opacity: 0.9;
-            font-size: 14px;
-        }
+      .header p {
+        opacity: 0.9;
+        font-size: 14px;
+      }
 
-        .content {
-            padding: 30px;
-        }
+      .content {
+        padding: 30px;
+      }
 
-        .input-group {
-            margin-bottom: 20px;
-        }
+      .input-group {
+        margin-bottom: 20px;
+      }
 
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
-        }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+      }
 
-        input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
+      input[type="text"] {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+      }
 
-        input[type="text"]:focus {
-            outline: none;
-            border-color: #667eea;
-        }
+      input[type="text"]:focus {
+        outline: none;
+        border-color: #667eea;
+      }
 
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
+      button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
 
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      }
 
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
 
-        .response-box {
-            margin-top: 20px;
-            padding: 20px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            min-height: 200px;
-            font-size: 16px;
-            line-height: 1.6;
-            color: #333;
-        }
+      .response-box {
+        margin-top: 20px;
+        padding: 20px;
+        background: #f5f5f5;
+        border-radius: 8px;
+        min-height: 200px;
+        font-size: 16px;
+        line-height: 1.6;
+        color: #333;
+      }
 
-        .status {
-            margin-top: 10px;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-        }
+      .status {
+        margin-top: 10px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+      }
 
-        .status.connected {
-            background: #d4edda;
-            color: #155724;
-        }
+      .status.connected {
+        background: #d4edda;
+        color: #155724;
+      }
 
-        .status.streaming {
-            background: #fff3cd;
-            color: #856404;
-        }
+      .status.streaming {
+        background: #fff3cd;
+        color: #856404;
+      }
 
-        .status.complete {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
+      .status.complete {
+        background: #d1ecf1;
+        color: #0c5460;
+      }
 
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-        }
+      .status.error {
+        background: #f8d7da;
+        color: #721c24;
+      }
 
-        .typing-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background: #667eea;
-            border-radius: 50%;
-            animation: pulse 1.5s infinite;
-        }
+      .typing-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #667eea;
+        border-radius: 50%;
+        animation: pulse 1.5s infinite;
+      }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.3;
         }
+        50% {
+          opacity: 1;
+        }
+      }
 
-        .metadata {
-            margin-top: 15px;
-            padding: 12px;
-            background: white;
-            border-radius: 6px;
-            font-size: 12px;
-            color: #666;
-        }
+      .metadata {
+        margin-top: 15px;
+        padding: 12px;
+        background: white;
+        border-radius: 6px;
+        font-size: 12px;
+        color: #666;
+      }
 
-        .metadata strong {
-            color: #333;
-        }
+      .metadata strong {
+        color: #333;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <div class="header">
-            <h1>🚀 Pagent Streaming Demo</h1>
-            <p>Real-time AI responses using Server-Sent Events</p>
+      <div class="header">
+        <h1>Pagent Streaming</h1>
+        <p>Real-time AI responses using Server-Sent Events</p>
+      </div>
+
+      <div class="content">
+        <div class="input-group">
+          <label for="question">Ask a question:</label>
+          <input
+            type="text"
+            id="question"
+            placeholder="Tell me a short joke about programming"
+            value="Tell me a short joke about programming"
+          />
         </div>
 
-        <div class="content">
-            <div class="input-group">
-                <label for="question">Ask a question:</label>
-                <input
-                    type="text"
-                    id="question"
-                    placeholder="Tell me a short joke about programming"
-                    value="Tell me a short joke about programming"
-                >
-            </div>
+        <button id="askBtn" onclick="askQuestion()">Ask Question</button>
 
-            <button id="askBtn" onclick="askQuestion()">Ask Question</button>
-
-            <div class="response-box" id="response">
-                <em>Response will appear here...</em>
-            </div>
-
-            <div id="status"></div>
-            <div id="metadata" class="metadata" style="display: none;"></div>
+        <div class="response-box" id="response">
+          <em>Response will appear here.</em>
         </div>
+
+        <div id="status"></div>
+        <div id="metadata" class="metadata" style="display: none"></div>
+      </div>
     </div>
 
     <script>
-        let eventSource = null;
+      let eventSource = null;
 
-        function setStatus(message, className) {
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = message;
-            statusEl.className = 'status ' + className;
+      function setStatus(message, className) {
+        const statusEl = document.getElementById("status");
+        statusEl.textContent = message;
+        statusEl.className = "status " + className;
+      }
+
+      function askQuestion() {
+        const question = document.getElementById("question").value;
+        const responseEl = document.getElementById("response");
+        const askBtn = document.getElementById("askBtn");
+        const metadataEl = document.getElementById("metadata");
+
+        if (!question.trim()) {
+          alert("Please enter a question");
+          return;
         }
 
-        function askQuestion() {
-            const question = document.getElementById('question').value;
-            const responseEl = document.getElementById('response');
-            const askBtn = document.getElementById('askBtn');
-            const metadataEl = document.getElementById('metadata');
+        // Close existing connection
+        if (eventSource) {
+          eventSource.close();
+        }
 
-            if (!question.trim()) {
-                alert('Please enter a question');
-                return;
-            }
+        // Reset UI
+        responseEl.innerHTML = "";
+        metadataEl.style.display = "none";
+        askBtn.disabled = true;
 
-            // Close existing connection
-            if (eventSource) {
-                eventSource.close();
-            }
+        // Create new SSE connection
+        eventSource = new EventSource(`10-streaming-sse-endpoint.php?q=${encodeURIComponent(question)}`);
 
-            // Reset UI
-            responseEl.innerHTML = '';
-            metadataEl.style.display = 'none';
-            askBtn.disabled = true;
+        eventSource.addEventListener("connected", (e) => {
+          const data = JSON.parse(e.data);
+          setStatus("Connected; starting stream", "connected");
+        });
 
-            // Create new SSE connection
-            eventSource = new EventSource(`streaming-sse-endpoint.php?q=${encodeURIComponent(question)}`);
+        eventSource.addEventListener("start", (e) => {
+          const data = JSON.parse(e.data);
+          setStatus("Streaming response", "streaming");
+          responseEl.innerHTML = '<span class="typing-indicator"></span>';
+        });
 
-            eventSource.addEventListener('connected', (e) => {
-                const data = JSON.parse(e.data);
-                setStatus('✓ Connected - Starting stream...', 'connected');
-            });
+        eventSource.addEventListener("token", (e) => {
+          const data = JSON.parse(e.data);
+          responseEl.textContent = data.accumulated;
+        });
 
-            eventSource.addEventListener('start', (e) => {
-                const data = JSON.parse(e.data);
-                setStatus('📡 Streaming response...', 'streaming');
-                responseEl.innerHTML = '<span class="typing-indicator"></span>';
-            });
+        eventSource.addEventListener("done", (e) => {
+          const data = JSON.parse(e.data);
+          setStatus("Stream complete", "complete");
 
-            eventSource.addEventListener('token', (e) => {
-                const data = JSON.parse(e.data);
-                responseEl.textContent = data.accumulated;
-            });
-
-            eventSource.addEventListener('done', (e) => {
-                const data = JSON.parse(e.data);
-                setStatus('✅ Stream complete!', 'complete');
-
-                // Show metadata
-                if (data.usage) {
-                    metadataEl.style.display = 'block';
-                    metadataEl.innerHTML = `
-                        <strong>Stop Reason:</strong> ${data.stop_reason || 'N/A'}<br>
+          // Show metadata
+          if (data.usage) {
+            metadataEl.style.display = "block";
+            metadataEl.innerHTML = `
+                        <strong>Stop Reason:</strong> ${data.stop_reason || "N/A"}<br>
                         <strong>Input Tokens:</strong> ${data.usage.input_tokens || 0}<br>
                         <strong>Output Tokens:</strong> ${data.usage.output_tokens || 0}<br>
                         <strong>Total Tokens:</strong> ${(data.usage.input_tokens || 0) + (data.usage.output_tokens || 0)}
                     `;
-                }
-            });
-
-            eventSource.addEventListener('complete', (e) => {
-                eventSource.close();
-                askBtn.disabled = false;
-            });
-
-            eventSource.addEventListener('error', (e) => {
-                setStatus('❌ Error occurred', 'error');
-                eventSource.close();
-                askBtn.disabled = false;
-            });
-
-            eventSource.onerror = function() {
-                setStatus('❌ Connection error', 'error');
-                eventSource.close();
-                askBtn.disabled = false;
-            };
-        }
-
-        // Allow Enter key to submit
-        document.getElementById('question').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                askQuestion();
-            }
+          }
         });
+
+        eventSource.addEventListener("complete", (e) => {
+          eventSource.close();
+          askBtn.disabled = false;
+        });
+
+        eventSource.addEventListener("error", (e) => {
+          setStatus("Stream error", "error");
+          eventSource.close();
+          askBtn.disabled = false;
+        });
+
+        eventSource.onerror = function () {
+          setStatus("Connection error", "error");
+          eventSource.close();
+          askBtn.disabled = false;
+        };
+      }
+
+      // Allow Enter key to submit
+      document.getElementById("question").addEventListener("keypress", function (e) {
+        if (e.key === "Enter") {
+          askQuestion();
+        }
+      });
     </script>
-</body>
+  </body>
 </html>

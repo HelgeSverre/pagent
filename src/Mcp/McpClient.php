@@ -9,6 +9,16 @@ use Pagent\Events\Event;
 use Pagent\Events\EventDispatcher;
 use Pagent\Events\EventListener;
 use Pagent\Events\EventManager;
+use Pagent\Events\Events\Mcp\McpConnectionEstablishedEvent;
+use Pagent\Events\Events\Mcp\McpConnectionFailedEvent;
+use Pagent\Events\Events\Mcp\McpConnectionInitiatingEvent;
+use Pagent\Events\Events\Mcp\McpDisconnectedEvent;
+use Pagent\Events\Events\Mcp\McpDisconnectingEvent;
+use Pagent\Events\Events\Mcp\McpToolCalledEvent;
+use Pagent\Events\Events\Mcp\McpToolCallingEvent;
+use Pagent\Events\Events\Mcp\McpToolErrorEvent;
+use Pagent\Events\Events\Mcp\McpToolsDiscoveredEvent;
+use Pagent\Events\Events\Mcp\McpToolsDiscoveringEvent;
 use Pagent\Mcp\Exceptions\McpConnectionException;
 use Pagent\Mcp\Exceptions\McpProtocolException;
 
@@ -65,7 +75,7 @@ final class McpClient
         $startTime = microtime(true);
 
         // Fire connection initiating event
-        $this->fireEvent(new \Pagent\Events\Events\Mcp\McpConnectionInitiatingEvent(
+        $this->fireEvent(new McpConnectionInitiatingEvent(
             client: $this,
             clientName: $this->clientName,
             clientVersion: $this->clientVersion,
@@ -113,7 +123,7 @@ final class McpClient
             // Fire connection established event
             /** @var array<string, mixed> $serverInfo */
             $serverInfo = is_array($result['serverInfo'] ?? null) ? $result['serverInfo'] : [];
-            $this->fireEvent(new \Pagent\Events\Events\Mcp\McpConnectionEstablishedEvent(
+            $this->fireEvent(new McpConnectionEstablishedEvent(
                 client: $this,
                 clientName: $this->clientName,
                 clientVersion: $this->clientVersion,
@@ -123,7 +133,7 @@ final class McpClient
             ));
         } catch (\Throwable $e) {
             // Fire connection failed event
-            $this->fireEvent(new \Pagent\Events\Events\Mcp\McpConnectionFailedEvent(
+            $this->fireEvent(new McpConnectionFailedEvent(
                 client: $this,
                 clientName: $this->clientName,
                 clientVersion: $this->clientVersion,
@@ -140,7 +150,7 @@ final class McpClient
     public function disconnect(): void
     {
         // Fire disconnecting event
-        $this->fireEvent(new \Pagent\Events\Events\Mcp\McpDisconnectingEvent(
+        $this->fireEvent(new McpDisconnectingEvent(
             client: $this,
             clientName: $this->clientName,
             clientVersion: $this->clientVersion,
@@ -152,7 +162,7 @@ final class McpClient
         $this->availableTools = [];
 
         // Fire disconnected event
-        $this->fireEvent(new \Pagent\Events\Events\Mcp\McpDisconnectedEvent(
+        $this->fireEvent(new McpDisconnectedEvent(
             client: $this,
             clientName: $this->clientName,
             clientVersion: $this->clientVersion,
@@ -182,7 +192,7 @@ final class McpClient
         $startTime = microtime(true);
 
         // Fire tools discovering event
-        $this->fireEvent(new \Pagent\Events\Events\Mcp\McpToolsDiscoveringEvent(
+        $this->fireEvent(new McpToolsDiscoveringEvent(
             client: $this,
         ));
 
@@ -200,7 +210,7 @@ final class McpClient
         $durationMs = (microtime(true) - $startTime) * 1000;
 
         // Fire tools discovered event
-        $this->fireEvent(new \Pagent\Events\Events\Mcp\McpToolsDiscoveredEvent(
+        $this->fireEvent(new McpToolsDiscoveredEvent(
             client: $this,
             tools: $this->availableTools,
             toolCount: count($this->availableTools),
@@ -237,7 +247,7 @@ final class McpClient
         $startTime = microtime(true);
 
         // Fire tool calling event
-        $this->fireEvent(new \Pagent\Events\Events\Mcp\McpToolCallingEvent(
+        $this->fireEvent(new McpToolCallingEvent(
             client: $this,
             toolName: $toolName,
             arguments: $arguments,
@@ -258,7 +268,7 @@ final class McpClient
             $durationMs = (microtime(true) - $startTime) * 1000;
 
             // Fire tool called event
-            $this->fireEvent(new \Pagent\Events\Events\Mcp\McpToolCalledEvent(
+            $this->fireEvent(new McpToolCalledEvent(
                 client: $this,
                 toolName: $toolName,
                 arguments: $arguments,
@@ -269,7 +279,7 @@ final class McpClient
             return $result;
         } catch (\Throwable $e) {
             // Fire tool error event
-            $this->fireEvent(new \Pagent\Events\Events\Mcp\McpToolErrorEvent(
+            $this->fireEvent(new McpToolErrorEvent(
                 client: $this,
                 toolName: $toolName,
                 arguments: $arguments,
@@ -563,7 +573,6 @@ final class McpClient
      */
     private function fireEvent(Event $event): void
     {
-        $this->eventDispatcher->dispatch($event);
-        EventManager::instance()->dispatch($event);
+        EventManager::publish($event, $this->eventDispatcher);
     }
 }

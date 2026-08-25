@@ -45,8 +45,8 @@ final class FileWrite extends Tool
 
     public function execute(array $params): mixed
     {
-        $path = $params['path'] ?? throw new RuntimeException('Path parameter is required');
-        $content = $params['content'] ?? throw new RuntimeException('Content parameter is required');
+        $path = $this->requiredString($params, 'path');
+        $content = $this->requiredString($params, 'content');
 
         // Check content size
         $contentSize = strlen($content);

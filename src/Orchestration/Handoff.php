@@ -7,7 +7,6 @@ namespace Pagent\Orchestration;
 use Pagent\Agent;
 use RuntimeException;
 
-use function is_string;
 use function json_encode;
 use function resolveAgent;
 
@@ -26,13 +25,15 @@ final class Handoff
 
     public function to(string|Agent $targetAgent): self
     {
-        $this->toAgent = resolveAgent($targetAgent);
+        $resolved = resolveAgent($targetAgent);
 
-        if (! $this->toAgent instanceof Agent) {
-            $name = is_string($targetAgent) ? $targetAgent : 'unknown';
+        if ($resolved === null) {
+            $targetName = $targetAgent instanceof Agent ? $targetAgent->getName() : $targetAgent;
 
-            throw new RuntimeException("Target agent '{$name}' not found for handoff");
+            throw new RuntimeException("Target agent '{$targetName}' not found for handoff");
         }
+
+        $this->toAgent = $resolved;
 
         return $this;
     }

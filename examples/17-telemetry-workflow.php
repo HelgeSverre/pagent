@@ -11,7 +11,7 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-echo "=== Telemetry: Multi-Agent Workflow ===\n\n";
+echo "\n[Telemetry: Multi-Agent Workflow]\n";
 
 // Enable console telemetry to see the workflow spans
 telemetry_console(verbose: true);
@@ -20,23 +20,23 @@ echo "Telemetry enabled with console exporter\n";
 echo "This example demonstrates distributed tracing across multiple agents\n\n";
 
 // Create multiple agents for content creation workflow
-echo "=== Setting up Content Creation Workflow ===\n\n";
+echo "\n[Setting up Content Creation Workflow]\n";
 
 agent('researcher')
     ->provider('anthropic')
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('You are a research assistant. Provide factual information and key points about topics.')
     ->telemetry(true);
 
 agent('writer')
     ->provider('anthropic')
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('You are a content writer. Write clear, concise summaries based on research.')
     ->telemetry(true);
 
 agent('editor')
     ->provider('anthropic')
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('You are an editor. Polish and improve writing for clarity and impact.')
     ->telemetry(true);
 
@@ -44,7 +44,7 @@ echo "Created agents: researcher, writer, editor\n";
 echo "All agents have telemetry enabled\n\n";
 
 // Example 1: Simple pipeline
-echo "=== Example 1: Content Creation Pipeline ===\n\n";
+echo "\n[Example 1: Content Creation Pipeline]\n";
 
 $result = pipeline('content-creation')
     ->step('research', agent('researcher'))
@@ -55,7 +55,7 @@ $result = pipeline('content-creation')
 echo "Topic: Write a brief summary about OpenTelemetry\n\n";
 echo "Final result:\n{$result}\n\n";
 
-echo "--- Telemetry Output Above ---\n";
+echo "[Telemetry Output Above]\n";
 echo "You should see a hierarchy of spans:\n";
 echo "  workflow.pipeline (parent)\n";
 echo "    └─ workflow.step: research\n";
@@ -69,11 +69,11 @@ echo "       └─ agent.prompt: editor\n";
 echo "          └─ llm.request\n\n";
 
 // Example 2: Pipeline with tools
-echo "=== Example 2: Research Pipeline with Tools ===\n\n";
+echo "\n[Example 2: Research Pipeline with Tools]\n";
 
 agent('fact-checker')
     ->provider('anthropic')
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('You are a fact checker. Verify information and check data.')
     ->telemetry(true)
     ->tool('check_date', 'Check if a date is valid', function (string $date): array {
@@ -96,7 +96,7 @@ $result = pipeline('research-workflow')
 echo "Topic: Research the history of PHP programming language\n\n";
 echo "Final result:\n{$result}\n\n";
 
-echo "--- Telemetry Output Above ---\n";
+echo "[Telemetry Output Above]\n";
 echo "You should see tool.execute spans within the fact-checker step\n";
 echo "Tool spans show:\n";
 echo "  - tool.name attribute\n";
@@ -105,7 +105,7 @@ echo "  - tool.result_type\n";
 echo "  - Duration and status\n\n";
 
 // Example 3: Parallel agents (simulated with multiple pipelines)
-echo "=== Example 3: Multiple Independent Workflows ===\n\n";
+echo "\n[Example 3: Multiple Independent Workflows]\n";
 
 echo "Running two independent workflows...\n\n";
 
@@ -127,12 +127,11 @@ $result2 = pipeline('science-content')
 echo "Workflow 2 (science-content): Explain photosynthesis\n";
 echo "Result: {$result2}\n\n";
 
-echo "--- Telemetry Output Above ---\n";
+echo "[Telemetry Output Above]\n";
 echo "You should see two separate workflow.pipeline root spans\n";
 echo "Each workflow has its own trace tree\n";
 echo "workflow.name attribute distinguishes them\n\n";
 
-echo "✅ Multi-agent workflow telemetry completed!\n\n";
 echo "Key points:\n";
 echo "- Pipeline creates workflow.pipeline root span\n";
 echo "- Each step creates workflow.step child span\n";
@@ -141,3 +140,5 @@ echo "- Tool executions create tool.execute spans\n";
 echo "- Parent-child relationships show execution flow\n";
 echo "- Duration tracking shows performance bottlenecks\n";
 echo "- Use Jaeger/Zipkin to visualize complex workflows\n";
+
+echo "\nDone.\n";

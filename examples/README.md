@@ -1,150 +1,86 @@
 # Pagent Examples
 
-This directory contains working examples demonstrating Pagent's features.
+This directory contains runnable examples for the main Pagent APIs. Run commands
+from the repository root so relative paths and Composer autoloading resolve
+correctly.
 
-## Prerequisites
-
-Make sure you have API keys configured in your `.env` file:
+## Setup
 
 ```bash
-cp ../.env.example ../.env
-# Edit .env and add your API keys
+composer install
+cp .env.example .env
 ```
 
-## Running Examples
+Add `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` to `.env` for examples that call
+hosted providers. Ollama examples require a local Ollama server. Mock-provider
+examples need no credentials or network access.
 
-### 01 - Basic Chat
+## Output convention
 
-Simple conversation examples with different providers:
+Console examples use a compact, consistent format:
+
+- `[Section]` identifies the current scenario.
+- `Input:` and `Output:` identify prompts and model responses.
+- Domain labels such as `User:`, `Support:`, or `Provider:` are used when
+  they communicate useful context.
+- `Status:`, `Warning:`, `Blocked:`, and `Skipped:` describe execution
+  state.
+- `Done.` marks normal completion.
+
+Examples avoid decorative output so logs remain readable in terminals and CI.
+
+## Example catalog
+
+| File                                                           | Demonstrates                                                      | External requirement               |
+| -------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------- |
+| [01-basic-chat.php](01-basic-chat.php)                         | Basic prompts, conversation context, providers, and mocks         | OpenAI; Anthropic section optional |
+| [02-tool-calling.php](02-tool-calling.php)                     | Closure tools, schema inference, and multiple tool calls          | OpenAI; Anthropic section optional |
+| [03-context-memory.php](03-context-memory.php)                 | In-process context and message history                            | OpenAI                             |
+| [04-multi-provider.php](04-multi-provider.php)                 | Provider comparison and runtime provider selection                | OpenAI; Anthropic optional         |
+| [05-complete-demo.php](05-complete-demo.php)                   | Agents, tools, multi-step tasks, and inspection                   | OpenAI and Anthropic               |
+| [06-safety-guards.php](06-safety-guards.php)                   | Built-in guards, custom guards, and fallbacks                     | OpenAI                             |
+| [07-evaluation.php](07-evaluation.php)                         | Datasets, metrics, and report generation                          | OpenAI                             |
+| [08-evaluation-progressive.php](08-evaluation-progressive.php) | Progressive evaluation, prompt comparisons, and regression checks | OpenAI                             |
+| [08-middleware.php](08-middleware.php)                         | Metrics, rate limiting, logging, and custom middleware            | OpenAI                             |
+| [08-simple-chain.php](08-simple-chain.php)                     | Named workflow steps and transforms                               | None                               |
+| [09-multi-agent.php](09-multi-agent.php)                       | Pipelines, handoffs, delegation, and error recovery               | OpenAI                             |
+| [09-pipeline-steps.php](09-pipeline-steps.php)                 | Step results, transforms, validation, and metadata                | None                               |
+| [10-streaming-basic.php](10-streaming-basic.php)               | Callback and iterable streaming                                   | Anthropic                          |
+| [10-streaming-sse-endpoint.php](10-streaming-sse-endpoint.php) | An SSE endpoint for streamed responses                            | Anthropic                          |
+| [10-streaming-sse-client.html](10-streaming-sse-client.html)   | Browser client for the SSE endpoint                               | Local SSE endpoint                 |
+| [11-memory-file.php](11-memory-file.php)                       | File persistence and context pruning                              | None                               |
+| [11-memory-sqlite.php](11-memory-sqlite.php)                   | SQLite persistence across agent instances                         | None                               |
+| [11-memory-multi-session.php](11-memory-multi-session.php)     | Session isolation and restoration                                 | None                               |
+| [12-ollama-basic.php](12-ollama-basic.php)                     | Local prompts, context, and configuration                         | Ollama                             |
+| [13-ollama-streaming.php](13-ollama-streaming.php)             | Ollama NDJSON streaming                                           | Ollama                             |
+| [14-ollama-tools.php](14-ollama-tools.php)                     | Tool calling with local models                                    | Ollama                             |
+| [15-telemetry-console.php](15-telemetry-console.php)           | Console spans and verbosity                                       | Anthropic                          |
+| [16-telemetry-jaeger.php](16-telemetry-jaeger.php)             | OTLP traces exported to Jaeger                                    | Anthropic and Jaeger               |
+| [17-telemetry-workflow.php](17-telemetry-workflow.php)         | Trace relationships across workflows                              | Anthropic                          |
+| [18-telemetry-tools.php](18-telemetry-tools.php)               | Tool span attributes, timing, and errors                          | Anthropic                          |
+| [19-telemetry-custom.php](19-telemetry-custom.php)             | OTLP, Zipkin, headers, sampling, and environments                 | Anthropic; collector varies        |
+| [19-telemetry-event-bridge.php](19-telemetry-event-bridge.php) | Automatic spans from lifecycle events                             | None                               |
+| [20-mcp-client.php](20-mcp-client.php)                         | MCP transports, discovery, adapters, and errors                   | MCP server for live calls          |
+
+## Running an example
 
 ```bash
 php examples/01-basic-chat.php
 ```
 
-### 02 - Tool Calling
-
-Automatic tool execution with function calling:
+Run the deterministic workflow examples without credentials:
 
 ```bash
-php examples/02-tool-calling.php
+php examples/08-simple-chain.php
+php examples/09-pipeline-steps.php
 ```
 
-### 03 - Context & Memory
+For API integration tests rather than demonstrations, see
+[`tests/README.md`](../tests/README.md).
 
-Conversation history and context management:
+## Related documentation
 
-```bash
-php examples/03-context-memory.php
-```
-
-### 04 - Multi-Provider
-
-Using different providers for different tasks:
-
-```bash
-php examples/04-multi-provider.php
-```
-
-## Telemetry Examples (15-19)
-
-### 15 - Console Telemetry
-
-Basic telemetry with console output. Great for debugging and understanding span structure.
-
-```bash
-php examples/15-telemetry-console.php
-```
-
-Features:
-
-- Console exporter with verbose mode
-- Single and multi-turn conversations
-- Span hierarchy visualization
-
-### 16 - Jaeger Integration
-
-Send traces to Jaeger for distributed tracing visualization.
-
-```bash
-php examples/16-telemetry-jaeger.php
-```
-
-**Prerequisites:**
-
-```bash
-docker run -d --name jaeger \
-  -p 16686:16686 \
-  -p 4318:4318 \
-  jaegertracing/all-in-one:latest
-```
-
-View traces at: http://localhost:16686
-
-Features:
-
-- Jaeger OTLP exporter
-- Agent with tools tracking
-- Multi-agent traces
-- UI-based trace visualization
-
-### 17 - Multi-Agent Workflow
-
-Distributed tracing across multiple agents in Pipeline workflows.
-
-```bash
-php examples/17-telemetry-workflow.php
-```
-
-Features:
-
-- Pipeline workflow spans
-- Multiple agents coordination
-- Parent-child span relationships
-- Step-by-step execution tracking
-
-### 18 - Tool Execution Tracking
-
-Track tool executions with arguments, results, and timing.
-
-```bash
-php examples/18-telemetry-tools.php
-```
-
-Features:
-
-- Tool execution spans
-- Arguments and result type tracking
-- Error handling in tools
-- Performance profiling
-- Sequential tool chains
-
-### 19 - Custom OTLP Configuration
-
-Advanced OTLP configuration with headers, endpoints, and authentication.
-
-```bash
-php examples/19-telemetry-custom.php
-```
-
-Features:
-
-- Custom OTLP endpoints
-- Authentication headers (Honeycomb, etc.)
-- Zipkin exporter
-- Environment-based configuration
-- Sampling configuration
-- Multiple exporter patterns
-
-**Common OTLP Backends:**
-
-- **Jaeger**: `telemetry_jaeger('http://localhost:4318/v1/traces')`
-- **Zipkin**: `telemetry_zipkin('http://localhost:9411/api/v2/spans')`
-- **Honeycomb**: `telemetry_otlp('https://api.honeycomb.io/v1/traces', ['x-honeycomb-team' => 'key'])`
-- **New Relic**: `telemetry_otlp('https://otlp.nr-data.net/v1/traces', ['api-key' => 'key'])`
-- **Custom**: `telemetry_otlp('http://your-collector:4318/v1/traces')`
-
-## Notes
-
-- Examples use `unset($variable)` to trigger AgentBuilder destruction and registration
-- Most examples work with OpenAI (always available) and optionally with Anthropic
-- Mock provider examples work without any API keys
+- [Project README](../README.md)
+- [Feature guides](../docs/README.md)
+- [Evaluation tutorial](evaluation-tutorial.md)
+- [Complete framework guide](../guide/complete.md)

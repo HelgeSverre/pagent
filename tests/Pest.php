@@ -5,6 +5,35 @@ declare(strict_types=1);
 use Dotenv\Dotenv;
 use Pagent\Agent;
 
+/*
+|--------------------------------------------------------------------------
+| Test execution groups
+|--------------------------------------------------------------------------
+|
+| Integration tests are normally local and deterministic. Tests which make
+| paid network calls or require a running observability backend are opt-in,
+| even when credentials or local services happen to be available.
+|
+*/
+
+pest()->group('integration')->in('Integration');
+
+pest()->group('live')->in(
+    'Integration/ProviderFeaturesTest.php',
+    'Integration/RealAPITest.php',
+    'Integration/ToolCallingTest.php',
+    'Integration/OllamaProviderTest.php',
+    'Integration/OllamaToolCallingTest.php',
+    'Integration/Streaming',
+);
+
+pest()->group('external')->in(
+    'Integration/Observability',
+    'Integration/Mcp/McpHttpIntegrationTest.php',
+    'Unit/Http/CurlTransportTest.php',
+    'Unit/Tools/WebFetchTest.php',
+);
+
 if (file_exists(__DIR__.'/../.env')) {
     $dotenv = Dotenv::createImmutable(__DIR__.'/..');
     $dotenv->load();

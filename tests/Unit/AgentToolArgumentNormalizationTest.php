@@ -88,7 +88,7 @@ describe('Tool Call Argument Normalization', function (): void {
         expect($result)->toBe([]);
     });
 
-    it('handles invalid JSON gracefully', function (): void {
+    it('rejects invalid JSON with tool context', function (): void {
         $agent = new Agent('test');
         $agent->provider(new Mock);
 
@@ -102,9 +102,8 @@ describe('Tool Call Argument Normalization', function (): void {
             'arguments' => '{"invalid json',
         ];
 
-        $result = $method->invoke($agent, $toolCall);
-
-        expect($result)->toBe([]);
+        expect(fn () => $method->invoke($agent, $toolCall))
+            ->toThrow(RuntimeException::class, "Tool call 'test_tool' arguments must be a valid JSON object");
     });
 
     it('handles null arguments', function (): void {
@@ -126,7 +125,7 @@ describe('Tool Call Argument Normalization', function (): void {
         expect($result)->toBe([]);
     });
 
-    it('handles unexpected argument types', function (): void {
+    it('rejects unexpected argument types with tool context', function (): void {
         $agent = new Agent('test');
         $agent->provider(new Mock);
 
@@ -140,9 +139,8 @@ describe('Tool Call Argument Normalization', function (): void {
             'arguments' => 123, // Invalid type
         ];
 
-        $result = $method->invoke($agent, $toolCall);
-
-        expect($result)->toBe([]);
+        expect(fn () => $method->invoke($agent, $toolCall))
+            ->toThrow(RuntimeException::class, "Tool call 'test_tool' arguments must be an object or JSON object string, got int");
     });
 
     it('prefers arguments over input when both present', function (): void {

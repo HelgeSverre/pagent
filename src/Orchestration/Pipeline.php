@@ -5,14 +5,22 @@ declare(strict_types=1);
 namespace Pagent\Orchestration;
 
 use Closure;
-use Exception;
 use Pagent\Agent;
+use Pagent\Registry;
+use Pagent\Workflow\Pipeline as WorkflowPipeline;
 use RuntimeException;
+use Throwable;
 
 use function is_string;
 use function json_encode;
 use function resolveAgent;
 
+/**
+ * Backwards-compatible facade for the original orchestration API.
+ *
+ * Execution, metadata, errors, and telemetry are delegated to the workflow
+ * pipeline so all workflow entry points share the same runner.
+ */
 final class Pipeline
 {
     /** @var array<int, array{agent: Agent|string, transform: ?Closure}> */
@@ -45,52 +53,55 @@ final class Pipeline
 
     public function run(mixed $input): mixed
     {
-        $output = $input;
         $this->results = [];
+        $workflow = WorkflowPipeline::create($this->name);
 
         foreach ($this->stages as $index => $stage) {
-            // TODO: why not get from resolved agent?
             $agentName = is_string($stage['agent']) ? $stage['agent'] : $stage['agent']->getName();
 
-            try {
-                $agent = resolveAgent($stage['agent']);
+            $workflow->operation(
+                "stage_{$index}",
+                function (mixed $previous) use ($stage, $index, $agentName): object {
+                    $agent = resolveAgent($stage['agent']);
+                    if ($agent === null) {
+                        throw new RuntimeException("Agent '{$agentName}' not found at stage {$index}");
+                    }
 
-                if (! $agent instanceof Agent) {
-                    throw new RuntimeException("Agent '{$agentName}' not found at stage {$index}");
-                }
+                    $stageInput = $stage['transform']
+                        ? ($stage['transform'])($previous)
+                        : $this->promptInput($previous);
+                    $response = $agent->prompt($stageInput);
 
-                // Apply transform if provided
-                if ($stage['transform']) {
-                    $input = ($stage['transform'])($output);
-                } else {
-                    $input = is_string($output) ? $output : json_encode($output);
-                }
+                    $this->results[] = [
+                        'stage' => $index,
+                        'agent' => $agentName,
+                        'input' => $stageInput,
+                        'output' => $response->content,
+                        'response' => $response,
+                    ];
 
-                // Run the agent
-                $response = $agent->prompt($input);
-                $output = $response->content;
-
-                // Store result
-                $this->results[] = [
-                    'stage' => $index,
-                    'agent' => $agentName,
-                    'input' => $input,
-                    'output' => $output,
-                    'response' => $response,
-                ];
-            } catch (Exception $e) {
-                if ($this->errorHandler) {
-                    return ($this->errorHandler)($e, $index, $agentName);
-                }
-
-                throw new RuntimeException(
-                    "Pipeline '{$this->name}' failed at stage {$index} (agent: {$agentName}): {$e->getMessage()}",
-                    previous: $e,
-                );
-            }
+                    return $response;
+                },
+                $stage['agent'] instanceof Agent ? $stage['agent'] : Registry::get($stage['agent']),
+                $agentName,
+            );
         }
 
-        return $output;
+        try {
+            return $workflow->run($input)->final;
+        } catch (Throwable $exception) {
+            if ($this->errorHandler !== null) {
+                return ($this->errorHandler)($exception, count($this->results), $this->failedAgentName());
+            }
+
+            $stage = count($this->results);
+            $agentName = $this->failedAgentName();
+
+            throw new RuntimeException(
+                "Pipeline '{$this->name}' failed at stage {$stage} (agent: {$agentName}): {$exception->getMessage()}",
+                previous: $exception,
+            );
+        }
     }
 
     public function getResults(): array
@@ -101,5 +112,21 @@ final class Pipeline
     public function getName(): string
     {
         return $this->name;
+    }
+
+    private function promptInput(mixed $value): string
+    {
+        return is_string($value) ? $value : json_encode($value, JSON_THROW_ON_ERROR);
+    }
+
+    private function failedAgentName(): string
+    {
+        $stage = $this->stages[count($this->results)] ?? null;
+
+        if ($stage === null) {
+            return 'unknown';
+        }
+
+        return is_string($stage['agent']) ? $stage['agent'] : $stage['agent']->getName();
     }
 }

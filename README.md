@@ -1,8 +1,10 @@
-# Pagent 🩸
+# Pagent
 
-**A Pest-inspired LLM Agent Framework for PHP**
+**A fluent LLM agent framework for PHP, inspired by Pest.**
 
-Build intelligent agents with automatic tool calling, multi-provider support, safety guards, and multi-agent orchestration—all with a clean, fluent API.
+Pagent provides a compact API for building stateful AI agents with tool calling,
+streaming, multiple model providers, safety guards, evaluation, and multi-agent
+workflows.
 
 [![Latest Version](https://img.shields.io/packagist/v/helgesverre/pagent.svg?style=flat-square&v=1735257600)](https://packagist.org/packages/helgesverre/pagent)
 [![Tests](https://img.shields.io/github/actions/workflow/status/helgesverre/pagent/tests.yml?branch=main&label=tests&style=flat-square&v=1735257600)](https://github.com/helgesverre/pagent/actions)
@@ -10,22 +12,27 @@ Build intelligent agents with automatic tool calling, multi-provider support, sa
 [![PHP Version](https://img.shields.io/packagist/php-v/helgesverre/pagent.svg?style=flat-square&v=1735257600)](https://packagist.org/packages/helgesverre/pagent)
 [![License](https://img.shields.io/github/license/HelgeSverre/pagent?style=flat-square&v=1735257600)](https://github.com/HelgeSverre/pagent/blob/main/LICENSE)
 
----
+## Features
 
-## Why Pagent?
+- Fluent, named agent configuration
+- Anthropic, OpenAI, OpenCode Zen/Go, Ollama, and deterministic mock providers
+- Automatic tool schemas generated from typed PHP closures
+- Reusable class-based tools for files, search, shell commands, PDFs, and HTTP
+- Streaming responses and Server-Sent Events support
+- File and SQLite conversation persistence
+- Guards, middleware, lifecycle events, and fallbacks
+- Pipelines, handoffs, delegation, and multi-agent workflows
+- Dataset-based evaluation with built-in and custom metrics
+- Token and cost tracking
+- OpenTelemetry tracing for agents, providers, tools, guards, and workflows
+- Model Context Protocol (MCP) client support over stdio and HTTP/SSE
 
-- **🧪 Pest-Inspired API** - Fluent, expressive syntax that feels natural
-- **🌊 Real-Time Streaming** - SSE streaming for ChatGPT-like experiences
-- **💾 Memory & Persistence** - SQLite, File, and custom storage adapters
-- **🔧 Automatic Tool Calling** - JSON schema generation from PHP functions
-- **🤖 Multi-Provider** - Anthropic Claude, OpenAI GPT, OpenCode Zen/Go, Ollama (local), Mock (for testing)
-- **🛡️ Safety Guards** - PII detection, content filtering, prompt injection prevention
-- **📊 Evaluation Framework** - Test datasets with automated metrics and reports
-- **🔄 Multi-Agent Orchestration** - Pipeline, handoff, and delegation patterns
-- **📡 Observability & Tracing** - OpenTelemetry instrumentation with Jaeger, Zipkin, OTLP support
-- **⚡ Production Ready** - 630+ tests, PHPStan level 9, PHP 8.3+ type safety
+## Requirements
 
----
+- PHP 8.4.1 or later
+- Composer 2
+- The PHP cURL extension
+- A provider API key, unless you use Ollama or the mock provider
 
 ## Installation
 
@@ -33,605 +40,502 @@ Build intelligent agents with automatic tool calling, multi-provider support, sa
 composer require helgesverre/pagent
 ```
 
-**Requirements:**
+The core package intentionally has a small runtime footprint. Telemetry exporters,
+the `Bash` tool, full-text search, and JSON-schema evaluation are optional; Composer
+lists their packages under `suggest`. Install only the integrations your application
+uses (for example, `composer require open-telemetry/sdk` for telemetry or
+`composer require symfony/process` for `Bash`).
 
-- PHP 8.3 or higher
-- Composer 2.x
+Set the environment variable for the provider you plan to use:
 
-## Quick Start
+```bash
+export OPENAI_API_KEY="your-api-key"
+export ANTHROPIC_API_KEY="your-api-key"
+export OPENCODE_API_KEY="your-api-key"
+```
+
+For local development in this repository, copy the supplied environment file and
+add your credentials:
+
+```bash
+cp .env.example .env
+composer install
+```
+
+## Quick start
+
+Composer loads Pagent's helper functions automatically. Define a named agent and
+send it a prompt:
 
 ```php
-// Configure an agent
-agent('assistant')
-    ->provider('anthropic')
-    ->system('You are a helpful assistant')
-    ->temperature(0.7);
+<?php
 
-// Use the agent
-$response = agent('assistant')->prompt('Hello!');
+require __DIR__.'/vendor/autoload.php';
+
+$assistant = agent('assistant')
+    ->provider('openai')
+    ->system('You are a concise and helpful PHP assistant.')
+    ->temperature(0.3);
+
+$response = $assistant->prompt('Explain readonly properties in PHP.');
+
 echo $response->content;
+```
 
-// Or stream responses in real-time
-agent('assistant')->streamTo('Tell me a story', function ($chunk) {
+`agent()` always returns and immediately registers an `Agent`; it never depends on
+builder destruction. Use `getAgent()` when a missing name must remain missing, or
+`defineAgent()` when you want an explicit configuration boundary. `build()` remains
+a harmless compatibility no-op on `Agent`.
+
+Named agents are registered for reuse, so application code can retrieve the same
+configured agent later:
+
+```php
+$response = agent('assistant')->prompt('Show a short example.');
+```
+
+See the [vanilla PHP guide](docs/vanilla-php.md) for a complete application
+layout, or choose one of the [framework integration guides](#framework-integration).
+
+## Providers
+
+| Provider  | Configuration                          | Typical use                        |
+| --------- | -------------------------------------- | ---------------------------------- |
+| Anthropic | `ANTHROPIC_API_KEY`                    | Claude models                      |
+| OpenAI    | `OPENAI_API_KEY`                       | OpenAI chat models                 |
+| OpenCode  | `OPENCODE_API_KEY`                     | Zen/Go models over their protocol  |
+| Ollama    | Local server, by default on port 11434 | Local and private model execution  |
+| Mock      | In-memory response map                 | Unit tests and deterministic demos |
+
+Use a provider name for standard configuration:
+
+```php
+$agent = agent('writer')
+    ->provider('anthropic')
+    ->model('your-model-id')
+    ->maxTokens(1_000);
+```
+
+Pass configuration options with the provider name or supply a provider instance
+when you need more control:
+
+```php
+use Pagent\Providers\Ollama;
+
+$local = agent('local')
+    ->provider(new Ollama([
+        'base_url' => 'http://127.0.0.1:11434',
+        'timeout' => 180,
+    ]))
+    ->model('qwen3:8b');
+```
+
+Custom adapters should implement `IdentifiedProvider` and return a
+`Pagent\ProviderCapabilities` value instead of relying on their class name.
+Implement `StreamingProvider` when the adapter can produce incremental
+`StreamResponse`s. This makes provider identity, tools, system-message support,
+and streaming explicit for both built-ins and third-party adapters.
+
+Provider-specific request options can be passed to `prompt()`:
+
+```php
+$response = openai()->prompt('Return a JSON object with a status field.', [
+    'model' => 'your-model-id',
+    'response_format' => ['type' => 'json_object'],
+]);
+```
+
+OpenCode supports chat-completions, Responses, and Messages model protocols. The
+provider defaults to chat-completions; choose a protocol globally, per model, or
+per prompt when the selected OpenCode model requires it. The default model ID
+depends on the selected gateway:
+
+```php
+// Zen uses https://opencode.ai/zen/v1 and x-preview-f-free.
+$zen = opencode();
+$zenResponse = $zen->prompt('Hello!');
+
+// Go uses https://opencode.ai/zen/go/v1 and ox-alpha-free.
+$go = opencode(['gateway' => 'go']);
+$goResponse = $go->prompt('Hello!');
+
+// A model using the Responses protocol.
+$responses = opencode([
+    'protocol' => 'responses',
+]);
+
+// Or select protocols by model while keeping a chat-completions default.
+$mixed = opencode([
+    'model_protocols' => ['your-responses-model' => 'responses'],
+]);
+
+// String aliases are available for agent configuration.
+$coder = agent('coder')
+    ->provider('opencode-go')
+    ->model('ox-alpha-free');
+```
+
+For local inference setup and model selection, see the
+[Ollama integration guide](docs/ollama-integration.md).
+
+## Tool calling
+
+Pagent derives a JSON schema from a closure's parameter names, type declarations,
+and default values. The agent can then select and execute the tool during a model
+conversation.
+
+```php
+$support = agent('order-support')
+    ->provider('openai')
+    ->system('Use the available tools to answer questions about orders.')
+    ->tool(
+        'find_order',
+        'Find an order by its identifier',
+        function (string $orderId, bool $includeItems = false): array {
+            return [
+                'id' => $orderId,
+                'status' => 'shipped',
+                'items' => $includeItems ? ['Keyboard', 'Mouse'] : [],
+            ];
+        },
+    );
+
+$response = $support->prompt('Where is order ORD-1042?');
+```
+
+For reusable tools, implement a class or use the included tools:
+
+```php
+use Pagent\Tools\FileRead;
+use Pagent\Tools\Glob;
+use Pagent\Tools\Grep;
+
+$codebase = agent('codebase-assistant')
+    ->provider('anthropic')
+    ->tools([
+        new Glob(baseDir: __DIR__),
+        new Grep(baseDir: __DIR__),
+        new FileRead(baseDir: __DIR__),
+    ]);
+
+$response = $codebase->prompt('Find the classes that implement the Provider contract.');
+```
+
+Pagent includes `DataExtract`, `FileRead`, `FileWrite`, `Glob`, `Grep`,
+`PdfReader`, and `WebFetch`; `Bash` and `SearchTool` additionally require their
+suggested Composer packages. Scope tools such as file and shell tools to the
+narrowest directory and permissions your application requires.
+
+Custom and MCP tools share one provider-neutral `Pagent\Contracts\Tool` contract
+(`getName()`, `getDescription()`, `getInputSchema()`, and `execute()`). Pagent
+serializes that JSON Schema at the provider boundary, so tool implementations do
+not contain Anthropic- or OpenAI-specific wire formats.
+
+Runnable examples:
+[closure tools](examples/02-tool-calling.php) and
+[MCP-provided tools](examples/20-mcp-client.php).
+
+## Streaming
+
+Use `streamTo()` for a callback-based interface:
+
+```php
+$assistant->streamTo('Write a short introduction to PHP generators.', function ($chunk): void {
     if ($chunk->isText()) {
         echo $chunk->content;
         flush();
     }
 });
-
-// Persist conversations across sessions
-agent('support')
-    ->memory('sqlite', ['path' => 'storage/conversations.db'])
-    ->sessionId('user-123')
-    ->contextWindow(100000)
-    ->prompt('Hello');
 ```
 
-**📖 Explore:** [Streaming Guide](docs/streaming.md) | [Memory & Persistence](docs/memory-persistence.md)
-
-## Providers
-
-### Mock Provider (for testing)
+Use `stream()` when you need to inspect start, text, tool, and end chunks or collect
+the final response yourself:
 
 ```php
-$mock = mock([
-    'Hello' => 'Hi there!',
-    'How are you?' => 'I am doing great!'
-]);
+$stream = $assistant->stream('Summarize dependency injection in three points.');
 
-$response = $mock->prompt('Hello');
-echo $response->content; // "Hi there!"
-```
-
-### Anthropic (Claude)
-
-```bash
-export ANTHROPIC_API_KEY="your-key"
-```
-
-```php
-$claude = anthropic();
-$response = $claude->prompt('Hello!', [
-    'model' => 'claude-3-sonnet-20240229',
-    'max_tokens' => 100
-]);
-```
-
-### OpenAI (GPT)
-
-```bash
-export OPENAI_API_KEY="your-key"
-```
-
-```php
-$gpt = openai();
-$response = $gpt->prompt('Hello!', [
-    'model' => 'gpt-4',
-    'temperature' => 0.8
-]);
-```
-
-### OpenCode Zen / Go
-
-```bash
-export OPENCODE_API_KEY="your-key"
-```
-
-This provider supports models exposed through OpenCode's `chat/completions`
-endpoints. Ox Alpha is the default model, with a gateway-specific model ID:
-
-```php
-// Zen: https://opencode.ai/zen/v1, model x-preview-f-free
-$zen = opencode();
-$response = $zen->prompt('Hello!');
-
-// Go: https://opencode.ai/zen/go/v1, model ox-alpha-free
-$go = opencode(['gateway' => 'go']);
-$response = $go->prompt('Hello!');
-
-// String aliases are also available.
-agent('coder')
-    ->provider('opencode-go')
-    ->model('ox-alpha-free');
-```
-
-### Ollama (Local LLMs)
-
-Run models locally with complete privacy and zero API costs:
-
-```bash
-# Install Ollama and pull models
-ollama pull qwen3:8b
-ollama pull gpt-oss:20b
-ollama serve
-```
-
-```php
-$ollama = ollama();
-$response = $ollama->prompt('Hello!', [
-    'model' => 'qwen3:8b',
-    'temperature' => 0.7
-]);
-```
-
-**Benefits:**
-
-- 🔒 Complete privacy - all data stays local
-- 💰 Zero API costs
-- ⚡ Low latency
-- 🛠️ Full tool calling support (qwen3, llama3.1, mistral)
-- 📡 NDJSON streaming
-
-**📖 Full Guide:** [Ollama Integration](docs/ollama-integration.md)
-
-## Agent Pattern
-
-Agents provide a higher-level abstraction with conversation history:
-
-```php
-// Define an agent
-agent('support')
-    ->provider('anthropic')
-    ->system('You are a customer support agent')
-    ->model('claude-3-haiku-20240307')
-    ->temperature(0.3);
-
-// Have a conversation
-$agent = agent('support');
-$agent->prompt('I need help with my order');
-$agent->prompt('Order number is 12345');
-
-// Access conversation history
-foreach ($agent->messages as $message) {
-    echo "[{$message['role']}]: {$message['content']}\n";
-}
-```
-
-## Provider Configuration
-
-Pagent supports two ways to configure providers:
-
-### String-Based (Simple)
-
-Use provider names for quick setup with default configuration:
-
-```php
-agent('assistant')
-    ->provider('anthropic')  // String name
-    ->system('You are helpful');
-
-// With config options
-agent('custom')
-    ->provider('ollama', ['base_url' => 'http://custom:11434', 'timeout' => 180])
-    ->model('qwen3:8b');
-```
-
-### Instance-Based (Advanced)
-
-Use helper functions or direct instantiation for custom configuration:
-
-```php
-// Using helper functions
-agent('assistant')
-    ->provider(anthropic(['api_key' => 'custom-key']))
-    ->prompt('Hello');
-
-agent('local')
-    ->provider(ollama(['timeout' => 300, 'base_url' => 'http://10.0.0.5:11434']))
-    ->model('llama3.1');
-
-// Direct instantiation
-use Pagent\Providers\OpenAI;
-
-agent('custom')
-    ->provider(new OpenAI(['api_key' => getenv('CUSTOM_KEY')]))
-    ->prompt('Hello');
-```
-
-**When to use each:**
-
-- **String-based**: Quick setup, standard configuration
-- **Instance-based**: Custom config, multiple providers with same name, testing
-
-## Provider-Specific Features
-
-The library is intentionally "leaky" - you can use provider-specific features:
-
-```php
-// Anthropic-specific models
-$response = anthropic()->prompt('Complex analysis task', [
-    'model' => 'claude-3-opus-20240229',
-    'max_tokens' => 4096
-]);
-
-// OpenAI-specific features
-$response = openai()->prompt('Generate JSON data', [
-    'model' => 'gpt-3.5-turbo-1106',
-    'response_format' => ['type' => 'json_object']
-]);
-```
-
-## Tool Calling
-
-Define tools using PHP closures with automatic JSON schema generation:
-
-```php
-use Pagent\Tool\Tool;
-
-// Create a tool from a closure
-$weatherTool = Tool::fromClosure(
-    'get_weather',
-    'Get the current weather for a location',
-    fn(string $location, bool $include_forecast = false) => "Weather data..."
-);
-
-// Add tools to an agent
-$agent = agent('assistant')
-    ->provider('anthropic')
-    ->tool('calculate', 'Perform calculations', fn(int $a, int $b) => $a + $b)
-    ->tool('get_time', 'Get current time', fn(string $tz = 'UTC') => date('H:i:s'));
-
-// Execute tools
-$result = $agent->executeTool('calculate', [10, 5]); // 15
-
-// Generate provider-specific schemas
-$anthropicSchema = $weatherTool->toAnthropicSchema();
-$openaiSchema = $weatherTool->toOpenAISchema();
-```
-
-Type hints are automatically converted to JSON schema types:
-
-- `string` → `"string"`
-- `int` → `"integer"`
-- `float` → `"number"`
-- `bool` → `"boolean"`
-- `array` → `"array"`
-
-### Class-Based Tools
-
-Pagent includes 9 production-ready class-based tools in the `Pagent\Tools` namespace:
-
-```php
-use Pagent\Tools\FileRead;
-use Pagent\Tools\FileWrite;
-use Pagent\Tools\WebFetch;
-use Pagent\Tools\Bash;
-use Pagent\Tools\Grep;
-use Pagent\Tools\Glob;
-use Pagent\Tools\PdfReader;
-use Pagent\Tools\DataExtract;
-use Pagent\Tools\SearchTool;
-
-// Use class-based tools with agents
-$agent = agent('assistant')
-    ->provider('anthropic')
-    ->tool(new FileRead())
-    ->tool(new WebFetch())
-    ->prompt('Read the file data.json and fetch https://api.example.com/data');
-
-// Add multiple tools at once
-$agent = agent('file-assistant')
-    ->provider('anthropic')
-    ->tools([
-        new FileRead(baseDir: '/project'),
-        new FileWrite(baseDir: '/project'),
-        new Glob(baseDir: '/project'),
-        new Grep(baseDir: '/project'),
-    ])
-    ->prompt('List all PHP files and show me the config');
-
-// Create custom class-based tools
-use Pagent\Tools\Tool;
-
-class DatabaseQuery extends Tool
-{
-    public function name(): string
-    {
-        return 'query_database';
-    }
-
-    public function description(): string
-    {
-        return 'Execute a database query and return results';
-    }
-
-    public function parameters(): array
-    {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'query' => ['type' => 'string', 'description' => 'SQL query to execute'],
-                'limit' => ['type' => 'integer', 'description' => 'Maximum rows to return'],
-            ],
-            'required' => ['query'],
-        ];
-    }
-
-    public function execute(array $params): mixed
-    {
-        // Your implementation here
-        return ['results' => []];
+foreach ($stream->getStream() as $chunk) {
+    if ($chunk->isText()) {
+        echo $chunk->content;
     }
 }
-
-// Use your custom tool
-agent('assistant')->tool(new DatabaseQuery());
 ```
 
-Both closure-based and class-based tools implement `ToolInterface` and work seamlessly with all providers.
+Ordinary streams are incremental. Pagent intentionally quarantines a stream before
+calling your callback when it has an output policy that needs the complete response
+(such as PII/content guards), a legacy two-argument guard, or response-transforming
+middleware. This prevents unsafe prefixes from being delivered; use phase-aware
+incremental `OutputGuard`s only when their policy is safe across chunk boundaries.
 
-### SearchTool - Full-Text Search
+See the [streaming guide](docs/streaming.md) for SSE endpoints, client code, error
+handling, and streaming tool calls. The repository also contains a
+[basic streaming example](examples/10-streaming-basic.php) and a complete
+[SSE endpoint](examples/10-streaming-sse-endpoint.php).
 
-The `SearchTool` provides powerful full-text search capabilities powered by TNTSearch, enabling agents to search through documents, files, and databases:
+## Conversation memory
+
+Agents retain context in memory during a process. Add a storage adapter and session
+identifier to continue conversations across requests or application restarts:
 
 ```php
-use Pagent\Tools\SearchTool;
+$support = agent('support')
+    ->provider('anthropic')
+    ->memory('sqlite', ['path' => __DIR__.'/storage/conversations.db'])
+    ->sessionId('customer-42')
+    ->contextWindow(20_000);
 
-// Search through an array of documents (RAG pattern)
-$documents = [
-    ['id' => 1, 'title' => 'PHP Guide', 'content' => 'Learn PHP programming...'],
-    ['id' => 2, 'title' => 'Laravel Tutorial', 'content' => 'Build web apps with Laravel...'],
-];
-
-agent('docs-assistant')
-    ->tools([searchDocuments($documents)])
-    ->prompt('Find information about PHP');
-
-// Search through files in a directory
-agent('codebase-helper')
-    ->tools([new SearchTool(paths: ['docs/', 'src/'])])
-    ->prompt('Find all documentation about API endpoints');
-
-// Use a pre-built search index
-agent('knowledge-bot')
-    ->tools([searchIndex('knowledge/docs.index')])
-    ->prompt('Search the knowledge base for deployment guides');
-
-// Database-backed search
-agent('db-search')
-    ->tools([
-        new SearchTool(
-            query: 'SELECT id, title, content FROM articles',
-            connection: ['driver' => 'mysql', 'host' => 'localhost', 'database' => 'mydb']
-        )
-    ])
-    ->prompt('Find articles about Laravel');
+$support->prompt('My order number is ORD-1042.');
+$response = $support->prompt('What order are we discussing?');
 ```
 
-**Key Features:**
+File and SQLite adapters are included. The [memory and persistence guide](docs/memory-persistence.md)
+covers session isolation, custom adapters, context windows, and production usage.
+See also the runnable [file](examples/11-memory-file.php),
+[SQLite](examples/11-memory-sqlite.php), and
+[multi-session](examples/11-memory-multi-session.php) examples.
 
-- **Multiple Document Sources**: Arrays, files, directories, databases, or pre-built indexes
-- **Fuzzy Matching**: Handles typos and approximate matches
-- **BM25 Ranking**: Industry-standard relevance scoring
-- **Flexible Returns**: Get just IDs or full document content
-- **Fast Performance**: Sub-millisecond to millisecond search times
-- **UTF-8 Support**: Works with international characters
+Changing `sessionId()` clears the in-memory conversation and loads only that
+session on the next turn. Failed turns are rolled back, so retries do not replay a
+partial user message.
 
-**Configuration Options:**
+## Guards and middleware
+
+Guards validate agent interactions and can return a controlled fallback when a
+rule is violated. `PromptInjectionGuard` is an input guard and runs before any
+provider or tool call; PII and content guards are output guards:
 
 ```php
-new SearchTool(
-    documents: $docs,           // Array of documents to index
-    returnContent: true,        // Return full documents vs just IDs
-    fuzzy: true,                // Enable fuzzy search
-    fuzziness: 2,               // Levenshtein distance (1-3)
-    maxResults: 20,             // Max results to return
-    storage: ':memory:',        // Index storage location
-    stemmer: PorterStemmer::class  // Custom stemmer class
-);
+$assistant = agent('public-assistant')
+    ->provider('openai')
+    ->guard('pii')
+    ->guard('contentFilter')
+    ->guard('promptInjection')
+    ->fallback(fn (Throwable $error): string => 'This request cannot be processed.');
 ```
 
-**Search Results:**
+Middleware wraps requests and responses for cross-cutting behavior:
 
 ```php
-[
-    'hits' => 3,
-    'execution_time' => '1.5ms',
-    'results' => [
-        ['id' => 1, 'score' => 4.2, 'document' => [...]],
-        ['id' => 2, 'score' => 3.8, 'document' => [...]],
-    ]
-]
+use Pagent\Middleware\RateLimitMiddleware;
+
+$assistant
+    ->middleware('logging')
+    ->middleware(new RateLimitMiddleware(maxRequests: 60));
 ```
 
-Perfect for building:
+Read the [guards](docs/guards.md), [middleware](docs/middleware.md), and
+[events](docs/events.md) guides for custom implementations and lifecycle hooks.
+Runnable demonstrations are available for
+[guards](examples/06-safety-guards.php) and
+[middleware](examples/08-middleware.php).
 
-- RAG (Retrieval-Augmented Generation) systems
-- Documentation search agents
-- Knowledge base assistants
-- Semantic code search
-- Content discovery tools
+## Multi-agent workflows
 
-## Observability & Distributed Tracing
-
-Pagent includes comprehensive OpenTelemetry instrumentation for monitoring and debugging your LLM agents in production.
-
-### Quick Start
+Pipelines pass one agent's response to the next agent:
 
 ```php
-use function Pagent\{agent, telemetry_console};
+agent('researcher')
+    ->provider('anthropic')
+    ->system('Research the topic and return concise notes.');
 
-// Enable console telemetry for debugging
+agent('editor')
+    ->provider('openai')
+    ->system('Turn the supplied notes into a polished summary.');
+
+$summary = pipeline('article')
+    ->agent('researcher')
+    ->agent('editor')
+    ->run('How PHP fibers support cooperative concurrency');
+```
+
+Pagent also supports named workflow steps, transforms, handoffs, and supervised
+delegation. See the [orchestration and workflows guide](docs/orchestration-workflows.md)
+and the [multi-agent](examples/09-multi-agent.php),
+[simple chain](examples/08-simple-chain.php), and
+[named pipeline](examples/09-pipeline-steps.php) examples.
+
+## Testing and evaluation
+
+The mock provider makes application tests deterministic and requires no network
+access:
+
+```php
+$provider = mock([
+    'What is the order status?' => 'The order has shipped.',
+]);
+
+$agent = agent('test-support')
+    ->provider($provider)
+    ->build();
+
+$response = $agent->prompt('What is the order status?');
+
+assert($response->content === 'The order has shipped.');
+```
+
+The evaluation framework runs datasets against an agent and scores responses with
+built-in or custom metrics:
+
+```php
+use Pagent\Evaluation\Dataset;
+use Pagent\Evaluation\Metrics\KeywordMetric;
+
+$result = evaluate('test-support')
+    ->dataset(Dataset::fromArray([
+        ['input' => 'What is the order status?', 'expected' => 'shipped'],
+    ]))
+    ->metric('status', new KeywordMetric(['shipped']))
+    ->run();
+
+echo $result->getAverageScore('status');
+```
+
+See the [evaluation example](examples/07-evaluation.php), the
+[progressive evaluation example](examples/08-evaluation-progressive.php), and the
+[evaluation tutorial](examples/evaluation-tutorial.md) for datasets, metrics, and
+HTML, Markdown, and JSON reports.
+
+## Usage tracking and observability
+
+Enable per-agent token and cost tracking:
+
+```php
+$assistant = agent('metered-assistant')
+    ->provider('openai')
+    ->trackUsage();
+
+$assistant->prompt('Explain PHP attributes.');
+
+$usage = $assistant->getUsage();
+```
+
+For tracing during development, send OpenTelemetry spans to the console:
+
+```php
 telemetry_console(verbose: true);
 
-agent('assistant')
+agent('traced-assistant')
     ->provider('anthropic')
-    ->telemetry(true)  // Enable tracing for this agent
-    ->prompt('Hello!');
-
-// Console shows:
-// ┌─ Span: agent.prompt
-// │  Duration: 1.23s
-// │  Attributes:
-// │    - gen_ai.system: anthropic
-// │    - gen_ai.usage.total_tokens: 125
-// └─
+    ->telemetry()
+    ->prompt('Explain the repository pattern.');
 ```
 
-### Production Monitoring
+Jaeger, Zipkin, and generic OTLP exporters are supported. The
+[observability guide](docs/observability.md) documents configuration, captured
+attributes, sampling, and production backends. Additional runnable examples cover
+[console traces](examples/15-telemetry-console.php),
+[Jaeger](examples/16-telemetry-jaeger.php),
+[workflow traces](examples/17-telemetry-workflow.php), and
+[custom OTLP configuration](examples/19-telemetry-custom.php).
 
-Connect to Jaeger, Zipkin, or any OpenTelemetry-compatible platform:
+## Model Context Protocol
 
-```php
-use function Pagent\{agent, telemetry_jaeger};
+Pagent can discover tools from MCP servers, adapt them to Pagent tools, and attach
+them to an agent. Both local stdio servers and remote HTTP/SSE servers are
+supported.
 
-// Export to Jaeger
-telemetry_jaeger('http://localhost:14268/api/traces');
+See the [MCP integration guide](docs/mcp-integration.md) for connection lifecycle,
+tool discovery, transport configuration, error handling, and security guidance.
+The [MCP client example](examples/20-mcp-client.php) demonstrates both transports.
 
-// All operations automatically traced
-agent('support')
-    ->telemetry(true)
-    ->tool('search', 'Search knowledge base', $searchFn)
-    ->prompt('Help me find documentation');
+## Examples
 
-// View traces at http://localhost:16686
-```
+The [`examples`](examples/) directory contains runnable programs organized by
+feature:
 
-### What Gets Traced
+| Area                  | Examples                                                                                                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fundamentals          | [Basic chat](examples/01-basic-chat.php), [context](examples/03-context-memory.php), [providers](examples/04-multi-provider.php)                                |
+| Tools and safety      | [Tool calling](examples/02-tool-calling.php), [guards](examples/06-safety-guards.php), [middleware](examples/08-middleware.php)                                 |
+| Workflows             | [Chains](examples/08-simple-chain.php), [multi-agent](examples/09-multi-agent.php), [pipeline steps](examples/09-pipeline-steps.php)                            |
+| Streaming             | [Basic streaming](examples/10-streaming-basic.php), [SSE endpoint](examples/10-streaming-sse-endpoint.php), [SSE client](examples/10-streaming-sse-client.html) |
+| Persistence           | [File memory](examples/11-memory-file.php), [SQLite memory](examples/11-memory-sqlite.php), [multiple sessions](examples/11-memory-multi-session.php)           |
+| Local models          | [Ollama basics](examples/12-ollama-basic.php), [streaming](examples/13-ollama-streaming.php), [tools](examples/14-ollama-tools.php)                             |
+| Evaluation            | [Evaluation](examples/07-evaluation.php), [progressive evaluation](examples/08-evaluation-progressive.php)                                                      |
+| Observability         | [Console](examples/15-telemetry-console.php), [Jaeger](examples/16-telemetry-jaeger.php), [tools](examples/18-telemetry-tools.php)                              |
+| External tool servers | [MCP client](examples/20-mcp-client.php)                                                                                                                        |
 
-- **Agent Operations** - Every prompt, stream, and tool execution
-- **LLM Requests** - Provider calls with token usage
-- **Tool Executions** - Arguments, results, and duration
-- **Guard Checks** - Security validations
-- **Memory Operations** - Load/save operations
-- **Workflows** - Multi-agent pipeline orchestration
-
-### Supported Platforms
-
-- **Jaeger** - Open-source distributed tracing
-- **Zipkin** - Distributed tracing system
-- **OTLP** - Generic protocol (Datadog, New Relic, Honeycomb, etc.)
-- **Console** - Local debugging output
-
-### Multi-Agent Workflow Tracing
-
-```php
-use function Pagent\{agent, pipeline, telemetry_jaeger};
-
-telemetry_jaeger('http://localhost:14268/api/traces');
-
-// Enable telemetry on agents
-agent('researcher')->provider('anthropic')->telemetry(true);
-agent('writer')->provider('anthropic')->telemetry(true);
-
-// Run workflow - creates hierarchical trace
-pipeline('content-creation')
-    ->step('research', agent('researcher'))
-    ->step('write', agent('writer'))
-    ->run('Write article about PHP');
-
-// Trace shows:
-// workflow.pipeline
-//   ├─ workflow.step (research)
-//   │  └─ agent.prompt → llm.request → tool.execute
-//   └─ workflow.step (write)
-//      └─ agent.prompt → llm.request
-```
-
-### Benefits
-
-- **Debug Complex Workflows** - Visualize multi-agent interactions
-- **Performance Monitoring** - Track latency and bottlenecks
-- **Token Usage Tracking** - Real-time token consumption
-- **Cost Visibility** - Understand API usage patterns
-- **Compliance** - Complete audit trail
-
-**📖 Full Guide:** [Observability Documentation](docs/observability.md)
-
-## Development
-
-### Quick Commands
+Run an example from the repository root after installing dependencies:
 
 ```bash
-# Setup project
-just setup              # Install dependencies and git hooks
-
-# Testing
-just test               # Run all tests
-just coverage           # Run tests with coverage report
-
-# Code Quality
-just format             # Fix code style (PHP + Markdown)
-just analyse            # Run PHPStan static analysis
-just pr                 # Prepare for PR (fix, analyse, test)
-
-# Observability Stack
-just obs-up             # Start observability tools (Jaeger, Phoenix, Langfuse, etc.)
-just obs-down           # Stop and remove observability stack
+php examples/01-basic-chat.php
 ```
 
-### Manual Testing
-
-```bash
-# Run unit tests (no API calls)
-./vendor/bin/pest --exclude-group=api
-
-# Run API integration tests (requires API keys)
-cp .env.example .env    # Add your keys to .env
-./vendor/bin/pest --group=api
-```
+Examples using OpenAI or Anthropic require the corresponding API key. Mock
+examples run without credentials. See the [examples index](examples/README.md) for
+prerequisites and notes.
 
 ## Documentation
 
-### The Complete Guide
+### Feature guides
 
-The **[Pagent Guide](guide/complete.md)** is a comprehensive 28-chapter tutorial covering everything from basics to advanced patterns:
+- [Documentation index](docs/README.md)
+- [Streaming](docs/streaming.md)
+- [Memory and persistence](docs/memory-persistence.md)
+- [Guards](docs/guards.md)
+- [Middleware](docs/middleware.md)
+- [Events](docs/events.md)
+- [Orchestration and workflows](docs/orchestration-workflows.md)
+- [Observability](docs/observability.md)
+- [MCP integration](docs/mcp-integration.md)
+- [Ollama integration](docs/ollama-integration.md)
 
-- **Part 1: Foundations** (Chapters 1-5) - Core concepts and basic usage
-- **Part 2: Tool Integration** (Chapters 6-9) - External system interactions
-- **Part 3: Real-Time Interaction** (Chapters 10-11) - Streaming responses
-- **Part 4: Persistence and State** (Chapters 12-13) - Memory and conversations
-- **Part 5: Reliability and Safety** (Chapters 14-15) - Production robustness
-- **Part 6: Multi-Agent Orchestration** (Chapters 16-19) - Agent coordination
-- **Part 7: Quality Assurance** (Chapters 20-21) - Testing and evaluation
-- **Part 8: Observability** (Chapters 22-23) - Monitoring and debugging
-- **Part 9: Integration** (Chapters 24-25) - Framework integration
-- **Part 10: Production Excellence** (Chapters 26-28) - Optimization and deployment
+### Framework integration
 
-See **[guide/README.md](guide/README.md)** for learning paths based on your experience level.
+- [Vanilla PHP](docs/vanilla-php.md)
+- [Laravel](docs/laravel-integration.md)
+- [Symfony](docs/symfony-integration.md)
+- [Slim](docs/slim-integration.md)
 
-### Integration Guides
+For a longer, structured introduction, read the
+[complete Pagent guide](guide/complete.md) or choose a learning path in the
+[guide index](guide/README.md).
 
-Learn how to integrate Pagent into your application:
+## Development
 
-- **[Vanilla PHP](docs/vanilla-php.md)** - Pure PHP integration without frameworks
-- **[Slim Framework Integration](docs/slim-integration.md)** - Complete Slim 4.x setup with DI and middleware
-- **[Laravel Integration](docs/laravel-integration.md)** - Laravel setup with service providers and facades
-- **[Symfony Integration](docs/symfony-integration.md)** - Symfony bundle integration with DI container
+Install dependencies and run the standard checks:
 
-### Feature Guides
+```bash
+composer install
+composer format:check
+composer analyse
+composer test
+```
 
-Deep-dive into specific features:
+If [`just`](https://github.com/casey/just) is installed, the repository also
+provides shortcuts:
 
-- **[Streaming Guide](docs/streaming.md)** - Real-time SSE streaming implementation
-- **[Memory & Persistence](docs/memory-persistence.md)** - SQLite, File, and custom storage adapters
-- **[Orchestration Workflows](docs/orchestration-workflows.md)** - Multi-agent patterns: pipelines, handoffs, delegation
+```bash
+just setup
+just format
+just analyse
+just test
+just coverage
+```
 
-See the [docs/](docs/) folder for all guides.
+`composer test` excludes live-provider and external-service tests. Run live provider
+coverage explicitly with credentials in `.env`:
 
----
+```bash
+composer test
+composer test:live
+composer test:external
+composer test:observability
+```
 
-## Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on:
-
-- Development setup
-- Running tests
-- Code style guidelines
-- Pull request process
-
-Read our [Code of Conduct](CODE_OF_CONDUCT.md) and [Security Policy](SECURITY.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and pull
+request guidelines. Security issues should be reported according to
+[SECURITY.md](SECURITY.md).
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for recent changes.
+See [CHANGELOG.md](CHANGELOG.md) for release history and notable changes.
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+Pagent is open-source software licensed under the [MIT license](LICENSE).
 
 ## Credits
 
-Created by [Helge Sverre](https://helgesver.re).
-
-Inspired by [Pest](https://pestphp.com)'s elegant API design.
+Created by [Helge Sverre](https://helgesver.re). The fluent API is inspired by
+[Pest](https://pestphp.com).

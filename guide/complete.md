@@ -16,13 +16,13 @@ Welcome to the complete Pagent framework guide—your comprehensive resource for
 
 **What is Pagent?**
 
-Pagent is a Pest-inspired, framework-agnostic PHP library designed for building LLM-powered agents. Whether you're creating chatbots, implementing tool-calling assistants, or orchestrating complex multi-agent workflows, Pagent provides an elegant, type-safe foundation without framework overhead. Built on PHP 8.3+ with strict types throughout, Pagent emphasizes developer experience through its fluent API while maintaining production-ready reliability with built-in error handling, retries, and observability.
+Pagent is a Pest-inspired, framework-agnostic PHP library designed for building LLM-powered agents. Whether you're creating chatbots, implementing tool-calling assistants, or orchestrating complex multi-agent workflows, Pagent provides an elegant, type-safe foundation without framework overhead. Built on PHP 8.4+ with strict types throughout, Pagent emphasizes developer experience through its fluent API while maintaining production-ready reliability with built-in error handling, retries, and observability.
 
 **Who This Guide Is For**
 
 This guide is written for PHP developers who want to harness the power of Large Language Models in their applications. You should have:
 
-- **Solid PHP knowledge** (PHP 8.3+ features, object-oriented programming, closures)
+- **Solid PHP knowledge** (PHP 8.4+ features, object-oriented programming, closures)
 - **Basic LLM understanding** (familiarity with ChatGPT, Claude, or similar AI models)
 - **API experience** (making HTTP requests, handling JSON responses)
 - **Testing fundamentals** (unit testing concepts, mocking)
@@ -64,7 +64,7 @@ Each chapter includes:
 
 Before diving in, ensure you have:
 
-- PHP 8.3 or higher installed
+- PHP 8.4 or higher installed
 - Composer for dependency management
 - An API key from Anthropic (Claude) or OpenAI (GPT)
 - A code editor with PHP support
@@ -210,7 +210,7 @@ Pagent is a lightweight, framework-agnostic PHP library for building LLM-powered
 
 - **Fluent and expressive** - Chain methods naturally like writing prose
 - **Provider agnostic** - Switch between Anthropic, OpenAI, Ollama, or mock providers seamlessly
-- **Type-safe** - Built on PHP 8.3+ with strict types throughout
+- **Type-safe** - Built on PHP 8.4+ with strict types throughout
 - **Testing-friendly** - Mock providers and in-memory state make testing trivial
 - **Production-ready** - Battle-tested patterns for error handling, retries, and observability
 
@@ -218,7 +218,7 @@ Think of Pagent as Laravel's Eloquent, but for AI agents - minimal boilerplate, 
 
 ## Installation
 
-Pagent requires **PHP 8.3 or higher**. Install via Composer:
+Pagent requires **PHP 8.4 or higher**. Install via Composer:
 
 ```bash
 composer require pagent/pagent
@@ -249,8 +249,7 @@ use function Pagent\agent;
 
 $agent = agent('hello-world')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
-    ->build();
+    ->model('claude-sonnet-4-6');
 
 $response = $agent->prompt('Hello! Who are you?');
 
@@ -263,43 +262,54 @@ Let's break down what's happening here.
 ### The `agent()` Helper Function
 
 ```php
-function agent(string $name): Agent|AgentBuilder
+function agent(string $name): Agent
 ```
 
-The `agent()` function is your entry point into Pagent. It returns an `AgentBuilder` instance when creating a new agent, or an existing `Agent` if you've previously registered one with that name.
+The `agent()` function is your entry point into Pagent. It creates or retrieves a
+named `Agent` and registers a newly created agent immediately. Configuration is
+fluent directly on that `Agent`; there is no implicit builder lifecycle.
 
-This dual behavior enables a powerful pattern - define an agent once, retrieve it anywhere:
+This makes it safe to configure an agent once and retrieve the same instance
+anywhere in the current registry:
 
 ```php
 // First call: creates and configures agent
 agent('chatbot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
-    ->system('You are a helpful chatbot')
-    ->build();
+    ->model('claude-sonnet-4-6')
+    ->system('You are a helpful chatbot');
 
 // Later, anywhere in your code: retrieves the same agent
 $chatbot = agent('chatbot');
 $chatbot->prompt('What can you help me with?');
 ```
 
-ℹ️ **Note:** The builder automatically registers agents in the global `Registry` when you call `build()` or when the builder is destructed. This happens through `AgentBuilder`'s `__destruct()` method.
+Use `getAgent('chatbot')` when a lookup must not create an agent. It returns
+`null` when no such name is registered.
 
-### The Builder Pattern
+### Explicit Builder Compatibility
 
-Pagent uses a fluent builder pattern for agent configuration:
+`defineAgent()` is available for code that deliberately wants a builder boundary.
+It wraps an already-registered `Agent`; call `register()` (or `build()`) to make
+that handoff explicit. `Agent::build()` is a compatibility no-op that returns the
+same agent, so it is harmless but unnecessary in new code.
 
 ```php
-agent('my-agent')
+use function Pagent\defineAgent;
+use function Pagent\getAgent;
+
+$agent = defineAgent('my-agent')
     ->provider('anthropic')      // Set LLM provider
-    ->model('claude-sonnet-4')   // Choose model
+    ->model('claude-sonnet-4-6') // Choose model
     ->temperature(0.7)            // Control randomness (0.0-2.0)
     ->maxTokens(1024)            // Limit response length
     ->system('You are X')        // Set system prompt
-    ->build();                   // Finalize and register
+    ->register();                // Explicit builder handoff
+
+assert(getAgent('my-agent') === $agent);
 ```
 
-Every method returns `$this`, enabling method chaining. The `build()` method returns the final `Agent` instance and registers it in the global registry.
+For ordinary configuration, prefer `agent('my-agent')->provider(...)->model(...)`.
 
 ### The Provider Interface
 
@@ -366,7 +376,7 @@ use function Pagent\agent;
 // Configure the agent
 agent('assistant')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful, concise assistant.')
     ->temperature(0.7)
     ->maxTokens(500)
@@ -420,7 +430,7 @@ $agent->prompt('How are you?');
 expect($agent->messages)->toHaveCount(4); // 2 user + 2 assistant
 ```
 
-⚠️ **Warning:** Conversation history is stored in-memory only. If you need persistence, you'll need to implement your own storage layer or use Pagent's memory adapters (covered in Chapter 8).
+**Warning:** Conversation history is stored in-memory only. If you need persistence, you'll need to implement your own storage layer or use Pagent's memory adapters (covered in Chapter 8).
 
 ## Configuration and Parameters
 
@@ -431,7 +441,7 @@ Pagent provides fluent methods for all common LLM parameters:
 ```php
 agent('writer')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->build();
 ```
 
@@ -541,7 +551,7 @@ it('greets users correctly', function () {
 });
 ```
 
-✅ **Best Practice:** Always use mock providers in unit tests. Reserve real API calls for integration tests with the `@group api` annotation.
+**Best Practice:** Always use mock providers in unit tests. Reserve real API calls for integration tests with the `@group api` annotation.
 
 ## Response Objects
 
@@ -568,7 +578,7 @@ return (object) [
 ];
 ```
 
-⚠️ **Warning:** Different providers may include additional fields (like `tool_calls`, `finish_reason`, etc). Always check the provider's documentation for the complete response structure.
+**Warning:** Different providers may include additional fields (like `tool_calls`, `finish_reason`, etc). Always check the provider's documentation for the complete response structure.
 
 ## Error Handling
 
@@ -649,7 +659,7 @@ $translator = agent('translator');
 $coder = agent('coder');
 ```
 
-💡 **Tip:** Call `clearAgents()` in your test setup to ensure a clean state between tests.
+**Tip:** Call `clearAgents()` in your test setup to ensure a clean state between tests.
 
 ## Complete Example: Multi-Agent System
 
@@ -668,21 +678,21 @@ use function Pagent\clearAgents;
 // Define specialist agents
 agent('technical-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a technical support specialist. Provide detailed troubleshooting steps.')
     ->temperature(0.3)
     ->build();
 
 agent('sales')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a friendly sales representative. Help customers find the right product.')
     ->temperature(0.7)
     ->build();
 
 agent('general')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a general support agent. Answer common questions briefly.')
     ->temperature(0.5)
     ->build();
@@ -741,20 +751,19 @@ In **Chapter 2: Working with Providers**, we'll dive deeper into:
 
 **Key Takeaways:**
 
-✅ Pagent uses a fluent API inspired by Pest
-✅ The `agent()` function creates or retrieves agents from a global registry
-✅ Provider abstraction enables seamless switching between LLM providers
-✅ Agents maintain in-memory conversation history automatically
-✅ Mock providers make testing trivial without API calls
-✅ All configuration is validated before reaching the provider layer
+- Pagent uses a fluent API inspired by Pest
+- The `agent()` function creates or retrieves agents from a global registry
+- Provider abstraction enables switching between LLM providers
+- Agents maintain in-memory conversation history automatically
+- Mock providers support tests without API calls
+- Configuration is validated before reaching the provider layer
 
 Continue to [Chapter 2: Working with Providers](./article.part2.md) →
-
 # Chapter 2: Working with Providers
 
 **Learning Objectives:**
 
-- Configure Anthropic, OpenAI, and Ollama providers
+- Configure Anthropic, OpenAI, OpenCode, and Ollama providers
 - Understand provider-specific features and limitations
 - Switch between providers dynamically
 - Handle provider errors gracefully
@@ -764,7 +773,7 @@ Continue to [Chapter 2: Working with Providers](./article.part2.md) →
 
 ## Understanding Provider Abstraction
 
-At the heart of Pagent's flexibility is the **Provider** interface. Every LLM integration in Pagent—whether Anthropic's Claude, OpenAI's GPT models, or a local Ollama instance—implements a simple contract:
+At the heart of Pagent's flexibility is the **Provider** interface. Every LLM integration in Pagent—whether Anthropic's Claude, OpenAI's GPT models, OpenCode, or a local Ollama instance—implements a simple contract:
 
 ```php
 interface Provider {
@@ -778,8 +787,9 @@ The framework includes four built-in providers:
 
 1. **Anthropic** - Claude models via API
 2. **OpenAI** - GPT models via API
-3. **Ollama** - Local models via Ollama server
-4. **Mock** - Deterministic responses for testing
+3. **OpenCode** - Zen and Go gateway models
+4. **Ollama** - Local models via Ollama server
+5. **Mock** - Deterministic responses for testing
 
 Each provider returns a consistent response object with these fields:
 
@@ -813,9 +823,9 @@ $provider = anthropic([
 ]);
 
 // Use with an agent
-agent('claude-assistant')
+agent('anthropic-assistant')
     ->provider($provider)
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful assistant.');
 ```
 
@@ -825,7 +835,7 @@ The Anthropic provider automatically reads from `$_ENV['ANTHROPIC_API_KEY']` or 
 
 The Anthropic provider implements several Claude-specific behaviors:
 
-**Default Model**: If you don't specify a model, it defaults to `claude-sonnet-4-20250514`.
+**Default Model**: If you don't specify a model, it defaults to `claude-sonnet-4-6`.
 
 **System Messages**: Anthropic handles system prompts as a separate field in the API request, not as a message in the conversation history:
 
@@ -980,6 +990,38 @@ echo $response->tokens;                       // Sum of both
 
 **No API Key**: Unlike cloud providers, Ollama doesn't require authentication (by default). This makes it ideal for local testing.
 
+## Configuring the OpenCode Provider
+
+OpenCode exposes Zen and Go gateway models. Set `OPENCODE_API_KEY` or pass an
+`api_key`; Zen is the default gateway and Go is selected with `gateway => 'go'`.
+OpenCode supports three wire protocols: `chat-completions` (default),
+`responses`, and `messages`. Choose one globally, per model with
+`model_protocols`, or per request with the `protocol` option.
+
+```php
+use function Pagent\opencode;
+
+$provider = opencode([
+    'gateway' => 'zen',
+    'protocol' => 'chat-completions',
+    'model_protocols' => [
+        'anthropic-model' => 'messages',
+        'responses-model' => 'responses',
+    ],
+]);
+
+$agent = agent('gateway-assistant')
+    ->provider($provider)
+    ->model('x-preview-f-free');
+
+// One request can override the configured protocol.
+$response = $agent->prompt('Hello', ['protocol' => 'responses']);
+```
+
+The provider normalizes these protocols to Pagent's standard response and
+streaming interfaces. Gateway protocol selection affects the HTTP payload and
+endpoint, not the agent API.
+
 ## Dynamic Provider Switching
 
 Pagent's fluent API makes provider switching trivial. This enables powerful patterns like fallback chains or environment-based configuration:
@@ -998,7 +1040,7 @@ if (getenv('APP_ENV') === 'development') {
 // Production: use Anthropic
 else {
     $provider = anthropic();
-    $model = 'claude-sonnet-4-20250514';
+    $model = 'claude-sonnet-4-6';
 }
 
 agent('assistant')
@@ -1013,7 +1055,7 @@ use function Pagent\agent;
 
 agent('weather-bot')
     ->provider('anthropic')  // String shorthand
-    ->model('claude-sonnet-4-20250514');
+    ->model('claude-sonnet-4-6');
 
 // Later, switch the same agent to OpenAI
 agent('weather-bot')
@@ -1021,7 +1063,7 @@ agent('weather-bot')
     ->model('gpt-4o');
 ```
 
-The `AgentBuilder` resolves string provider names to instances automatically.
+`Agent` resolves string provider names to provider instances automatically.
 
 ### Provider Fallback Pattern
 
@@ -1136,16 +1178,14 @@ The `clearAgents()` function removes all registered agents from the global regis
 
 Different providers have different strengths. Here's a practical comparison:
 
-| Feature                 | Anthropic                | OpenAI        | Ollama        | Mock    |
-| ----------------------- | ------------------------ | ------------- | ------------- | ------- |
-| **API Key Required**    | Yes                      | Yes           | No            | No      |
-| **Default Model**       | claude-sonnet-4-20250514 | gpt-3.5-turbo | qwen3:8b      | mock    |
-| **System Messages**     | Separate field           | First message | First message | N/A     |
-| **Streaming Support**   | Yes                      | Yes           | Yes           | No      |
-| **Tool Calling**        | Yes                      | Yes           | Yes           | No      |
-| **Token Usage Details** | Detailed                 | Detailed      | Detailed      | Simple  |
-| **Cost**                | Paid                     | Paid          | Free (local)  | Free    |
-| **Latency**             | Network                  | Network       | Local         | Instant |
+| Feature               | Anthropic         | OpenAI        | OpenCode                   | Ollama       | Mock    |
+| --------------------- | ----------------- | ------------- | -------------------------- | ------------ | ------- |
+| **API key required**  | Yes               | Yes           | Yes                        | No           | No      |
+| **Default model**     | claude-sonnet-4-6 | gpt-3.5-turbo | Gateway-specific           | qwen3:8b     | mock    |
+| **Wire protocol**     | Messages          | Chat API      | Chat completions, Responses, or Messages | Chat API | N/A |
+| **Streaming support** | Yes               | Yes           | Yes                        | Yes          | No      |
+| **Tool calling**      | Yes               | Yes           | Protocol-dependent         | Yes          | No      |
+| **Cost**              | Paid              | Paid          | Gateway-dependent          | Free (local) | Free    |
 
 ### When to Use Each Provider
 
@@ -1217,16 +1257,16 @@ function validateProviders(): void
 {
     try {
         anthropic();  // Will throw if ANTHROPIC_API_KEY is missing
-        echo "✓ Anthropic configured\n";
+        echo "Status: Anthropic configured\n";
     } catch (\RuntimeException $e) {
-        echo "✗ Anthropic not configured: {$e->getMessage()}\n";
+        echo "Error: Anthropic not configured: {$e->getMessage()}\n";
     }
 
     try {
         openai();
-        echo "✓ OpenAI configured\n";
+        echo "Status: OpenAI configured\n";
     } catch (\RuntimeException $e) {
-        echo "✗ OpenAI not configured: {$e->getMessage()}\n";
+        echo "Error: OpenAI not configured: {$e->getMessage()}\n";
     }
 }
 ```
@@ -1319,7 +1359,6 @@ In the next chapter, we'll explore how to build multi-turn conversations by mana
 - Environment variables are the recommended way to configure API keys
 - Provider responses use a consistent object structure across all implementations
 - Error handling should be provider-agnostic using try-catch blocks
-
 # Chapter 3: Messages and Conversations
 
 In Chapter 1, we learned how to create agents and send single prompts. In Chapter 2, we explored the different providers that power those prompts. But real-world AI applications rarely work with isolated messages. They require conversations - multi-turn exchanges where the agent remembers what was said before and builds on that context.
@@ -1692,7 +1731,6 @@ We've now covered the fundamentals: creating agents, configuring providers, and 
 In the next chapter, we'll explore prompting strategies - how to craft system prompts that guide agent behavior, implement few-shot learning, and design effective prompts that get better results from your LLMs.
 
 You'll learn that while conversation management keeps the dialogue flowing, prompt engineering determines the quality of what flows through it. Let's dive into that next.
-
 # Chapter 4: Prompting Strategies
 
 **Target Audience:** PHP developers familiar with Pagent basics (Chapters 1-3)
@@ -2132,7 +2170,10 @@ try {
 }
 ```
 
-The `PromptInjectionGuard` (in `src/Guards/`) scans both input and output for common injection patterns like "ignore previous instructions", "new system prompt", etc.
+The `PromptInjectionGuard` (in `src/Guards/`) scans user input before the
+provider is called for common injection patterns like "ignore previous
+instructions" and "new instructions". It does not inspect provider output;
+combine it with an `OutputGuard` when both boundaries need protection.
 
 ### Custom Safety Rules
 
@@ -2451,7 +2492,6 @@ In the next chapter, we'll explore response processing techniques—parsing stru
 - Explored real-world examples: SQL generation, content moderation, translation
 
 **Next Chapter:** Chapter 5 - Response Processing (parsing, validation, transformation)
-
 # Chapter 5: Response Processing
 
 In the previous chapters, we learned how to send prompts to LLMs and manage conversations. But the real challenge often lies in what comes next: processing the responses you receive. LLMs return text, but your application needs structured data, validated content, and reliable formats.
@@ -2471,7 +2511,7 @@ $response = $agent->prompt('What is the capital of France?');
 
 // Response object structure
 echo $response->content;   // "The capital of France is Paris."
-echo $response->model;     // "claude-sonnet-4-20250514"
+echo $response->model;     // "claude-sonnet-4-6"
 echo $response->tokens;    // 45 (total tokens used)
 echo $response->provider;  // "anthropic"
 
@@ -3148,317 +3188,6 @@ We've explored the complete lifecycle of a prompt: creating agents, configuring 
 In the next chapter, we'll expand agent capabilities dramatically by introducing tool calling - the ability for agents to execute functions, call APIs, and interact with external systems. This is where agents transform from conversational interfaces into autonomous systems that can take action in the world.
 
 You'll learn how to define tools, handle tool execution, and build agents that seamlessly combine conversation with capability. Let's explore that next.
-
-# Chapter 5B: Event System Architecture
-
-Pagent provides a powerful two-tier event system that allows you to observe and react to agent lifecycle events. Understanding when to use per-agent event handling versus global event management is crucial for building well-structured applications with proper separation of concerns.
-
-This chapter explains the architecture of Pagent's event system, when to use each approach, and how to implement cross-agent event listening for application-level concerns like telemetry, logging, and usage tracking.
-
-## The Two-Tier Event System
-
-Pagent implements two levels of event handling:
-
-1. **Per-Agent Events** - Each agent instance has its own `EventDispatcher` for agent-specific listeners
-2. **Global Events** - The `EventManager` singleton provides application-wide event listening across all agents
-
-This architecture separates agent-specific concerns from cross-cutting application concerns.
-
-### Per-Agent EventDispatcher
-
-Every agent instance has its own `EventDispatcher` that manages listeners specific to that agent. This is what you use when you call `$agent->on()`, `$agent->once()`, or `$agent->listen()`.
-
-**Use per-agent events when:**
-
-- Listening to events from a specific agent instance
-- Building features tied to a particular agent's lifecycle
-- Implementing agent-specific logging or behavior modification
-- Handling events in isolated contexts (testing, sandboxing)
-
-**Example: Agent-specific logging**
-
-```php
-use function Pagent\agent;
-
-$customerAgent = agent('customer-support')
-    ->provider(anthropic())
-    ->system('You are a helpful customer support agent');
-
-// Listen only to this agent's events
-$customerAgent->on('after_prompt', function ($event) {
-    Log::info('Customer agent responded', [
-        'tokens' => $event->usage->totalTokens(),
-        'model' => $event->model,
-    ]);
-});
-
-$salesAgent = agent('sales')
-    ->provider(anthropic())
-    ->system('You are a sales assistant');
-
-// This agent has no listeners - $salesAgent events won't be logged
-$salesAgent->prompt('Help me find a product');  // Not logged
-$customerAgent->prompt('I need help');          // Logged
-```
-
-### Global EventManager
-
-The `EventManager` is a singleton that provides a global event bus for listening to events from **all agents** in your application. This is essential for cross-cutting concerns.
-
-**Use global events when:**
-
-- Implementing application-wide telemetry or observability
-- Tracking usage across all agents
-- Global logging or monitoring
-- Debugging entire multi-agent systems
-- Building agent-agnostic features
-
-**Example: Global usage tracking**
-
-```php
-use Pagent\Events\EventManager;
-
-// Register a global listener that hears ALL agent events
-EventManager::instance()->on('after_prompt', function ($event) {
-    Metrics::increment('agent.prompts.total');
-    Metrics::histogram('agent.prompts.tokens', $event->usage->totalTokens());
-
-    // This will fire for every agent in the application
-});
-
-// Later, anywhere in your application
-$agent1 = agent('bot1')->provider(anthropic());
-$agent2 = agent('bot2')->provider(openai());
-
-$agent1->prompt('Hello');  // Triggers global listener
-$agent2->prompt('Hi');     // Also triggers global listener
-```
-
-## EventManager API
-
-The `EventManager` singleton provides the same API as the per-agent `EventDispatcher`:
-
-```php
-use Pagent\Events\EventManager;
-
-$manager = EventManager::instance();
-
-// Register a listener
-$id = $manager->on('after_prompt', function ($event) {
-    // Handle event
-}, priority: 100);
-
-// Register a one-time listener
-$manager->once('stream_completed', function ($event) {
-    // Fires only once
-});
-
-// Register a class-based listener for multiple events
-$manager->listen($myListener);
-
-// Remove a listener
-$manager->off('after_prompt', $id);
-
-// Dispatch an event (typically done by Pagent internals)
-$manager->dispatch($event);
-
-// Reset the singleton (for testing)
-EventManager::reset();
-```
-
-## Class-Based Global Listeners
-
-For production applications, use class-based listeners that implement the `EventListener` interface. This provides better organization and testability.
-
-**Example: Global telemetry listener**
-
-```php
-use Pagent\Events\Event;
-use Pagent\Events\EventListener;
-use Pagent\Events\EventManager;
-use Pagent\Events\Events\AfterPromptEvent;
-use Pagent\Events\Events\StreamCompletedEvent;
-
-class TelemetryListener implements EventListener
-{
-    public function handle(Event $event): void
-    {
-        match (true) {
-            $event instanceof AfterPromptEvent => $this->trackPrompt($event),
-            $event instanceof StreamCompletedEvent => $this->trackStream($event),
-            default => null,
-        };
-    }
-
-    public function listensTo(): array
-    {
-        return ['after_prompt', 'stream_completed'];
-    }
-
-    private function trackPrompt(AfterPromptEvent $event): void
-    {
-        // Send to your observability platform
-        Telemetry::record('agent.prompt', [
-            'agent_name' => $event->agent->getName(),
-            'model' => $event->model,
-            'input_tokens' => $event->usage->inputTokens(),
-            'output_tokens' => $event->usage->outputTokens(),
-            'duration_ms' => $event->duration,
-        ]);
-    }
-
-    private function trackStream(StreamCompletedEvent $event): void
-    {
-        Telemetry::record('agent.stream', [
-            'agent_name' => $event->agent->getName(),
-            'total_chunks' => $event->chunks,
-            'duration_ms' => $event->duration,
-        ]);
-    }
-}
-
-// Register globally during application bootstrap
-EventManager::instance()->listen(new TelemetryListener());
-```
-
-Now every agent in your application automatically sends telemetry data, with no per-agent configuration required.
-
-## Built-In Global Listeners
-
-Pagent includes several built-in global listeners for common concerns:
-
-### 1. Global Usage Tracking
-
-The `UsageTracker` automatically registers with the global `EventManager` to track usage across all agents:
-
-```php
-use function Pagent\usage_tracker;
-
-// The global usage tracker listens to all agents automatically
-$tracker = usage_tracker();
-
-// Use agents anywhere
-$agent1->prompt('Hello');
-$agent2->prompt('Hi');
-
-// Get aggregated usage across all agents
-echo "Total tokens: " . $tracker->totalTokens() . "\n";
-echo "Total cost: $" . $tracker->totalCost() . "\n";
-```
-
-### 2. OpenTelemetry Bridge
-
-The `TelemetryEventBridge` registers globally to export all agent events to OpenTelemetry:
-
-```php
-use function Pagent\telemetry_bridge;
-
-// Enable telemetry for all agents
-$bridge = telemetry_bridge();
-
-// All agents automatically export spans
-$agent1->prompt('Hello');  // Creates trace span
-$agent2->prompt('Hi');     // Creates trace span
-```
-
-## Event Flow Architecture
-
-Understanding how events flow through Pagent helps you choose the right level:
-
-```
-Agent Operation (prompt, stream, etc.)
-       |
-       v
-Internal Event Dispatch
-       |
-       +----> Per-Agent EventDispatcher
-       |            |
-       |            v
-       |      Agent-specific listeners
-       |
-       +----> Global EventManager (via direct dispatch from internals)
-                    |
-                    v
-              Global listeners (telemetry, usage, etc.)
-```
-
-**Key points:**
-
-- Some events are dispatched to both per-agent and global listeners
-- Global listeners registered via `EventManager` hear events from all agents
-- Per-agent listeners only hear events from their specific agent
-- The `EventManager` is completely independent of per-agent dispatchers
-
-## Cross-Agent Debugging
-
-The global event system is particularly powerful for debugging multi-agent systems:
-
-```php
-use Pagent\Events\EventManager;
-
-// Enable global debugging during development
-if (app()->environment('local')) {
-    EventManager::instance()->on('after_prompt', function ($event) {
-        logger()->debug('Agent prompt', [
-            'agent' => $event->agent->getName(),
-            'prompt' => $event->prompt,
-            'response' => $event->response->content,
-            'tokens' => $event->usage->totalTokens(),
-        ]);
-    });
-}
-
-// Now all agent interactions are automatically logged
-$customerAgent->prompt('Help me');  // Logged
-$salesAgent->prompt('Find product');  // Logged
-$supportAgent->prompt('Check status');  // Logged
-```
-
-## Testing with Global Events
-
-The `EventManager::reset()` method is essential for test isolation:
-
-```php
-use Pagent\Events\EventManager;
-
-beforeEach(function () {
-    EventManager::reset();  // Clear global listeners before each test
-});
-
-test('it tracks usage globally', function () {
-    $calls = [];
-
-    EventManager::instance()->on('after_prompt', function ($event) use (&$calls) {
-        $calls[] = $event->agent->getName();
-    });
-
-    agent('bot1')->provider(mock())->prompt('Hi');
-    agent('bot2')->provider(mock())->prompt('Hello');
-
-    expect($calls)->toBe(['bot1', 'bot2']);
-});
-```
-
-## Best Practices
-
-**Use per-agent events for agent-specific logic.** If your event handling is tied to a particular agent instance (like custom retries or transformations), use the agent's own event dispatcher.
-
-**Use global events for cross-cutting concerns.** Telemetry, usage tracking, global logging, and monitoring should use `EventManager` to automatically cover all agents.
-
-**Keep global listeners lightweight.** Since global listeners fire for every agent event, ensure they're performant and don't block agent operations.
-
-**Register global listeners during bootstrap.** Set up `EventManager` listeners once during application initialization, not per-request.
-
-**Reset EventManager in tests.** Always call `EventManager::reset()` between tests to prevent listener leakage.
-
-**Prefer class-based listeners for production.** While closures are convenient for quick debugging, class-based `EventListener` implementations are more maintainable and testable.
-
-## What's Next
-
-You've now mastered Pagent's two-tier event system and understand when to use per-agent versus global event handling. This architecture enables clean separation between agent-specific concerns and application-wide observability.
-
-In the next chapter, we'll introduce tool calling - the feature that transforms agents from conversational interfaces into action-taking systems that can execute functions and interact with external systems.
-
 # Chapter 6: Introduction to Tool Calling
 
 One of the most powerful features of modern large language models is their ability to call functions or "tools" to extend their capabilities beyond text generation. In Pagent, tool calling transforms your agents from simple conversational interfaces into action-taking systems that can query databases, read files, call APIs, perform calculations, and interact with the real world.
@@ -3520,8 +3249,8 @@ public function tool(
     Closure $callable
 ): self
 
-// Form 2: ToolInterface instance (for class-based tools)
-public function tool(ToolInterface $tool): self
+// Form 2: provider-neutral Tool instance (for class-based tools)
+public function tool(Tool $tool): self
 ```
 
 **Parameters:**
@@ -3796,7 +3525,7 @@ foreach ($tools as $tool) {
 }
 ```
 
-This returns an array of `ToolInterface` instances, each with:
+This returns an array of provider-neutral `Tool` instances, each with:
 
 - `name`: The tool's name
 - `description`: The tool's description
@@ -3849,61 +3578,40 @@ The `clearTools()` method:
 
 ## Class-Based Tools
 
-While inline closures are convenient for simple tools, Pagent also supports class-based tools by implementing the `ToolInterface`:
+While inline closures are convenient for simple tools, Pagent also supports
+class-based tools through the canonical `Pagent\Contracts\Tool` contract:
 
 ```php
-use Pagent\Contracts\ToolInterface;
+use Pagent\Contracts\Tool;
 
-class DatabaseQuery implements ToolInterface
+class DatabaseQuery implements Tool
 {
-    public function name(): string
+    public function getName(): string
     {
         return 'query_database';
     }
 
-    public function description(): string
+    public function getDescription(): string
     {
         return 'Execute a SQL query against the database';
+    }
+
+    public function getInputSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'query' => ['type' => 'string', 'description' => 'SQL query to execute'],
+            ],
+            'required' => ['query'],
+        ];
     }
 
     public function execute(array $params): mixed
     {
         $query = $params['query'] ?? throw new RuntimeException('Query required');
-        // Execute query logic here
+        // Execute query logic here.
         return $results;
-    }
-
-    public function toAnthropicSchema(): array
-    {
-        return [
-            'name' => $this->name(),
-            'description' => $this->description(),
-            'input_schema' => [
-                'type' => 'object',
-                'properties' => [
-                    'query' => ['type' => 'string', 'description' => 'SQL query to execute']
-                ],
-                'required' => ['query']
-            ]
-        ];
-    }
-
-    public function toOpenAISchema(): array
-    {
-        return [
-            'type' => 'function',
-            'function' => [
-                'name' => $this->name(),
-                'description' => $this->description(),
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'query' => ['type' => 'string', 'description' => 'SQL query to execute']
-                    ],
-                    'required' => ['query']
-                ]
-            ]
-        ];
     }
 }
 
@@ -3942,7 +3650,7 @@ function fetchWeatherData(string $city): array
 
 $agent = agent('weather-assistant')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful weather assistant. Provide clear and concise weather information.')
     ->tool(
         'get_weather',
@@ -3996,126 +3704,88 @@ In this chapter, you learned:
 7. **Manual Execution**: Use `executeTool()` for testing and debugging
 8. **Tool Inspection**: Use `getTools()` to inspect registered tools
 9. **Error Handling**: Pagent provides helpful error messages with suggestions
-10. **Class-Based Tools**: Implement `ToolInterface` for reusable tool classes
+10. **Class-Based Tools**: Implement `Tool` for reusable tool classes
 
 Tool calling transforms your agents from conversational systems into action-taking systems. With tools, your agents can query databases, read files, call APIs, perform calculations, and interact with external systems—all while maintaining natural language interaction.
 
 In the next chapter, we'll dive deeper into building custom tools with validation, error handling, and advanced patterns for production use.
-
 # Chapter 7: Building Custom Tools
 
 In Chapter 6, we learned how to add tool calling capabilities to agents using simple closures. But as your applications grow more sophisticated, you'll need tools that are reusable, composable, and well-documented. You'll want to share tools across multiple agents, add validation logic, handle edge cases gracefully, and create libraries of functionality that other developers can use.
 
-This is where custom tool classes come in. Pagent provides a powerful tool system that lets you build professional-grade tools with proper interfaces, automatic schema generation, and built-in validation. In this chapter, we'll explore how to create custom tools from scratch, implement the `ToolInterface`, and build production-ready tool libraries.
+This is where custom tool classes come in. Pagent provides a provider-neutral tool
+contract, automatic provider-boundary serialization, and input validation. In
+this chapter, we'll create a reusable tool and build a production-ready tool
+library.
 
 ## Understanding the Tool Architecture
 
 Pagent offers two approaches to creating tools: quick closures (which we covered in Chapter 6) and custom tool classes. While closures are great for simple, one-off tools, custom classes give you complete control over tool behavior.
 
-The foundation is the `ToolInterface`, which defines the contract every tool must implement:
+The canonical contract is `Pagent\Contracts\Tool`. A tool describes itself once
+with JSON Schema; it does not know which provider will receive that schema.
 
 ```php
 namespace Pagent\Contracts;
 
-interface ToolInterface
+interface Tool
 {
-    public function name(): string;
-    public function description(): string;
-    public function execute(array $params): mixed;
-    public function toAnthropicSchema(): array;
-    public function toOpenAISchema(): array;
+    public function getName(): string;
+    public function getDescription(): string;
+    public function getInputSchema(): array;
+    public function execute(array $arguments): mixed;
 }
 ```
 
-Every tool needs five things: a name, a description, execution logic, and schema definitions for both Anthropic and OpenAI formats. This interface ensures your tools work seamlessly with any provider.
+Every tool needs a name, description, input schema, and execution logic. Pagent
+serializes that provider-neutral metadata at the provider boundary: Anthropic
+receives its `input_schema` shape and OpenAI-compatible providers receive their
+function-tool shape.
 
 ## Creating Your First Custom Tool
 
 Let's build a simple but complete custom tool - a calculator that performs basic arithmetic operations:
 
 ```php
-use Pagent\Contracts\ToolInterface;
+use Pagent\Contracts\Tool;
 
-class Calculator implements ToolInterface
+class Calculator implements Tool
 {
-    public function name(): string
+    public function getName(): string
     {
         return 'calculator';
     }
 
-    public function description(): string
+    public function getDescription(): string
     {
         return 'Perform basic arithmetic operations (add, subtract, multiply, divide)';
     }
 
-    public function execute(array $params): mixed
+    public function getInputSchema(): array
     {
-        $operation = $params['operation'];
-        $x = $params['x'];
-        $y = $params['y'];
+        return [
+            'type' => 'object',
+            'properties' => [
+                'operation' => ['type' => 'string', 'enum' => ['add', 'subtract', 'multiply', 'divide']],
+                'x' => ['type' => 'number'],
+                'y' => ['type' => 'number'],
+            ],
+            'required' => ['operation', 'x', 'y'],
+        ];
+    }
 
-        return match($operation) {
+    public function execute(array $arguments): mixed
+    {
+        $operation = $arguments['operation'];
+        $x = $arguments['x'];
+        $y = $arguments['y'];
+
+        return match ($operation) {
             'add' => $x + $y,
             'subtract' => $x - $y,
             'multiply' => $x * $y,
             'divide' => $y !== 0 ? $x / $y : throw new RuntimeException('Division by zero'),
-            default => throw new RuntimeException("Unknown operation: {$operation}"),
         };
-    }
-
-    public function toAnthropicSchema(): array
-    {
-        return [
-            'name' => $this->name(),
-            'description' => $this->description(),
-            'input_schema' => [
-                'type' => 'object',
-                'properties' => [
-                    'operation' => [
-                        'type' => 'string',
-                        'description' => 'The operation to perform: add, subtract, multiply, or divide',
-                    ],
-                    'x' => [
-                        'type' => 'number',
-                        'description' => 'First number',
-                    ],
-                    'y' => [
-                        'type' => 'number',
-                        'description' => 'Second number',
-                    ],
-                ],
-                'required' => ['operation', 'x', 'y'],
-            ],
-        ];
-    }
-
-    public function toOpenAISchema(): array
-    {
-        return [
-            'type' => 'function',
-            'function' => [
-                'name' => $this->name(),
-                'description' => $this->description(),
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'operation' => [
-                            'type' => 'string',
-                            'description' => 'The operation to perform: add, subtract, multiply, or divide',
-                        ],
-                        'x' => [
-                            'type' => 'number',
-                            'description' => 'First number',
-                        ],
-                        'y' => [
-                            'type' => 'number',
-                            'description' => 'Second number',
-                        ],
-                    ],
-                    'required' => ['operation', 'x', 'y'],
-                ],
-            ],
-        ];
     }
 }
 ```
@@ -4125,18 +3795,21 @@ Now you can use this tool with any agent:
 ```php
 $agent = agent('math-assistant')
     ->provider(anthropic())
-    ->tool(new Calculator())
-    ->build();
+    ->tool(new Calculator());
 
 $response = $agent->prompt('What is 156 multiplied by 23?');
 // The agent will automatically call the calculator tool and return: "3,588"
 ```
 
-The LLM sees the tool's schema, understands what it does, and knows exactly what parameters to provide. When it decides to use the calculator, Pagent automatically calls your `execute()` method with the right parameters.
+The LLM sees the serialized schema, understands what the tool does, and knows
+what parameters to provide. When it decides to use the calculator, Pagent
+validates those arguments and calls `execute()`.
 
 ## Using the Abstract Tool Class
 
-Writing schema definitions for both Anthropic and OpenAI can be repetitive - the schemas are almost identical, just structured differently. Pagent provides an abstract `Tool` class that handles this boilerplate:
+Pagent also supplies `Pagent\Tools\Tool`, a convenience base class for tools
+that prefer the older `name()`, `description()`, and `parameters()` method
+names. It still exposes the canonical contract and remains provider-neutral:
 
 ```php
 use Pagent\Tools\Tool;
@@ -4192,7 +3865,9 @@ class Calculator extends Tool
 }
 ```
 
-The abstract `Tool` class provides default implementations of `toAnthropicSchema()` and `toOpenAISchema()` that automatically convert your `parameters()` definition into the correct format for each provider. This eliminates duplication while maintaining full compatibility.
+The base class maps `name()`, `description()`, and `parameters()` to the
+canonical getters. Provider adapters perform the final serialization, so custom
+tools should never construct an Anthropic- or OpenAI-specific schema themselves.
 
 ## Building Tools with Configuration
 
@@ -4723,24 +4398,23 @@ class CalculatorTest extends TestCase
         ]);
     }
 
-    public function test_it_has_valid_schema(): void
+    public function test_it_has_a_provider_neutral_schema(): void
     {
         $calculator = new Calculator();
 
-        $schema = $calculator->toAnthropicSchema();
+        $schema = $calculator->getInputSchema();
 
-        $this->assertEquals('calculator', $schema['name']);
-        $this->assertArrayHasKey('input_schema', $schema);
-        $this->assertArrayHasKey('properties', $schema['input_schema']);
+        $this->assertSame('calculator', $calculator->getName());
+        $this->assertArrayHasKey('properties', $schema);
         $this->assertEquals(
             ['operation', 'x', 'y'],
-            $schema['input_schema']['required']
+            $schema['required']
         );
     }
 }
 ```
 
-Testing ensures your tools behave correctly and provide accurate schemas to LLMs.
+Testing ensures your tools behave correctly and describe their inputs accurately.
 
 ## Building Stateful Tools
 
@@ -4858,656 +4532,12 @@ This pattern lets you integrate any PHP library into your agent's capabilities.
 
 ## Next Steps
 
-You now understand how to build production-ready custom tools with proper validation, configuration, and error handling. You know how to implement the `ToolInterface`, use the abstract `Tool` class to reduce boilerplate, and organize tools into reusable libraries.
-
-In the next chapter, we'll explore the two-tier tool architecture in Pagent - understanding when to use closure-based tools versus class-based tools, and how to leverage the powerful built-in tool library.
-
-# Chapter 7B: Tool Architecture - Closure vs Class-Based Tools
-
-Pagent provides two distinct approaches for defining tools, each serving different use cases. Understanding when to use closure-based tools (`Pagent\Tool\Tool`) versus class-based tools (`Pagent\Tools\Tool`) is essential for building maintainable agent systems.
-
-This chapter explains the architecture behind Pagent's two-tier tool system, introduces the built-in class-based tool library, and shows you how to choose the right approach for your needs.
-
-## The Two-Tier Tool System
-
-### 1. Closure-Based Tools (`Pagent\Tool\Tool`)
-
-**Namespace:** `Pagent\Tool\Tool` (singular)
-
-**Purpose:** Quick, inline tool definitions with automatic schema generation
-
-**Best for:**
-
-- Simple, one-off tools
-- Rapid prototyping
-- Application-specific logic
-- Tools that don't need reuse across projects
-
-**Key Features:**
-
-- Automatic argument detection via PHP reflection
-- Automatic schema generation for both Anthropic and OpenAI
-- Type inference from PHP type hints
-- Minimal boilerplate
-
-**Example:**
-
-```php
-use function Pagent\agent;
-
-$agent = agent('assistant')
-    ->provider(anthropic())
-    ->tool(
-        'calculate_sum',
-        'Add two numbers together',
-        fn (int $a, int $b): int => $a + $b
-    )
-    ->tool(
-        'get_timestamp',
-        'Get current Unix timestamp',
-        fn (): int => time()
-    );
-```
-
-Closure-based tools are created using `Tool::fromClosure()` internally and automatically integrated with the agent.
-
-### 2. Class-Based Tools (`Pagent\Tools\Tool`)
-
-**Namespace:** `Pagent\Tools\Tool` (plural)
-
-**Purpose:** Production-ready, reusable tools with encapsulated logic and security features
-
-**Best for:**
-
-- Reusable tools across multiple projects
-- Complex tools with state or configuration
-- Tools requiring security controls (path traversal, SSRF protection, etc.)
-- Tools you want to package and distribute
-- Tools with complex validation or error handling
-
-**Key Features:**
-
-- Full encapsulation of logic and state
-- Constructor-based configuration
-- Built-in security features in standard tools
-- Explicit parameter schema control
-- Testability and maintainability
-
-**Example:**
-
-```php
-use Pagent\Tools\Tool;
-
-abstract class Tool
-{
-    abstract public function name(): string;
-    abstract public function description(): string;
-    abstract public function execute(array $params): mixed;
-    public function parameters(): array { return []; }
-}
-```
-
-Class-based tools implement this interface and can be used standalone or wrapped for agent integration.
-
-## Built-In Class-Based Tools
-
-Pagent ships with a comprehensive library of production-ready, security-hardened tools:
-
-### 1. FileRead - Secure File Reading
-
-**Path:** `Pagent\Tools\FileRead`
-
-**Purpose:** Read files with path traversal protection
-
-**Security Features:**
-
-- Base directory restriction
-- Path traversal prevention
-- Configurable allowed extensions
-
-**Configuration:**
-
-```php
-use Pagent\Tools\FileRead;
-
-$tool = new FileRead(
-    baseDir: '/var/www/data',           // Restrict to this directory
-    allowedExtensions: ['txt', 'md'],    // Only allow these types
-    maxSize: 1024 * 1024                 // Max file size (optional)
-);
-
-$result = $tool->execute(['path' => 'document.txt']);
-echo $result['content'];
-```
-
-### 2. FileWrite - Secure File Writing
-
-**Path:** `Pagent\Tools\FileWrite`
-
-**Purpose:** Write files with security controls
-
-**Security Features:**
-
-- Base directory restriction
-- Path traversal prevention
-- Overwrite protection (optional)
-- Configurable allowed extensions
-
-**Configuration:**
-
-```php
-use Pagent\Tools\FileWrite;
-
-$tool = new FileWrite(
-    baseDir: '/var/www/uploads',
-    allowedExtensions: ['txt', 'md', 'json'],
-    allowOverwrite: false  // Prevent overwriting existing files
-);
-
-$tool->execute([
-    'path' => 'output.txt',
-    'content' => 'Hello, World!',
-]);
-```
-
-### 3. WebFetch - HTTP Requests with SSRF Protection
-
-**Path:** `Pagent\Tools\WebFetch`
-
-**Purpose:** Make HTTP requests with security controls
-
-**Security Features:**
-
-- SSRF protection (blocks private/local IPs)
-- Allowed domain whitelist
-- Timeout control
-- Content-type filtering
-
-**Configuration:**
-
-```php
-use Pagent\Tools\WebFetch;
-
-$tool = new WebFetch(
-    allowedDomains: ['api.example.com', 'data.example.org'],
-    timeout: 30,
-    maxRedirects: 5
-);
-
-$result = $tool->execute(['url' => 'https://api.example.com/data']);
-echo $result['body'];
-```
-
-### 4. Bash - Shell Command Execution
-
-**Path:** `Pagent\Tools\Bash`
-
-**Purpose:** Execute shell commands with command whitelisting
-
-**Security Features:**
-
-- Command whitelist (only allowed commands can run)
-- Working directory restriction
-- Timeout control
-- Environment variable control
-
-**Configuration:**
-
-```php
-use Pagent\Tools\Bash;
-
-$tool = new Bash(
-    allowedCommands: ['ls', 'grep', 'find', 'cat'],
-    workingDirectory: '/var/www',
-    timeout: 60
-);
-
-$result = $tool->execute(['command' => 'ls -la']);
-echo $result['output'];
-```
-
-### 5. Glob - File Pattern Matching
-
-**Path:** `Pagent\Tools\Glob`
-
-**Purpose:** Find files by pattern with directory restrictions
-
-**Configuration:**
-
-```php
-use Pagent\Tools\Glob;
-
-$tool = new Glob(
-    baseDir: '/var/www/app',
-    maxResults: 100
-);
-
-$result = $tool->execute(['pattern' => '**/*.php']);
-print_r($result['files']);
-```
-
-### 6. Grep - Content Search
-
-**Path:** `Pagent\Tools\Grep`
-
-**Purpose:** Search file contents with limits
-
-**Configuration:**
-
-```php
-use Pagent\Tools\Grep;
-
-$tool = new Grep(
-    baseDir: '/var/www/app',
-    maxResults: 50,
-    maxFileSize: 1024 * 1024  // Don't search files > 1MB
-);
-
-$result = $tool->execute([
-    'pattern' => 'function.*export',
-    'path' => 'src/',
-]);
-```
-
-### 7. PdfReader - PDF Text Extraction
-
-**Path:** `Pagent\Tools\PdfReader`
-
-**Purpose:** Extract text from PDF files
-
-**Configuration:**
-
-```php
-use Pagent\Tools\PdfReader;
-
-$tool = new PdfReader(
-    baseDir: '/var/www/documents',
-    maxPages: 50  // Limit extraction to first N pages
-);
-
-$result = $tool->execute(['path' => 'report.pdf']);
-echo $result['text'];
-```
-
-### 8. DataExtract - Structured Data Extraction
-
-**Path:** `Pagent\Tools\DataExtract`
-
-**Purpose:** Use LLM to extract structured data from unstructured text
-
-**Configuration:**
-
-```php
-use Pagent\Tools\DataExtract;
-use function Pagent\anthropic;
-
-$tool = new DataExtract(
-    provider: anthropic(),
-    schema: [
-        'type' => 'object',
-        'properties' => [
-            'name' => ['type' => 'string'],
-            'email' => ['type' => 'string'],
-            'phone' => ['type' => 'string'],
-        ],
-    ]
-);
-
-$result = $tool->execute([
-    'text' => 'Contact: John Doe (john@example.com, 555-1234)',
-]);
-```
-
-### 9. SearchTool - Semantic Search
-
-**Path:** `Pagent\Tools\SearchTool`
-
-**Purpose:** Perform semantic search over documents or data
-
-**Configuration:**
-
-```php
-use Pagent\Tools\SearchTool;
-
-$tool = new SearchTool(
-    documents: $documentCollection,
-    topK: 5
-);
-
-$result = $tool->execute(['query' => 'How to configure authentication?']);
-```
-
-## When to Use Which Approach
-
-### Use Closure-Based Tools When:
-
-1. **Rapid prototyping** - You're experimenting and iterating quickly
-2. **Simple logic** - The tool does one simple thing with no complex state
-3. **Application-specific** - The tool is unique to this application
-4. **One-time use** - You won't reuse this tool in other projects
-5. **Inline context** - The tool logic is clearer when defined inline
-
-**Example: Application-specific calculation**
-
-```php
-$agent->tool(
-    'calculate_discount',
-    'Calculate discount based on customer tier and order value',
-    function (string $tier, float $orderValue): float {
-        $discountRates = [
-            'bronze' => 0.05,
-            'silver' => 0.10,
-            'gold' => 0.15,
-        ];
-
-        return $orderValue * ($discountRates[$tier] ?? 0);
-    }
-);
-```
-
-### Use Class-Based Tools When:
-
-1. **Reusability** - You'll use this tool across multiple agents or projects
-2. **Complex logic** - The tool requires state, configuration, or multiple methods
-3. **Security** - You need path traversal, SSRF, or other security controls
-4. **Testing** - You want to unit test the tool independently
-5. **Collaboration** - The tool will be shared with other developers
-6. **External dependencies** - The tool wraps an API client or external library
-
-**Example: Reusable database query tool**
-
-```php
-namespace App\Tools;
-
-use Pagent\Tools\Tool;
-
-class DatabaseQuery extends Tool
-{
-    public function __construct(
-        private PDO $connection,
-        private array $allowedTables,
-    ) {}
-
-    public function name(): string
-    {
-        return 'query_database';
-    }
-
-    public function description(): string
-    {
-        return 'Execute a SQL SELECT query on allowed tables';
-    }
-
-    public function parameters(): array
-    {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'table' => [
-                    'type' => 'string',
-                    'enum' => $this->allowedTables,
-                    'description' => 'Table to query',
-                ],
-                'columns' => [
-                    'type' => 'array',
-                    'items' => ['type' => 'string'],
-                    'description' => 'Columns to select',
-                ],
-                'where' => [
-                    'type' => 'string',
-                    'description' => 'WHERE clause (optional)',
-                ],
-            ],
-            'required' => ['table', 'columns'],
-        ];
-    }
-
-    public function execute(array $params): mixed
-    {
-        // Validate table is allowed
-        if (! in_array($params['table'], $this->allowedTables)) {
-            throw new \InvalidArgumentException("Table not allowed: {$params['table']}");
-        }
-
-        // Build and execute query safely
-        $columns = implode(', ', $params['columns']);
-        $sql = "SELECT {$columns} FROM {$params['table']}";
-
-        if (isset($params['where'])) {
-            $sql .= " WHERE {$params['where']}";
-        }
-
-        $stmt = $this->connection->query($sql);
-
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-}
-```
-
-## Using Class-Based Tools with Agents
-
-Class-based tools aren't automatically integrated with agents via `->tool()` like closures. You have two options:
-
-### Option 1: Wrap in a Closure (Recommended)
-
-```php
-use Pagent\Tools\FileRead;
-use function Pagent\agent;
-
-$fileReader = new FileRead(baseDir: '/var/www/data');
-
-$agent = agent('assistant')
-    ->provider(anthropic())
-    ->tool(
-        $fileReader->name(),
-        $fileReader->description(),
-        fn (array $params) => $fileReader->execute($params)
-    );
-```
-
-### Option 2: Convert to ToolInterface Implementation
-
-Implement the `Pagent\Contracts\ToolInterface` to get automatic integration:
-
-```php
-namespace App\Tools;
-
-use Pagent\Contracts\ToolInterface;
-
-class CustomTool implements ToolInterface
-{
-    public function name(): string
-    {
-        return 'custom_tool';
-    }
-
-    public function description(): string
-    {
-        return 'My custom tool';
-    }
-
-    public function parameters(): array
-    {
-        return [/* JSON schema */];
-    }
-
-    public function execute(array $params): mixed
-    {
-        // Implementation
-    }
-}
-
-// Usage
-$agent->tool(new CustomTool());
-```
-
-## Security Considerations
-
-### Built-In Tool Security
-
-All built-in class-based tools implement security controls:
-
-1. **FileRead/FileWrite**
-   - Path traversal prevention
-   - Base directory restriction
-   - Extension whitelisting
-   - Size limits
-
-2. **WebFetch**
-   - SSRF protection (blocks 127.0.0.1, 0.0.0.0, private IPs)
-   - Domain whitelisting
-   - Timeout controls
-   - Redirect limits
-
-3. **Bash**
-   - Command whitelisting (ONLY allowed commands can run)
-   - Working directory restriction
-   - Timeout controls
-   - No shell injection (arguments are properly escaped)
-
-4. **Glob/Grep**
-   - Base directory restriction
-   - Result limits
-   - File size limits
-
-### Custom Tool Security Checklist
-
-When building custom class-based tools:
-
-- ✅ Validate all input parameters
-- ✅ Sanitize file paths and prevent directory traversal
-- ✅ Whitelist allowed operations (not blacklist)
-- ✅ Implement timeout controls for long-running operations
-- ✅ Limit resource consumption (file sizes, result counts, memory)
-- ✅ Log security-relevant events
-- ✅ Handle errors gracefully without exposing internals
-- ✅ Escape shell commands properly
-- ✅ Validate URLs and prevent SSRF
-
-## Performance Considerations
-
-### Closure-Based Tools
-
-**Pros:**
-
-- No instantiation overhead
-- Direct function calls
-- Minimal memory footprint
-
-**Cons:**
-
-- No state reuse between calls
-- Harder to optimize complex logic
-
-### Class-Based Tools
-
-**Pros:**
-
-- State can be cached (DB connections, API clients)
-- Constructor-based initialization
-- Can implement caching internally
-
-**Cons:**
-
-- Small instantiation overhead
-- Slightly larger memory footprint
-
-**Best Practice:** For tools that make external calls (APIs, databases), use class-based tools and cache connections:
-
-```php
-class ApiClient extends Tool
-{
-    private HttpClient $client;
-
-    public function __construct(string $apiKey)
-    {
-        // Initialize once, reuse for all calls
-        $this->client = new HttpClient([
-            'base_uri' => 'https://api.example.com',
-            'headers' => ['Authorization' => "Bearer {$apiKey}"],
-        ]);
-    }
-
-    public function execute(array $params): mixed
-    {
-        // Reuse $this->client for all requests
-        return $this->client->get($params['endpoint'])->json();
-    }
-}
-```
-
-## Testing Tools
-
-### Testing Closure-Based Tools
-
-Test through agent integration:
-
-```php
-test('it calculates sum correctly', function () {
-    $agent = agent('calc')
-        ->provider(mock())
-        ->tool(
-            'add',
-            'Add numbers',
-            fn (int $a, int $b) => $a + $b
-        );
-
-    // Test via agent prompt
-    $response = $agent->prompt('What is 5 plus 3?');
-    expect($response->content)->toContain('8');
-});
-```
-
-### Testing Class-Based Tools
-
-Test the tool directly:
-
-```php
-use App\Tools\DatabaseQuery;
-
-test('it queries allowed tables only', function () {
-    $db = new PDO('sqlite::memory:');
-    $tool = new DatabaseQuery($db, allowedTables: ['users']);
-
-    $result = $tool->execute([
-        'table' => 'users',
-        'columns' => ['id', 'name'],
-    ]);
-
-    expect($result)->toBeArray();
-});
-
-test('it rejects disallowed tables', function () {
-    $db = new PDO('sqlite::memory:');
-    $tool = new DatabaseQuery($db, allowedTables: ['users']);
-
-    expect(fn () => $tool->execute([
-        'table' => 'admin_secrets',  // Not in allowedTables
-        'columns' => ['password'],
-    ]))->toThrow(InvalidArgumentException::class);
-});
-```
-
-## Best Practices
-
-**Start with closures, refactor to classes.** Begin with closure-based tools for rapid development, then extract to classes when you find yourself reusing the logic.
-
-**Use built-in tools first.** Before writing custom file/web/shell tools, check if the built-in versions meet your needs.
-
-**Configure security appropriately.** Always set `baseDir`, `allowedDomains`, or `allowedCommands` when using built-in tools.
-
-**Keep tools focused.** Each tool should do one thing well. Don't create "Swiss Army knife" tools.
-
-**Document tool behavior.** Good descriptions help the LLM decide when to use the tool correctly.
-
-**Test security boundaries.** For tools with security controls, write tests that verify they block malicious inputs.
-
-## What's Next
-
-You now understand Pagent's two-tier tool architecture and can choose between closure-based and class-based tools based on your needs. You've seen the comprehensive built-in tool library and learned how to build secure, reusable tools for your agents.
-
-In the next chapter, we'll explore recursive tool execution - how agents can chain multiple tool calls together, handle complex multi-step workflows, and avoid infinite loops.
-
+You now understand how to build production-ready custom tools with proper
+validation, configuration, and error handling. You know how to implement the
+canonical `Tool` contract, use the convenience base class when it fits, and
+organize tools into reusable libraries.
+
+In the next chapter, we'll explore recursive tool execution - how agents can chain multiple tool calls together, handle complex multi-step workflows, and avoid infinite loops. You'll learn how Pagent's automatic recursion handling makes it easy to build agents that break down complex tasks into a series of tool calls.
 # Chapter 8: Recursive Tool Execution
 
 **Learning Objectives:**
@@ -5608,7 +4638,7 @@ use Pagent\Tool\Tool;
 
 $researcher = agent('researcher')
     ->provider(anthropic())
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('You are a research assistant. Use tools to gather information.')
     ->tool(Tool::fromClosure(
         'search_web',
@@ -5730,7 +4760,7 @@ $sessionData = [];
 
 $orchestrator = agent('api_orchestrator')
     ->provider(anthropic())
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('Call APIs in the correct order respecting dependencies.')
     ->tool(Tool::fromClosure(
         'authenticate',
@@ -5986,7 +5016,6 @@ In Chapter 9, we'll explore tool orchestration patterns, learning how to design 
 - [Anthropic Tool Use Guide](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)
 - [OpenAI Function Calling](https://platform.openai.com/docs/guides/function-calling)
 - [Pagent Source Code - Agent.php](https://github.com/hhelge/pagent/blob/main/src/Agent.php)
-
 # Chapter 9: Tool Orchestration Patterns
 
 **Learning Objectives:**
@@ -6093,7 +5122,7 @@ Let the LLM decide which tools to use and in what order. This is Pagent's defaul
 ```php
 $agent = agent('etl-pipeline')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a data processing assistant. Follow these steps:
         1. Fetch data from the source
         2. Validate the data structure
@@ -6361,12 +5390,12 @@ Each tool execution loop requires an LLM API call. Minimize calls by:
 **1. Batching-friendly tool descriptions:**
 
 ```php
-// ❌ Forces multiple LLM calls
+// Forces multiple LLM calls
 $agent->tool('get_user', 'Get user by ID', ...);
 $agent->tool('get_user_orders', 'Get orders for user', ...);
 $agent->tool('get_user_preferences', 'Get user preferences', ...);
 
-// ✅ Single tool, single call
+// Single tool, single call
 $agent->tool('get_user_profile',
     'Get complete user profile including orders and preferences',
     fn (string $userId) => [
@@ -6380,10 +5409,10 @@ $agent->tool('get_user_profile',
 **2. Manual execution for known sequences:**
 
 ```php
-// ❌ LLM overhead for simple sequence
+// LLM overhead for simple sequence
 $agent->prompt('Add 5+3, then multiply by 2');
 
-// ✅ Manual execution
+// Manual execution
 $sum = $agent->executeTool('add', [5, 3]);
 $result = $agent->executeTool('multiply', [$sum, 2]);
 ```
@@ -6415,7 +5444,7 @@ $agent->tool('expensive_computation',
 ```php
 $agent = agent('market-research')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a market research analyst.
         Gather data from multiple sources and provide insights.')
     ->tool('scrape_website', 'Scrape competitor website',
@@ -6512,10 +5541,10 @@ $result = $agent->prompt("
 The LLM relies entirely on tool descriptions for orchestration:
 
 ```php
-// ❌ Vague description
+// Vague description
 $agent->tool('process', 'Process data', ...);
 
-// ✅ Specific description
+// Specific description
 $agent->tool('process_user_data',
     'Process user data: validates email, normalizes name,
      generates username. Returns processed user object.',
@@ -6527,7 +5556,7 @@ $agent->tool('process_user_data',
 Tools should be safe to call multiple times:
 
 ```php
-// ❌ Not idempotent
+// Not idempotent
 $agent->tool('increment_counter',
     'Increment counter',
     function () {
@@ -6535,7 +5564,7 @@ $agent->tool('increment_counter',
         return ++$count;
     });
 
-// ✅ Idempotent
+// Idempotent
 $agent->tool('get_counter',
     'Get current counter value',
     fn () => Cache::get('counter', 0));
@@ -6550,11 +5579,11 @@ $agent->tool('set_counter',
 Help the LLM understand tool results:
 
 ```php
-// ❌ Opaque return
+// Opaque return
 $agent->tool('check_inventory', 'Check inventory',
     fn (string $sku) => Inventory::check($sku));
 
-// ✅ Structured return
+// Structured return
 $agent->tool('check_inventory', 'Check inventory status',
     fn (string $sku) => [
         'sku' => $sku,
@@ -6631,7 +5660,6 @@ Now that you understand tool orchestration patterns, you're ready for:
 - **Part 6 (Chapters 18-20):** Multi-agent orchestration with pipelines, handoffs, and delegation
 
 Tool orchestration is where Pagent transforms from a simple chat interface into a powerful workflow engine. Master these patterns and you'll build sophisticated AI applications that blend LLM intelligence with deterministic reliability.
-
 # Chapter 10: Streaming Fundamentals
 
 In previous chapters, we've worked with the standard `prompt()` method - send a message, wait for the complete response, then display it. This works perfectly for many use cases, but what about scenarios where you want to show progress as the response generates? What about building a chatbot with that characteristic "typing" effect, or displaying long-form content word-by-word as it's created?
@@ -6661,7 +5689,7 @@ Pagent provides two methods for streaming: `stream()` returns a `StreamResponse`
 ```php
 $agent = agent('storyteller')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->build();
 
 // Stream with callback
@@ -6833,7 +5861,7 @@ Let's build some practical streaming interfaces. Here's a console progress indic
 ```php
 $agent = agent('writer')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->maxTokens(2000)
     ->build();
 
@@ -7035,12 +6063,12 @@ The memory integration works identically to `prompt()`:
 
 ## Streaming and Guards
 
-Guards execute after the stream completes, not during streaming:
+Streaming preserves the same guard phases, with one important visibility tradeoff:
 
 ```php
 $agent = agent('guarded-stream')
     ->provider(anthropic())
-    ->guard('profanity')
+    ->guard('pii')
     ->fallback(function ($exception) {
         return "I apologize, I cannot provide that content.";
     })
@@ -7060,14 +6088,17 @@ try {
 }
 ```
 
-This means:
+Input guards always run before streaming starts. Incremental output guards may
+inspect the accumulated text while chunks are forwarded. Output guards that
+return `false` from `supportsIncrementalInspection()`—including the built-in PII
+guard—require a buffered stream: Pagent consumes the provider response, runs the
+policy and middleware, then releases chunks only if they pass. Legacy two-argument
+guards are also buffered because their phase cannot be inferred safely.
 
-- Content streams in real-time
-- After streaming completes, guards check the full content
-- If a guard fails, the exception is thrown after all chunks have streamed
-- Fallback handlers work normally
-
-For real-time content filtering during streaming, you'd need to implement checks in your callback, but be aware the LLM has no way to "un-send" chunks that already streamed.
+This means a buffered guard prevents unsafe partial output from reaching the
+callback, at the cost of real-time delivery. An incremental guard preserves
+low-latency streaming but cannot retract chunks already yielded if it later
+detects a violation.
 
 ## Performance Considerations
 
@@ -7147,7 +6178,6 @@ Streaming brings real-time responsiveness to your LLM applications. The key conc
 - All major providers support streaming with transparent format handling
 
 In the next chapter, we'll explore advanced streaming patterns including cancellation, progress tracking, and building complex streaming interfaces for production applications.
-
 # Chapter 11: Advanced Streaming Patterns
 
 In Chapter 10, we explored the basics of streaming responses - receiving LLM output token by token as it's generated. But production applications require more sophisticated streaming patterns. You need to handle errors gracefully, integrate streaming with conversation memory, track token usage and completion metadata, and build robust user interfaces that handle network interruptions.
@@ -7170,7 +6200,7 @@ $streamResponse = $agent->stream('Write a haiku about coding');
 
 // StreamResponse provides metadata
 echo $streamResponse->getProvider(); // 'anthropic'
-echo $streamResponse->getModel();    // 'claude-sonnet-4-20250514'
+echo $streamResponse->getModel();    // 'claude-sonnet-4-6'
 ```
 
 The `StreamResponse` class wraps a PHP Generator that yields `StreamChunk` objects. It provides two primary methods for consuming the stream:
@@ -7332,7 +6362,10 @@ if (!$receivedEndChunk) {
 
 ### Guard Exceptions After Streaming
 
-Guards run on the complete content after streaming finishes. A guard violation throws a `GuardException`:
+Guards inspect streamed output before it is delivered. Policies that cannot
+make safe incremental decisions automatically buffer the provider response,
+so rejected content never reaches the callback. A guard violation throws a
+`GuardException`:
 
 ```php
 use Pagent\Exceptions\GuardException;
@@ -7344,10 +6377,10 @@ $agent = agent('safe-bot')
 
 try {
     $agent->streamTo('Generate some text', function ($chunk) {
-        echo $chunk->content; // Stream completes successfully
+        echo $chunk->content;
     });
 } catch (GuardException $e) {
-    // Guard failed AFTER streaming completed
+    // No rejected content was passed to the callback.
     echo "Content violated guard: " . $e->getMessage();
 }
 ```
@@ -7375,7 +6408,10 @@ $result = $agent->streamTo('Some prompt', function ($chunk) {
 // $result might be the streamed content OR the fallback message
 ```
 
-When a guard fails during `streamTo()`, the fallback is invoked and its return value becomes the function's return value. No exception is thrown to the caller.
+When a guard fails during `streamTo()`, the rejected output remains
+quarantined, the fallback is committed to conversation memory, and its return
+value becomes the function's return value. No exception is thrown to the
+caller, and the callback receives none of the rejected provider content.
 
 ## Memory Integration
 
@@ -7695,7 +6731,7 @@ This reduces syscall overhead while maintaining responsiveness.
 Process chunks efficiently:
 
 ```php
-// ❌ Bad: Expensive operation per chunk
+// Bad: Expensive operation per chunk
 $agent->streamTo('Generate JSON', function ($chunk) {
     if ($chunk->isText()) {
         // Don't parse incomplete JSON on every chunk
@@ -7704,7 +6740,7 @@ $agent->streamTo('Generate JSON', function ($chunk) {
     }
 });
 
-// ✅ Good: Accumulate and process once
+// Good: Accumulate and process once
 $jsonBuffer = '';
 
 $agent->streamTo('Generate JSON', function ($chunk) use (&$jsonBuffer) {
@@ -7757,17 +6793,16 @@ In **Chapter 12: Memory Systems**, we'll explore:
 
 **Key Takeaways:**
 
-✅ `StreamResponse` provides `collect()` and `streamTo()` for consuming streams
-✅ `Agent::streamTo()` integrates streaming with memory, guards, and history
-✅ Guard exceptions are thrown after streaming completes
-✅ Fallbacks can replace guard exception throwing
-✅ Usage metadata is available in end chunks and via `StreamResponse`
-✅ Memory operations (load/save) happen automatically around streaming
-✅ Chunk types are normalized across providers via `StreamChunk` methods
-✅ Batch chunk processing for better performance in production
+- `StreamResponse` provides `collect()` and `streamTo()` for consuming streams
+- `Agent::streamTo()` integrates streaming with memory, guards, and history
+- Guard exceptions are thrown after streaming completes
+- Fallbacks can replace guard exception throwing
+- Usage metadata is available in end chunks and via `StreamResponse`
+- Memory operations happen automatically around streaming
+- Chunk types are normalized across providers through `StreamChunk` methods
+- Batch processing can reduce per-chunk overhead
 
 Continue to [Chapter 12: Memory Systems](./article.part12.md) →
-
 # Chapter 12: Memory Systems
 
 ## Why Memory Matters
@@ -7835,7 +6870,7 @@ use function Pagent\agent;
 
 $agent = agent('support-bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory('Sqlite', ['path' => 'storage/sessions.db'])
     ->sessionId('user-12345')
     ->system('You are a helpful support agent.');
@@ -7850,7 +6885,7 @@ $agent->prompt('Order number is #4829');
 // Later - same user, new script execution
 $agent = agent('support-bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory('Sqlite', ['path' => 'storage/sessions.db'])
     ->sessionId('user-12345')
     ->system('You are a helpful support agent.');
@@ -7926,10 +6961,13 @@ JSON files, one per session. Great for development or low-volume applications:
 
 ```php
 $agent->memory('File', [
-    'directory' => 'storage/sessions',  // Default location
+    'path' => 'storage/sessions',       // Canonical directory option
     'permissions' => 0755,              // Directory permissions
 ]);
 ```
+
+`path` is the canonical FileAdapter option. `directory` remains a supported
+legacy alias; when both are supplied, `directory` wins for compatibility.
 
 **Features:**
 
@@ -7987,7 +7025,7 @@ Memory loads automatically on the **first prompt** for a session:
 ```php
 $agent = agent('bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory('Sqlite')
     ->sessionId('session-123');
 
@@ -8095,6 +7133,24 @@ expect($pruned)->toHaveCount(50);
 
 ## Session Management Patterns
 
+### Switching Sessions Safely
+
+Calling `sessionId()` with a new value clears the agent's in-memory messages and
+marks the new session as not yet loaded. The next prompt loads that new session
+from the configured memory adapter. It does not merge histories, so switch only
+at a conversation boundary:
+
+```php
+$agent->sessionId('customer-1')->prompt('First customer message');
+
+// Starts a separate in-memory conversation; customer-1 remains persisted.
+$agent->sessionId('customer-2')->prompt('Second customer message');
+```
+
+Each prompt and stream also keeps a pre-turn snapshot. A provider, tool, guard,
+or streaming failure rolls the in-memory conversation back to that snapshot,
+preventing partial user or assistant messages from leaking into the next turn.
+
 ### Per-User Sessions
 
 Track conversations by user ID:
@@ -8108,7 +7164,7 @@ class ChatController
 
         $agent = agent('chatbot')
             ->provider('anthropic')
-            ->model('claude-sonnet-4-20250514')
+            ->model('claude-sonnet-4-6')
             ->memory('Sqlite')
             ->sessionId("user-{$userId}")
             ->system('You are a helpful assistant.');
@@ -8134,8 +7190,8 @@ $tempId = 'temp-'.uniqid();
 
 $agent = agent('wizard')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
-    ->memory('File', ['directory' => 'storage/temp'])
+    ->model('claude-sonnet-4-6')
+    ->memory('File', ['path' => 'storage/temp'])
     ->sessionId($tempId);
 
 // Use for multi-step workflow
@@ -8143,7 +7199,7 @@ $agent->prompt('Start analysis...');
 $agent->prompt('Continue with step 2...');
 
 // Clean up when done
-$memory = new FileAdapter(['directory' => 'storage/temp']);
+$memory = new FileAdapter(['path' => 'storage/temp']);
 $memory->delete($tempId);
 ```
 
@@ -8157,7 +7213,7 @@ $memory = new SqliteAdapter(['path' => 'storage/workflows.db']);
 // Analyst agent - own session
 $analyst = agent('analyst')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory($memory)
     ->sessionId('workflow-123-analyst')
     ->system('You analyze data and provide insights.');
@@ -8165,7 +7221,7 @@ $analyst = agent('analyst')
 // Writer agent - own session
 $writer = agent('writer')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory($memory)
     ->sessionId('workflow-123-writer')
     ->system('You write reports based on analysis.');
@@ -8228,7 +7284,7 @@ it('maintains conversation context', function (): void {
                 'What is my name?' => 'Your name is Alice.',
             ],
         ]))
-        ->memory('File', ['directory' => $tempDir])
+        ->memory('File', ['path' => $tempDir])
         ->sessionId('test-session');
 
     // First exchange
@@ -8240,7 +7296,7 @@ it('maintains conversation context', function (): void {
     expect($r2->content)->toBe('Your name is Alice.');
 
     // Verify persistence
-    $memory = new FileAdapter(['directory' => $tempDir]);
+    $memory = new FileAdapter(['path' => $tempDir]);
     $messages = $memory->load('test-session');
     expect($messages)->toHaveCount(4);
 });
@@ -8345,7 +7401,7 @@ use App\Memory\RedisAdapter;
 
 $agent = agent('bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory(new RedisAdapter([
         'host' => 'redis.example.com',
         'prefix' => 'chatbot:',
@@ -8366,7 +7422,6 @@ In the next chapter, we'll explore **Events and Hooks** - how to tap into the ag
 - Automatic lazy loading and auto-save eliminate boilerplate
 - Session IDs organize conversations by user, workflow, or context
 - The `Memory` interface makes custom adapters straightforward
-
 # Chapter 13: Advanced Memory Patterns
 
 In the previous chapter, we explored basic memory persistence with SQLite and file-based storage. While those patterns work well for straightforward conversation history, real-world applications often demand more sophisticated memory management. What happens when conversations grow to thousands of messages? How do you implement semantic search across conversation history? What about hierarchical memory systems that summarize old context while preserving important details?
@@ -8382,7 +7437,7 @@ Pagent's `ContextManager` provides automatic pruning to keep conversations withi
 ```php
 $agent = agent('support-bot')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory('sqlite', ['path' => 'support.db'])
     ->sessionId('ticket-12345')
     ->contextWindow(4000, 'oldest')  // Max 4000 tokens, remove oldest first
@@ -8577,7 +7632,7 @@ Using this wrapper:
 // Create summarizer agent (separate from main agent)
 $summarizer = agent('summarizer')
     ->provider(anthropic())
-    ->model('claude-haiku-3-5-20250514')  // Fast, cheap model for summaries
+    ->model('claude-sonnet-4-6')  // Fast, cheap model for summaries
     ->build();
 
 // Wrap base memory with summarization
@@ -8964,7 +8019,7 @@ $cachedStorage = new CachedMemory($sqliteStorage, cacheSize: 200);
 // Add summarization for long conversations
 $summarizer = agent('summarizer')
     ->provider(anthropic())
-    ->model('claude-haiku-3-5-20250514')
+    ->model('claude-sonnet-4-6')
     ->build();
 
 $summarizingMemory = new SummarizingMemory(
@@ -8976,7 +8031,7 @@ $summarizingMemory = new SummarizingMemory(
 // Create agent with context window management
 $agent = agent('support-bot')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory($summarizingMemory)
     ->sessionId('ticket-789')
     ->contextWindow(8000, 'sliding')
@@ -8997,20 +8052,19 @@ This architecture scales from dozens to thousands of concurrent conversations wh
 In this chapter, we've explored advanced memory patterns - from context window management to semantic search and hierarchical storage. You've learned how to build custom memory adapters, implement compression strategies, and optimize performance for production workloads.
 
 The next chapter moves to safety and reliability. We'll examine Pagent's guard system for detecting PII, filtering content, and protecting against prompt injection attacks - essential features for deploying LLM applications in production.
-
 # Chapter 14: Safety Guards
 
 ## Introduction
 
-When your LLM agent processes user input and generates responses, you need to ensure those outputs are safe, compliant, and appropriate for your use case. Pagent's **guard system** provides a powerful, flexible way to validate agent responses before they reach users.
+When your LLM agent processes user input and generates responses, you need to ensure those outputs are safe, compliant, and appropriate for your use case. Pagent's **guard system** provides phase-aware policies for validating input before it leaves the process and output before it reaches users.
 
-Guards act as safety checkpoints that inspect both the user's input and the LLM's output. If a guard detects a violation - such as personally identifiable information (PII), inappropriate content, or a prompt injection attempt - it can block the response and trigger fallback behavior.
+Guards act as safety checkpoints. Input guards reject untrusted prompts and tool arguments before a provider or tool sees them; output guards reject provider responses. If a guard detects a violation - such as personally identifiable information (PII), inappropriate content, or a prompt injection attempt - it can block the response and trigger fallback behavior.
 
 This chapter explores Pagent's guard system from basic usage to advanced patterns, showing you how to build production-ready agents that handle sensitive data safely.
 
 ## The Guard Interface
 
-At its core, a guard is incredibly simple - just three methods:
+`Guard` remains the common compatibility contract. New policies should implement one of its phase-specific extensions:
 
 ```php
 interface Guard
@@ -9021,7 +8075,20 @@ interface Guard
 }
 ```
 
-The `check()` method receives both the user's input and the LLM's output. Return `true` to allow the response, or `false` to block it. The guard system calls guards **after** the LLM generates a response but **before** adding it to conversation history.
+```php
+interface InputGuard extends Guard
+{
+    public function checkInput(string $input): bool;
+}
+
+interface OutputGuard extends Guard
+{
+    public function checkOutput(string $output): bool;
+    public function supportsIncrementalInspection(): bool;
+}
+```
+
+An input guard runs before a provider request and before tool execution. An output guard runs after provider output is available and before it is committed to history. `supportsIncrementalInspection()` tells streaming whether it is safe to inspect accumulated output while forwarding chunks.
 
 When a guard returns `false`, Pagent throws a `GuardException` containing:
 
@@ -9045,7 +8112,7 @@ use function Pagent\agent;
 
 $agent = agent('safe-assistant')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('pii')              // PIIGuard
     ->guard('contentFilter')    // ContentFilterGuard
     ->guard('promptInjection')  // PromptInjectionGuard
@@ -9064,7 +8131,7 @@ use Pagent\Guards\ContentFilterGuard;
 
 $agent = agent('custom-safety')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard(new PIIGuard(
         enabledChecks: ['ssn', 'credit_card', 'email']
     ))
@@ -9084,7 +8151,7 @@ For custom validation logic, use a closure:
 ```php
 $agent = agent('no-swearing')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('profanity_check', function (string $input, string $output): bool {
         $profanity = ['badword1', 'badword2'];
         foreach ($profanity as $word) {
@@ -9097,7 +8164,7 @@ $agent = agent('no-swearing')
     ->build();
 ```
 
-Closure guards receive the input and output as parameters. Return `true` to pass, `false` to block. Pagent automatically wraps your closure in an anonymous class that implements the `Guard` interface.
+Closure guards receive the input and output as parameters. They are legacy guards, evaluated after provider output for backward compatibility. Prefer an `InputGuard` or `OutputGuard` class whenever the phase matters.
 
 ## Built-in Guards
 
@@ -9132,7 +8199,7 @@ Example:
 ```php
 $agent = agent('gdpr-compliant')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('pii')
     ->build();
 
@@ -9183,7 +8250,7 @@ Example - content moderation bot:
 ```php
 $moderator = agent('content-moderator')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard(new ContentFilterGuard(
         customPatterns: ['/\b(spam|scam|phishing)\b/i']
     ))
@@ -9208,7 +8275,7 @@ The `PromptInjectionGuard` detects attempts to manipulate your agent through mal
 ```php
 $agent = agent('secure-assistant')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('promptInjection')
     ->build();
 
@@ -9249,7 +8316,7 @@ Guards execute **sequentially** in the order you add them:
 ```php
 $agent = agent('multi-guard')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('promptInjection')  // Runs first
     ->guard('pii')              // Runs second
     ->guard('contentFilter')    // Runs third
@@ -9262,20 +8329,21 @@ $agent = agent('multi-guard')
 
 Guards execute at a specific point in the prompt lifecycle:
 
-1. User calls `$agent->prompt($message)`
-2. Message is sent to LLM provider
-3. LLM generates response
-4. **Guards check input and output** ⬅ You are here
-5. If all guards pass, response is added to conversation history
-6. Response is returned to caller
+1. User calls `$agent->prompt($message)`.
+2. Input guards check the prompt; they also check tool arguments before execution.
+3. The message is sent to the provider and requested tools execute.
+4. Output guards, then legacy guards, check the completed output.
+5. If all policies pass, the response is added to conversation history.
+6. Response is returned to caller.
 
 If any guard fails, execution stops at step 4, the response is **not** added to history, and a `GuardException` is thrown (or the fallback is triggered).
 
 This means:
 
-- Guards only run for **user prompts**, not tool calls or streaming chunks
-- Failed responses never pollute conversation history
-- You can retry with a different prompt without side effects
+- Input guards protect tool arguments as well as user prompts.
+- A failed turn rolls its in-memory conversation back to the pre-turn snapshot.
+- Input guard failures are never retained; a configured fallback can supply a
+  safe response without replaying blocked input to a provider.
 
 ## Handling Guard Violations
 
@@ -9290,7 +8358,7 @@ use Pagent\Exceptions\GuardException;
 
 $agent = agent('safe-bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('pii')
     ->build();
 
@@ -9320,7 +8388,7 @@ For cleaner code, register a fallback handler:
 ```php
 $agent = agent('safe-bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('pii')
     ->fallback(function (GuardException $e): string {
         // Log violation
@@ -9356,7 +8424,7 @@ use Pagent\Guards\PromptInjectionGuard;
 
 $agent = agent('production-assistant')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful customer service assistant.')
 
     // Layer 1: Block prompt injection attacks
@@ -9410,18 +8478,23 @@ This four-layer defense strategy ensures:
 
 ## Custom Guards
 
-Building custom guards is straightforward - implement the three-method interface:
+Build a phase-specific policy by implementing `OutputGuard` (or `InputGuard` for prompt validation):
 
 ```php
-use Pagent\Contracts\Guard;
+use Pagent\Contracts\OutputGuard;
 
-class ComplianceGuard implements Guard
+class ComplianceGuard implements OutputGuard
 {
     public function __construct(
         private readonly array $requiredDisclosures = [],
     ) {}
 
     public function check(string $input, string $output): bool
+    {
+        return $this->checkOutput($output);
+    }
+
+    public function checkOutput(string $output): bool
     {
         // Ensure certain disclosures appear in output
         foreach ($this->requiredDisclosures as $disclosure) {
@@ -9441,12 +8514,17 @@ class ComplianceGuard implements Guard
     {
         return 'Response missing required compliance disclosures.';
     }
+
+    public function supportsIncrementalInspection(): bool
+    {
+        return false;
+    }
 }
 
 // Use it
 $agent = agent('financial-advisor')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard(new ComplianceGuard(
         requiredDisclosures: [
             'Not financial advice',
@@ -9472,7 +8550,7 @@ Enable guards based on runtime conditions:
 ```php
 $agent = agent('conditional-safety')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->build();
 
 // Add guards dynamically based on user tier
@@ -9640,7 +8718,6 @@ Pagent's guard system provides defense-in-depth for LLM applications. By layerin
 With guards in place, you can confidently deploy agents that handle sensitive data, comply with regulations, and protect against adversarial inputs.
 
 **Next:** In Chapter 15, we'll explore reliability patterns - retries, circuit breakers, and timeouts that keep your agents running smoothly even when LLM providers have issues.
-
 # Chapter 15: Reliability Patterns
 
 When building production LLM applications, you need to handle failures gracefully. Network requests time out. APIs return errors. Rate limits get hit. Unsafe content gets generated. In this chapter, we'll explore how Pagent helps you build resilient agents through fallback mechanisms, error handling strategies, and custom middleware patterns.
@@ -10311,7 +9388,6 @@ In Chapter 16, we'll explore multi-agent orchestration, learning how to coordina
 - [Circuit Breaker Pattern](https://martinfowler.com/bliki/CircuitBreaker.html)
 - [Exponential Backoff And Jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/)
 - [Pagent Middleware Implementation](https://github.com/hhelge/pagent/tree/main/src/Middleware)
-
 # Chapter 16: Multi-Agent Fundamentals
 
 ## Why Multiple Agents?
@@ -10661,7 +9737,7 @@ function researchTopic(string $topic): array
 $findings = researchTopic('Machine Learning in Healthcare');
 
 foreach ($findings as $finding) {
-    echo "=== {$finding->worker} ===\n";
+    echo "[{$finding->worker}]\n";
     echo $finding->worker_output . "\n\n";
 }
 ```
@@ -10865,7 +9941,7 @@ declare(strict_types=1);
 
 $template = agent('template')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful assistant')
     ->tools(['calculator'])
     ->guard('pii');
@@ -11107,12 +10183,17 @@ assert($result === 'Expected output');
 ## What's Next
 
 You now understand the fundamentals of multi-agent orchestration: handoffs for conversation routing, delegation for manager-worker patterns, and pipelines for sequential processing. In the next chapter, we'll dive deeper into the **Pipeline Pattern**, exploring advanced techniques for building complex multi-stage workflows with error handling, transformations, and performance optimization.
-
 # Chapter 17: Pipeline Pattern
 
 In previous chapters, we've explored how individual agents handle tasks, how streaming enables real-time interactions, and how guards protect against unwanted outputs. But what happens when you need to process information through multiple stages, where each agent specializes in one aspect of the task? What if you want to extract data, transform it, validate it, and format it - each step performed by a different expert agent?
 
 This is where the Pipeline pattern comes in. Pagent provides first-class support for sequential agent execution through its `Pipeline` class, letting you chain agents together where each stage's output becomes the next stage's input. In this chapter, we'll explore how to build pipelines, transform data between stages, handle errors gracefully, and inspect results from each step.
+
+The `pipeline()` helper is the backwards-compatible orchestration facade. It
+delegates execution, step metadata, errors, and telemetry to the workflow
+engine used by `Pagent\Workflow\Pipeline` and `Pagent\Workflow\Chain`, so the
+different fluent entry points share one execution model rather than subtly
+different behavior.
 
 ## Why Pipelines Matter
 
@@ -11518,12 +10599,12 @@ Pipelines execute stages sequentially, making multiple LLM API calls. Consider t
 ```php
 agent('complex-analyzer')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->build();
 
 agent('simple-formatter')
     ->provider(anthropic())
-    ->model('claude-3-5-haiku-20241022')  // Faster, cheaper model
+    ->model('claude-sonnet-4-6')  // Faster, cheaper model
     ->build();
 
 $result = pipeline('optimized')
@@ -11738,7 +10819,6 @@ The Pipeline pattern brings structure and composability to complex agent workflo
 - Pipelines execute sequentially, one stage at a time
 
 In the next chapter, we'll explore the Workflow Orchestration system, which provides even more sophisticated control over agent execution including parallel processing, conditional branching, and complex multi-agent coordination.
-
 # Chapter 18: Handoff Pattern
 
 **Learning Objectives:**
@@ -12018,20 +11098,20 @@ Classic support tier system:
 ```php
 agent('tier1-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a friendly tier 1 support agent.
         Handle basic questions. If the issue is complex,
         say you need to escalate to senior support.');
 
 agent('tier2-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a senior support specialist.
         Handle complex technical issues and billing problems.');
 
 agent('manager')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a support manager.
         Handle escalations, complaints, and special requests.');
 
@@ -12221,11 +11301,11 @@ This is useful for creating agent workflows where the first agent is just a rout
 Pagent doesn't prevent circular handoffs. You must handle this in your application logic:
 
 ```php
-// ❌ Infinite loop danger
+// Infinite loop danger
 $agent1->handoff('agent2');
 $agent2->handoff('agent1');  // Creates circular reference
 
-// ✅ Track handoff chain
+// Track handoff chain
 function handoffWithTracking(Agent $from, string $to, array &$chain = []): Agent
 {
     if (in_array($to, $chain)) {
@@ -12406,7 +11486,7 @@ use function Pagent\agent;
 // Define support tiers
 agent('tier1-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a friendly tier 1 support agent.
         Handle basic questions about password resets, login issues,
         and general product questions. If you encounter billing,
@@ -12414,20 +11494,20 @@ agent('tier1-support')
 
 agent('tier2-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a senior support agent.
         Handle complex issues including billing problems,
         account issues, and technical troubleshooting.');
 
 agent('technical-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a senior developer providing technical support.
         Help with API issues, integration problems, and bugs.');
 
 agent('billing-specialist')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a billing specialist.
         Handle payment issues, refunds, and invoice questions.');
 
@@ -12522,10 +11602,10 @@ This example demonstrates:
 Always explain why the handoff occurred:
 
 ```php
-// ❌ No context
+// No context
 $target = $source->handoff('expert');
 
-// ✅ Clear context
+// Clear context
 $target = $source->handoff('expert', 'Customer needs API integration help');
 ```
 
@@ -12534,10 +11614,10 @@ $target = $source->handoff('expert', 'Customer needs API integration help');
 Each agent should have a clear, focused role:
 
 ```php
-// ❌ One agent does everything
+// One agent does everything
 agent('support')->system('Handle all support, billing, legal, and technical questions');
 
-// ✅ Specialized agents
+// Specialized agents
 agent('general-support')->system('Handle basic questions, route to specialists');
 agent('billing')->system('Handle billing and payment questions');
 agent('technical')->system('Handle technical and API questions');
@@ -12612,7 +11692,6 @@ Now that you understand handoffs, you're ready for:
 - **Chapter 21:** Advanced Multi-Agent Patterns - Complex workflows and coordination
 
 Handoffs are just the beginning. Combined with delegation and pipelines, you can build sophisticated multi-agent applications that handle complex workflows with ease.
-
 # Chapter 19: Delegation Pattern
 
 In complex AI applications, a single agent often can't handle every task effectively. Some tasks require specialized expertise, different system prompts, or distinct tool sets. The Delegation pattern solves this by allowing a manager agent to delegate specific tasks to specialized worker agents, review their work, and aggregate results.
@@ -12803,7 +11882,7 @@ The `resolveAgent()` helper function looks up agent names in the Registry:
 
 ```php
 // From src/functions.php:111-114
-function resolveAgent(string|Agent $agent): Agent|AgentBuilder
+function resolveAgent(string|Agent $agent): Agent
 {
     return is_string($agent) ? \agent($agent) : $agent;
 }
@@ -13190,11 +12269,11 @@ This structured format makes it easy to:
 Give each agent clear expertise:
 
 ```php
-// ❌ Generic agents
+// Generic agents
 $manager = agent('manager')->provider(anthropic())->build();
 $worker = agent('worker')->provider(anthropic())->build();
 
-// ✅ Specialized agents
+// Specialized agents
 $manager = agent('security-lead')
     ->provider(anthropic())
     ->system('You are a security architect reviewing implementations for vulnerabilities.')
@@ -13213,10 +12292,10 @@ Specialized system prompts improve output quality and create clear separation of
 Be specific about what you want:
 
 ```php
-// ❌ Vague
+// Vague
 $result = $manager->delegate('Do something with authentication')->to('worker')->execute();
 
-// ✅ Specific
+// Specific
 $result = $manager->delegate(
     'Implement JWT-based authentication middleware that validates tokens, ' .
     'checks expiration, and extracts user claims. Include error handling for ' .
@@ -13336,17 +12415,16 @@ In **Chapter 20: Building Multi-Agent Systems**, we'll explore:
 
 **Key Takeaways:**
 
-✅ Delegation follows a manager-worker-supervisor model
-✅ Use `to()` to assign tasks to worker agents by name or instance
-✅ Supervisors can accept, reject, or provide feedback on work
-✅ Completion callbacks enable workflow orchestration
-✅ Results are structured objects with full delegation metadata
-✅ Specialized system prompts improve delegation quality
-✅ Supervision adds quality control at the cost of extra LLM calls
-✅ Delegation provides more structure than handoff or pipeline patterns
+- Delegation follows a manager-worker-supervisor model
+- Use `to()` to assign tasks to worker agents by name or instance
+- Supervisors can accept, reject, or provide feedback on work
+- Completion callbacks support workflow orchestration
+- Results are structured objects with delegation metadata
+- Specialized system prompts separate responsibilities
+- Supervision adds an additional model call
+- Delegation provides more structure than handoff or pipeline patterns
 
-Continue to [Chapter 20: Building Multi-Agent Systems](./article.part20.md) →
-
+Continue to [Chapter 20: Evaluation Framework](./article.part20.md) →
 # Chapter 20: Evaluation Framework
 
 **Learning Objectives:**
@@ -13972,7 +13050,7 @@ use Pagent\Evaluation\Metrics\{
 // Configure agent
 agent('support-bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful customer support agent. Always be polite and professional.');
 
 // Create test dataset
@@ -14001,8 +13079,7 @@ $result = evaluate('support-bot')
 // Analyze results
 $summary = $result->getSummary();
 
-echo "Support Bot Evaluation Results\n";
-echo "==============================\n\n";
+echo "[Support Bot Evaluation Results]\n";
 
 foreach ($summary['metrics'] as $name => $stats) {
     echo ucfirst($name) . ": " . round($stats['average'] * 100) . "%\n";
@@ -14022,7 +13099,6 @@ This evaluation provides quantifiable metrics for accuracy, tone, and response l
 ---
 
 The evaluation framework transforms agent development from guesswork into engineering. With systematic testing, clear metrics, and reproducible results, you can iterate confidently and deploy with certainty.
-
 # Chapter 21: Testing Strategies
 
 ## Why Testing Matters for AI Agents
@@ -14375,17 +13451,18 @@ describe('Anthropic API', function (): void {
 });
 ```
 
-Run integration tests separately to keep unit tests fast:
+Composer's default test commands exclude both `live` and `external` groups, so
+they are safe for routine local and CI runs. Live-provider tests are opt-in:
 
 ```bash
-# Run all tests except API integration
-./vendor/bin/pest --exclude-group=api
+# Default: excludes live-provider and external-service tests
+composer test
 
-# Run only API integration tests
-./vendor/bin/pest --group=api
+# Run only explicitly opted-in live-provider tests
+composer test:live
 
-# Run tests for specific provider
-./vendor/bin/pest --group=anthropic
+# Run the externally dependent observability suite when configured
+composer test:observability
 ```
 
 ## Testing Helper Functions
@@ -14393,14 +13470,17 @@ Run integration tests separately to keep unit tests fast:
 Pagent provides global helper functions - test them thoroughly:
 
 ```php
-test('it creates agent builders with agent() function', function (): void {
+test('agent() creates and registers an Agent immediately', function (): void {
+    clearAgents();
+
     $result = agent('new-agent');
 
-    expect($result)->toBeInstanceOf(AgentBuilder::class);
+    expect($result)->toBeInstanceOf(Agent::class)
+        ->and(getAgent('new-agent'))->toBe($result);
 });
 
 test('it retrieves existing agents with agent() function', function (): void {
-    // First create an agent
+    // `agent()` creates the registered instance on first use.
     agent('existing')
         ->provider('mock')
         ->system('Test agent');
@@ -14579,7 +13659,6 @@ Testing AI agents requires a balanced approach: unit test the framework logic wi
 - Document behavior through clear, readable test names
 
 In the next chapter, we'll explore OpenTelemetry integration for monitoring agents in production, giving you visibility into LLM interactions, tool executions, and performance metrics.
-
 # Chapter 22: OpenTelemetry Integration
 
 In previous chapters, we've explored how to build sophisticated agent systems with memory, tools, and orchestration. But once your agent is running in production, how do you understand what's actually happening? How do you debug performance issues, track down errors, or optimize expensive LLM calls?
@@ -14644,7 +13723,7 @@ This outputs attributes like model names, token counts, and agent configuration:
 │  Duration: 1.201s
 │  Attributes:
 │    - gen_ai.system: anthropic
-│    - gen_ai.request.model: claude-sonnet-4-20250514
+│    - gen_ai.request.model: claude-sonnet-4-6
 │    - gen_ai.request.temperature: 1.0
 │    - gen_ai.usage.input_tokens: 45
 │    - gen_ai.usage.output_tokens: 12
@@ -14843,7 +13922,7 @@ telemetry_jaeger('http://localhost:4318/v1/traces', 'my-agent');
 
 $agent = agent('support-bot')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->telemetry(true)
     ->build();
 
@@ -14897,7 +13976,7 @@ telemetry_otlp(
 
 $agent = agent('code-reviewer')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->temperature(0.3)
     ->telemetry(true)
     ->build();
@@ -14929,7 +14008,7 @@ telemetry_console(verbose: true);
 // Create an agent with multiple tools
 $agent = agent('research-assistant')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->telemetry(true)
     ->build();
 
@@ -15091,7 +14170,6 @@ In this chapter, we've explored Pagent's OpenTelemetry integration:
 Observability transforms your agent from a black box into a well-understood system. You can see exactly what your agent is doing, identify performance bottlenecks, track costs, and debug errors with rich contextual information.
 
 In the next chapter, we'll explore debugging and monitoring techniques that build on this telemetry foundation, including token usage tracking, cost calculation, and performance profiling.
-
 # Chapter 23: Debugging and Monitoring
 
 Building LLM agents is one thing. Understanding how they behave in production is another. When your agent makes unexpected decisions, consumes more tokens than anticipated, or takes too long to respond, you need visibility into what's happening. This chapter explores Pagent's debugging and monitoring capabilities, from simple statistics tracking to comprehensive distributed tracing.
@@ -15210,7 +14288,7 @@ use function Pagent\anthropic;
 
 $agent = agent('analyzer')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->build();
 
 $response = $agent->prompt('Analyze the performance implications of using Redis vs Memcached for session storage.');
@@ -15250,7 +14328,7 @@ class CostTracker
 {
     // Pricing per million tokens (as of Nov 2024)
     private const PRICING = [
-        'claude-sonnet-4-20250514' => [
+        'claude-sonnet-4-6' => [
             'input' => 3.00,   // $3 per million input tokens
             'output' => 15.00, // $15 per million output tokens
         ],
@@ -15288,13 +14366,13 @@ class CostTracker
 
 // Usage
 $tracker = new CostTracker();
-$agent = agent('assistant')->provider(anthropic())->model('claude-sonnet-4-20250514')->build();
+$agent = agent('assistant')->provider(anthropic())->model('claude-sonnet-4-6')->build();
 
 $response1 = $agent->prompt('Explain dependency injection.');
-$cost1 = $tracker->trackPrompt('claude-sonnet-4-20250514', $response1);
+$cost1 = $tracker->trackPrompt('claude-sonnet-4-6', $response1);
 
 $response2 = $agent->prompt('Give me a code example.');
-$cost2 = $tracker->trackPrompt('claude-sonnet-4-20250514', $response2);
+$cost2 = $tracker->trackPrompt('claude-sonnet-4-6', $response2);
 
 echo "Total cost: $" . number_format($tracker->getTotalCost(), 4) . "\n";
 ```
@@ -15447,7 +14525,7 @@ $response = $agent->prompt('Explain closures in PHP.');
 //   agent.operation = prompt
 // Span: llm.request (duration: 1.1s)
 //   gen_ai.system = anthropic
-//   gen_ai.request.model = claude-sonnet-4-20250514
+//   gen_ai.request.model = claude-sonnet-4-6
 //   gen_ai.usage.input_tokens = 25
 //   gen_ai.usage.output_tokens = 180
 ```
@@ -15651,8 +14729,8 @@ $agent = agent('logged-agent')
 $response = $agent->prompt('What is dependency injection?');
 
 // Logs written:
-// [INFO] Agent prompt initiated {"message":"What is dependency injection?","model":"claude-sonnet-4-20250514","temperature":0.7}
-// [INFO] Agent response received {"provider":"anthropic","model":"claude-sonnet-4-20250514","tokens":245,"content_length":1024}
+// [INFO] Agent prompt initiated {"message":"What is dependency injection?","model":"claude-sonnet-4-6","temperature":0.7}
+// [INFO] Agent response received {"provider":"anthropic","model":"claude-sonnet-4-6","tokens":245,"content_length":1024}
 ```
 
 The `LoggingMiddleware` implementation is simple but effective:
@@ -15994,17 +15072,16 @@ In **Chapter 24: Testing LLM Agents**, we'll explore:
 
 **Key Takeaways:**
 
-✅ Use `getStats()` for quick insight into agent usage and configuration
-✅ Track token usage with `response->tokens` and `response->usage` to monitor costs
-✅ Export conversations with `exportConversation()` for debugging and audit trails
-✅ Enable OpenTelemetry with `telemetry_console()` or `telemetry_jaeger()` for production observability
-✅ Use the observability stack (Jaeger, Phoenix, Langfuse) for comprehensive LLM monitoring
-✅ Implement custom middleware for application-specific logging and metrics
-✅ Profile performance to identify bottlenecks and optimize latency
-✅ Track costs per feature to understand spending and inform pricing
+- Use `getStats()` for a summary of agent usage and configuration
+- Track token usage with `response->tokens` and `response->usage`
+- Export conversations with `exportConversation()` for debugging and audit trails
+- Enable OpenTelemetry with `telemetry_console()` or `telemetry_jaeger()`
+- Use an observability backend to inspect model interactions
+- Implement custom middleware for application-specific logging and metrics
+- Profile performance to identify latency bottlenecks
+- Track costs by feature to inform capacity and pricing decisions
 
-Continue to [Chapter 24: Testing LLM Agents](./article.part24.md) →
-
+Continue to [Chapter 24: Laravel and Symfony Integration](./article.part24.md) →
 # Chapter 24: Laravel and Symfony Integration
 
 Pagent is intentionally framework-agnostic - there are no built-in Laravel service providers, Symfony bundles, or framework-specific packages. This design choice keeps Pagent lightweight and portable, but it also means you'll need to integrate it manually with your framework of choice.
@@ -16027,7 +15104,7 @@ Create a service provider:
 php artisan make:provider PagentServiceProvider
 ```
 
-Register the global Registry as a singleton:
+Bind an application-owned agent registry and point the helper facade at it:
 
 ```php
 <?php
@@ -16035,17 +15112,16 @@ Register the global Registry as a singleton:
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Pagent\Registry;
+use Pagent\AgentRegistry;
+use Pagent\Registry as PagentRegistry;
 
 class PagentServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Register the global Registry
-        $this->app->singleton(Registry::class, fn() => new Registry);
-
-        // Make the agent() helper available
-        require_once base_path('vendor/pagent/pagent/src/functions.php');
+        $registry = new AgentRegistry;
+        $this->app->instance(AgentRegistry::class, $registry);
+        PagentRegistry::use($registry);
     }
 
     public function boot(): void
@@ -16062,7 +15138,7 @@ class PagentServiceProvider extends ServiceProvider
             ->provider('anthropic', [
                 'api_key' => config('services.anthropic.key'),
             ])
-            ->model('claude-sonnet-4-20250514')
+            ->model('claude-sonnet-4-6')
             ->system('You are a helpful customer support assistant.')
             ->maxTokens(2048)
             ->build();
@@ -16126,7 +15202,7 @@ return [
     'agents' => [
         'support' => [
             'provider' => 'anthropic',
-            'model' => 'claude-sonnet-4-20250514',
+            'model' => 'claude-sonnet-4-6',
             'system' => 'You are a helpful customer support assistant.',
         ],
 
@@ -16145,7 +15221,7 @@ Load agents from configuration in your service provider:
 private function registerProductionAgents(): void
 {
     foreach (config('pagent.agents', []) as $name => $config) {
-        $builder = agent($name)
+        $agent = agent($name)
             ->provider($config['provider'], [
                 'api_key' => config("services.{$config['provider']}.key"),
             ])
@@ -16153,14 +15229,14 @@ private function registerProductionAgents(): void
             ->system($config['system']);
 
         if (isset($config['temperature'])) {
-            $builder->temperature($config['temperature']);
+            $agent->temperature($config['temperature']);
         }
 
         if (isset($config['max_tokens'])) {
-            $builder->maxTokens($config['max_tokens']);
+            $agent->maxTokens($config['max_tokens']);
         }
 
-        $builder->build();
+        // agent() registered the instance immediately; no build step is needed.
     }
 }
 ```
@@ -16513,7 +15589,7 @@ class AgentFactory
     {
         return agent('support')
             ->provider('anthropic', ['api_key' => $this->anthropicKey])
-            ->model('claude-sonnet-4-20250514')
+            ->model('claude-sonnet-4-6')
             ->system('You are a helpful customer support assistant.')
             ->build();
     }
@@ -16868,7 +15944,6 @@ $response = $agent->prompt('Hello');
 You've learned how to integrate Pagent with Laravel and Symfony, creating clean, maintainable architectures that leverage framework strengths while keeping agent logic portable.
 
 In the next chapter, we'll explore custom middleware - building your own middleware to add rate limiting, caching, logging, and other cross-cutting concerns to your agent interactions.
-
 # Chapter 25: Custom Middleware
 
 In Chapter 24, we explored workflow patterns and orchestration. But what if you need to intercept and modify every agent interaction? What if you want to add logging, metrics collection, rate limiting, or caching to all your LLM calls without cluttering your business logic? What if you need an audit trail of every prompt and response that flows through your system?
@@ -17362,7 +16437,6 @@ Middleware provides a clean, composable way to add cross-cutting concerns to you
 The key insight is that middleware operates on the request/response cycle - transforming inputs before they reach the LLM and transforming outputs before they reach your code. This separation of concerns keeps your business logic clean while adding powerful capabilities through composition.
 
 In the next chapter, we'll explore performance optimization techniques - including how to use middleware to implement efficient caching strategies, reduce token usage, and minimize API latency. You'll learn how to make your agents faster and more cost-effective in production.
-
 # Chapter 26: Performance Optimization
 
 **Learning Objectives:**
@@ -17923,7 +16997,7 @@ use Pagent\Memory\{FileAdapter, DatabaseAdapter, NullAdapter};
 $agent->memory(null);  // NullAdapter
 
 // Fast: File-based persistence
-$agent->memory(new FileAdapter('/tmp/agents'));
+$agent->memory(new FileAdapter(['path' => '/tmp/agents']));
 
 // Slower: Database persistence (but queryable/shareable)
 $agent->memory(new DatabaseAdapter($pdo));
@@ -17951,7 +17025,7 @@ $cache = new RedisCachingMiddleware(
 // Create optimized agent
 $agent = agent('optimized-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->temperature(0.0)              // Deterministic for caching
     ->contextWindow(3000, 'sliding') // Limit context growth
     ->middleware($cache)             // Cache responses
@@ -18007,7 +17081,6 @@ This agent achieves:
 ---
 
 Performance optimization is an ongoing process. Start with built-in features like context windowing and schema caching, add custom caching middleware as needed, and use telemetry to identify bottlenecks. With these techniques, you can build agents that scale efficiently and deliver responsive user experiences while controlling costs.
-
 # Chapter 27: Production Deployment
 
 **Learning Objectives:**
@@ -18050,7 +17123,7 @@ use function Pagent\agent;
 
 $agent = agent('production-assistant')
     ->provider('anthropic')  // Uses $_ENV['ANTHROPIC_API_KEY']
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful production assistant.');
 
 $response = $agent->prompt('Hello');
@@ -18106,7 +17179,7 @@ For complex deployments, use configuration files with environment interpolation:
 // config/agents.php
 return [
     'default_provider' => env('AGENT_PROVIDER', 'anthropic'),
-    'default_model' => env('AGENT_MODEL', 'claude-sonnet-4-20250514'),
+    'default_model' => env('AGENT_MODEL', 'claude-sonnet-4-6'),
 
     'providers' => [
         'anthropic' => [
@@ -18876,7 +17949,7 @@ final class FallbackAgent
 
 // Usage
 $primary = agent('gpt4')->provider('openai')->model('gpt-4-turbo');
-$fallback = agent('claude')->provider('anthropic')->model('claude-sonnet-4-20250514');
+$fallback = agent('claude')->provider('anthropic')->model('claude-sonnet-4-6');
 
 $robust = new FallbackAgent($primary, $fallback);
 ```
@@ -18930,7 +18003,6 @@ Before deploying to production, verify:
 ---
 
 Production deployment transforms your agent from experiment to service. With proper configuration, security, observability, and error handling, you can deploy agents that are reliable, scalable, and maintainable. In the next chapter, we'll explore building complex multi-agent systems that coordinate to solve sophisticated problems.
-
 # Chapter 28: Building Complex Systems
 
 **Learning Objectives:**
@@ -18965,13 +18037,12 @@ interface Provider {
     public function prompt(string $message, array $options = []): object;
 }
 
-// 2. ToolInterface - Agent capabilities
-interface ToolInterface {
-    public function name(): string;
-    public function description(): string;
-    public function execute(array $params): mixed;
-    public function toAnthropicSchema(): array;
-    public function toOpenAISchema(): array;
+// 2. Tool - provider-neutral agent capabilities
+interface Tool {
+    public function getName(): string;
+    public function getDescription(): string;
+    public function getInputSchema(): array;
+    public function execute(array $arguments): mixed;
 }
 
 // 3. Guard - Safety and validation
@@ -19019,7 +18090,7 @@ namespace App\Extensions\Support;
 
 use Pagent\Agent;
 use Pagent\Contracts\Guard;
-use Pagent\Contracts\ToolInterface;
+use Pagent\Contracts\Tool;
 use Pagent\Contracts\Middleware;
 
 /**
@@ -19052,19 +18123,19 @@ final class SupportExtensions
         $agent->middleware($this->createCachingMiddleware());
     }
 
-    private function createTicketTool(): ToolInterface
+    private function createTicketTool(): Tool
     {
-        return new class($this->db) implements ToolInterface {
+        return new class($this->db) implements Tool {
             public function __construct(
                 private readonly DatabaseConnection $db
             ) {}
 
-            public function name(): string
+            public function getName(): string
             {
                 return 'create_ticket';
             }
 
-            public function description(): string
+            public function getDescription(): string
             {
                 return 'Create a support ticket in the system';
             }
@@ -19085,53 +18156,16 @@ final class SupportExtensions
                 ];
             }
 
-            public function toAnthropicSchema(): array
+            public function getInputSchema(): array
             {
                 return [
-                    'name' => $this->name(),
-                    'description' => $this->description(),
-                    'input_schema' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'title' => [
-                                'type' => 'string',
-                                'description' => 'Short ticket title',
-                            ],
-                            'description' => [
-                                'type' => 'string',
-                                'description' => 'Detailed issue description',
-                            ],
-                            'priority' => [
-                                'type' => 'string',
-                                'enum' => ['low', 'medium', 'high', 'urgent'],
-                                'description' => 'Ticket priority level',
-                            ],
-                        ],
-                        'required' => ['title', 'description'],
+                    'type' => 'object',
+                    'properties' => [
+                        'title' => ['type' => 'string', 'description' => 'Short ticket title'],
+                        'description' => ['type' => 'string', 'description' => 'Detailed issue description'],
+                        'priority' => ['type' => 'string', 'enum' => ['low', 'medium', 'high', 'urgent']],
                     ],
-                ];
-            }
-
-            public function toOpenAISchema(): array
-            {
-                return [
-                    'type' => 'function',
-                    'function' => [
-                        'name' => $this->name(),
-                        'description' => $this->description(),
-                        'parameters' => [
-                            'type' => 'object',
-                            'properties' => [
-                                'title' => ['type' => 'string'],
-                                'description' => ['type' => 'string'],
-                                'priority' => [
-                                    'type' => 'string',
-                                    'enum' => ['low', 'medium', 'high', 'urgent'],
-                                ],
-                            ],
-                            'required' => ['title', 'description'],
-                        ],
-                    ],
+                    'required' => ['title', 'description'],
                 ];
             }
         };
@@ -19197,13 +18231,13 @@ final class SupportExtensions
         };
     }
 
-    private function createKnowledgeBaseTool(): ToolInterface
+    private function createKnowledgeBaseTool(): Tool
     {
         // Implementation similar to createTicketTool()...
         return new KnowledgeBaseTool($this->db);
     }
 
-    private function createEscalationTool(): ToolInterface
+    private function createEscalationTool(): Tool
     {
         // Implementation for escalating to human agents...
         return new EscalationTool($this->db);
@@ -19230,7 +18264,7 @@ use function Pagent\agent;
 
 $agent = agent('support-agent')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful customer support agent')
     ->build();
 
@@ -19722,146 +18756,3 @@ Building complex agent systems requires thoughtful architecture. Pagent's interf
 Remember: interfaces over plugins, composition over inheritance, and clear boundaries over tight coupling. These principles will serve you well as your agent systems grow from prototypes to production.
 
 In the next chapter, we'll explore testing strategies for complex agent architectures, ensuring your systems remain reliable as they evolve.
-
----
-
-## Conclusion
-
-Congratulations on completing The Complete Pagent Framework Guide! Over these 28 chapters, you've journeyed from creating your first simple agent to building sophisticated multi-agent systems ready for production deployment.
-
-### What You've Mastered
-
-Throughout this guide, you've gained comprehensive knowledge across ten critical areas:
-
-**Foundations** - You understand how to create agents, configure providers (Anthropic, OpenAI, Ollama), manage conversations, and craft effective prompts. These core skills form the bedrock of every Pagent application.
-
-**Tool Integration** - You've learned to extend agent capabilities through function calling, build custom tools with proper schemas, handle recursive execution, and implement orchestration patterns that give agents real-world problem-solving abilities.
-
-**Real-Time Interaction** - Streaming is no longer a mystery. You can implement token-by-token responses, handle tool calls in streams, and build dynamic user experiences that feel responsive and natural.
-
-**Persistence and State** - Your agents now remember. Whether using in-memory, file-based, or database storage, you can maintain conversation context, implement semantic search, and manage long-term agent memory.
-
-**Reliability and Safety** - Production agents require robustness. You've implemented guards for PII detection, content filtering, and output validation, plus retry strategies, circuit breakers, and comprehensive error handling.
-
-**Multi-Agent Orchestration** - Complex workflows are now within reach. Through pipelines, handoffs, and delegation patterns, you can coordinate specialized agents that work together seamlessly, each contributing their unique expertise.
-
-**Quality Assurance** - You don't just build agents—you evaluate them. With systematic testing, custom metrics, and evaluation frameworks, you ensure consistent, measurable quality before deployment.
-
-**Observability** - Your agents are no longer black boxes. OpenTelemetry integration, structured logging, and monitoring dashboards give you deep visibility into agent behavior, performance, and errors.
-
-**Integration and Extensibility** - Pagent fits your stack. Whether integrating with Laravel, Symfony, or custom frameworks, and extending functionality through middleware, you can adapt Pagent to any environment.
-
-**Production Excellence** - You're ready for scale. Performance optimization, caching strategies, deployment patterns, and monitoring ensure your agents perform reliably under real-world conditions.
-
-### Key Takeaways
-
-As you build with Pagent, keep these principles in mind:
-
-1. **Start Simple, Scale Gradually** - Begin with basic agents and add complexity as needed. Every advanced pattern builds on simpler foundations.
-
-2. **Test Everything** - Use mock providers during development, evaluation frameworks before deployment, and comprehensive monitoring in production.
-
-3. **Specialize Agents** - Single-purpose agents with clear system prompts outperform jack-of-all-trades configurations.
-
-4. **Guard Against Failures** - LLMs are probabilistic. Always implement guards, retries, and fallbacks for production systems.
-
-5. **Measure Performance** - Track token usage, latency, and quality metrics. Optimize based on data, not assumptions.
-
-6. **Embrace Iteration** - Agent development is iterative. Evaluate, refine prompts, adjust tools, and improve continuously.
-
-### What's Next?
-
-Your Pagent journey doesn't end here—it's just beginning. Here are suggested next steps:
-
-**Build Projects** - Apply what you've learned by building real applications:
-
-- Customer support chatbot with handoffs to human agents
-- Code review assistant with tool calling for repository analysis
-- Content generation pipeline with multi-agent collaboration
-- Research assistant with memory and semantic search
-- Automated testing agent for your existing applications
-
-**Join the Community** - Connect with other Pagent developers:
-
-- **GitHub**: [github.com/helgek/pagent](https://github.com/helgek/pagent) - Star the repo, report issues, contribute code
-- **Discussions**: Share your projects, ask questions, help others
-- **Contributions**: The framework grows through community input—your experiences matter
-
-**Dive Deeper** - Continue your learning:
-
-- **Official Documentation**: [pagent.ai/docs](https://pagent.ai/docs) - API reference and guides
-- **Example Projects**: [github.com/helgek/pagent-examples](https://github.com/helgek/pagent-examples) - Production-ready samples
-- **Blog**: Latest patterns, use cases, and advanced techniques
-- **Workshops**: Live coding sessions and Q&A
-
-**Stay Updated** - Pagent evolves rapidly:
-
-- Follow the changelog for new features
-- Upgrade guides for breaking changes
-- Security advisories for patches
-- Community showcase for inspiration
-
-### Contributing Back
-
-As you build with Pagent, consider giving back:
-
-- **Share Your Patterns** - Document clever solutions that others can learn from
-- **Report Issues** - Help improve quality by reporting bugs and edge cases
-- **Submit Pull Requests** - Contribute bug fixes, features, or documentation
-- **Write Tutorials** - Your unique perspective helps others learn
-- **Answer Questions** - Help newcomers in discussions and issues
-
-### Final Thoughts
-
-Building AI agents with Pagent is both an art and a science. The framework provides the tools, but you bring the creativity, domain knowledge, and problem-solving skills that transform LLMs into valuable applications.
-
-Whether you're building a simple chatbot or a complex multi-agent system, remember that the best agents solve real problems for real users. Focus on value, measure outcomes, and iterate based on feedback.
-
-The future of AI development is collaborative—humans and agents working together, each amplifying the other's strengths. With Pagent, you're equipped to build that future.
-
-**Thank you for reading The Complete Pagent Framework Guide.** We can't wait to see what you build.
-
----
-
-## Additional Resources
-
-### Official Links
-
-- **GitHub Repository**: [github.com/helgek/pagent](https://github.com/helgek/pagent)
-- **Documentation**: [pagent.ai/docs](https://pagent.ai/docs)
-- **Packagist**: [packagist.org/packages/pagent/pagent](https://packagist.org/packages/pagent/pagent)
-
-### Community
-
-- **Discussions**: GitHub Discussions for questions and sharing
-- **Issues**: GitHub Issues for bug reports and feature requests
-- **Examples**: Community-contributed example projects
-
-### Related Tools
-
-- **Anthropic Claude**: [anthropic.com](https://anthropic.com)
-- **OpenAI GPT**: [openai.com](https://openai.com)
-- **Ollama**: [ollama.ai](https://ollama.ai)
-- **OpenTelemetry**: [opentelemetry.io](https://opentelemetry.io)
-
-### Learning Resources
-
-- **LangChain Concepts**: Understanding agent patterns
-- **Prompt Engineering Guide**: Crafting effective prompts
-- **PHP 8.3 Documentation**: Language features used by Pagent
-
----
-
-**Version History**
-
-- **v1.0** (November 2025) - Complete guide covering Pagent 0.6.x
-  - All 28 chapters
-  - 10 major parts
-  - Comprehensive examples
-  - Production best practices
-
----
-
-_This guide is maintained by the Pagent team with contributions from the community. For corrections or suggestions, please open an issue on GitHub._
-
-**Happy building!**

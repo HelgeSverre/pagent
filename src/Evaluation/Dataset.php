@@ -60,7 +60,7 @@ final class Dataset
         $items = [];
         $headers = null;
 
-        while (($row = fgetcsv($file)) !== false) {
+        while (($row = fgetcsv($file, escape: '')) !== false) {
             if ($hasHeader && $headers === null) {
                 $headers = $row;
 

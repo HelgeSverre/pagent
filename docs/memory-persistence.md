@@ -54,7 +54,11 @@ $agent = agent('bot')
     ->prompt('Hello');
 ```
 
-**Storage location:** `storage/sessions/{sessionId}.json`
+**Storage location:** `storage/sessions/{sha256(sessionId)}.json`. File names are
+opaque hashes so untrusted session identifiers cannot become path traversal.
+
+`path` is the canonical file-memory option. `directory` remains a supported legacy
+alias for existing applications.
 
 ### SqliteAdapter
 
@@ -95,16 +99,24 @@ $agent->sessionId($sessionId);
 
 ### Session Isolation
 
-Each session is completely isolated:
+Each session is completely isolated. For concurrent or multi-user work, configure
+one agent definition and create an isolated conversation with `forSession()`:
 
 ```php
-// User A
-agent('chat')->sessionId('user-alice')->prompt('My favorite color is blue');
+$chat = agent('chat')
+    ->provider('anthropic')
+    ->memory('sqlite', ['path' => 'storage/chats.db']);
 
-// User B - separate session
-agent('chat')->sessionId('user-bob')->prompt('What is my favorite color?');
+// User A and B have separate conversation state.
+$chat->forSession('user-alice')->prompt('My favorite color is blue');
+$chat->forSession('user-bob')->prompt('What is my favorite color?');
 // Doesn't know about Alice's blue
 ```
+
+`sessionId()` is also safe for sequential reuse: switching it clears the current
+history and loads only the selected session on the next turn. It cannot switch while
+a prompt or stream is active. Failed turns roll back staged messages, so retrying
+does not replay a partial request.
 
 ## Context Window Management
 
@@ -158,6 +170,25 @@ Set unique session identifier.
 public function sessionId(string $id): self
 ```
 
+### forSession()
+
+Create a configured, isolated conversation instance for one session. Prefer this
+in request handlers, workers, and any code serving more than one user at once.
+Provider, tools, guards, middleware, event listeners, usage tracking, and memory
+configuration are retained; messages and the active session identifier are isolated.
+
+```php
+public function forSession(string $id): Agent
+```
+
+### getSessionId()
+
+Read the active session identifier without reaching into agent internals:
+
+```php
+public function getSessionId(): ?string
+```
+
 ### contextWindow()
 
 Configure context limits.
@@ -180,10 +211,11 @@ class ChatManager
 {
     public function chat(string $userId, string $message): string
     {
-        $agent = agent('support')
+        $definition = agent('support')
             ->memory('sqlite', ['path' => 'storage/chats.db'])
-            ->sessionId('user-' . $userId)
             ->contextWindow(50000);
+
+        $agent = $definition->forSession('user-' . $userId);
 
         return $agent->prompt($message)->content;
     }
@@ -206,7 +238,8 @@ $db->exec("DELETE FROM sessions WHERE updated_at < '{$cutoff}'");
 ```php
 [
     'path' => 'storage/sessions',  // Directory path
-    'permissions' => 0644           // File permissions
+    'permissions' => 0755,          // Directory permissions
+    'file_permissions' => 0600,     // Session-file permissions
 ]
 ```
 
@@ -270,7 +303,7 @@ $agent->contextWindow(100000, 'sliding');
 
 - [Streaming Guide](streaming.md) - Real-time responses
 - [Examples](../examples/) - Working code examples
-- [API Reference](api-reference.md) - Complete API docs
+- [Complete guide](../guide/complete.md#chapter-12-memory-systems) - Detailed memory API coverage
 
 ---
 

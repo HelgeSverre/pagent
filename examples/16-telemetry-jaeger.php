@@ -11,7 +11,7 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-echo "=== Telemetry: Jaeger Integration ===\n\n";
+echo "\n[Telemetry: Jaeger Integration]\n";
 
 echo "Prerequisites:\n";
 echo "  Start Jaeger with Docker:\n";
@@ -30,34 +30,34 @@ echo "  Endpoint: http://localhost:4318/v1/traces\n";
 echo "  Service: pagent-examples\n\n";
 
 // Example 1: Basic agent with tools
-echo "=== Example 1: Agent with Math Tools ===\n\n";
+echo "\n[Example 1: Agent with Math Tools]\n";
 
 agent('calculator')
     ->provider('anthropic')
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful calculator. Use the provided tools to perform calculations.')
     ->telemetry(true)
     ->tool('add', 'Add two numbers', fn (int $a, int $b): int => $a + $b)
     ->tool('multiply', 'Multiply two numbers', fn (int $a, int $b): int => $a * $b)
     ->tool('subtract', 'Subtract two numbers', fn (int $a, int $b): int => $a - $b);
 
-echo "Q: What is (5 + 3) * 4?\n";
+echo "Input: What is (5 + 3) * 4?\n";
 $response = agent('calculator')->prompt('What is (5 + 3) * 4?');
-echo "A: {$response->content}\n\n";
+echo "Output: {$response->content}\n\n";
 
 // Example 2: Multiple operations
-echo "=== Example 2: Complex Calculation ===\n\n";
+echo "\n[Example 2: Complex Calculation]\n";
 
-echo "Q: Calculate (10 + 5) * 3 - 7\n";
+echo "Input: Calculate (10 + 5) * 3 - 7\n";
 $response = agent('calculator')->prompt('Calculate (10 + 5) * 3 - 7');
-echo "A: {$response->content}\n\n";
+echo "Output: {$response->content}\n\n";
 
 // Example 3: Different agent
-echo "=== Example 3: Data Retrieval Agent ===\n\n";
+echo "\n[Example 3: Data Retrieval Agent]\n";
 
 agent('data-agent')
     ->provider('anthropic')
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('You are a data retrieval assistant.')
     ->telemetry(true)
     ->tool('get_user', 'Get user information by ID', function (int $id): array {
@@ -78,11 +78,11 @@ agent('data-agent')
         ];
     });
 
-echo "Q: Get details for user ID 2\n";
+echo "Input: Get details for user ID 2\n";
 $response = agent('data-agent')->prompt('Get details for user ID 2');
-echo "A: {$response->content}\n\n";
+echo "Output: {$response->content}\n\n";
 
-echo "✅ Traces sent to Jaeger!\n\n";
+echo "Status: Traces sent to Jaeger\n\n";
 echo "View traces:\n";
 echo "  1. Open http://localhost:16686 in your browser\n";
 echo "  2. Select service: pagent-examples\n";

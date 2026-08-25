@@ -4,6 +4,12 @@ In previous chapters, we've explored how individual agents handle tasks, how str
 
 This is where the Pipeline pattern comes in. Pagent provides first-class support for sequential agent execution through its `Pipeline` class, letting you chain agents together where each stage's output becomes the next stage's input. In this chapter, we'll explore how to build pipelines, transform data between stages, handle errors gracefully, and inspect results from each step.
 
+The `pipeline()` helper is the backwards-compatible orchestration facade. It
+delegates execution, step metadata, errors, and telemetry to the workflow
+engine used by `Pagent\Workflow\Pipeline` and `Pagent\Workflow\Chain`, so the
+different fluent entry points share one execution model rather than subtly
+different behavior.
+
 ## Why Pipelines Matter
 
 Before diving into the API, let's understand why pipelines are valuable:
@@ -408,12 +414,12 @@ Pipelines execute stages sequentially, making multiple LLM API calls. Consider t
 ```php
 agent('complex-analyzer')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->build();
 
 agent('simple-formatter')
     ->provider(anthropic())
-    ->model('claude-3-5-haiku-20241022')  // Faster, cheaper model
+    ->model('claude-sonnet-4-6')  // Faster, cheaper model
     ->build();
 
 $result = pipeline('optimized')

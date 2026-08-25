@@ -1,6 +1,17 @@
 # Observability & Distributed Tracing
 
-Pagent includes comprehensive OpenTelemetry instrumentation for distributed tracing, performance monitoring, and deep observability into your LLM agent interactions.
+Pagent supports OpenTelemetry instrumentation for distributed tracing,
+performance monitoring, and inspection of LLM agent interactions.
+
+Telemetry is an optional integration. Install the OpenTelemetry packages before
+enabling it in a production application:
+
+```bash
+composer require open-telemetry/api open-telemetry/sdk open-telemetry/sem-conv
+```
+
+Install `open-telemetry/exporter-otlp` for OTLP exporting; Composer's `suggest`
+metadata lists the additional HTTP/PSR packages needed by individual exporters.
 
 ## Table of Contents
 
@@ -311,10 +322,10 @@ Each LLM request creates an `llm.request` span (child of `agent.prompt`):
 // Span: llm.request
 // Attributes:
 //   - gen_ai.system: anthropic
-//   - gen_ai.request.model: claude-sonnet-4-20250514
+//   - gen_ai.request.model: claude-sonnet-4-6
 //   - gen_ai.request.temperature: 0.7
 //   - gen_ai.request.max_tokens: 1024
-//   - gen_ai.response.model: claude-sonnet-4-20250514
+//   - gen_ai.response.model: claude-sonnet-4-6
 //   - gen_ai.usage.completion_tokens: 75
 //   - gen_ai.usage.prompt_tokens: 150
 ```

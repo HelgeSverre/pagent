@@ -4,23 +4,15 @@ declare(strict_types=1);
 
 namespace Pagent;
 
-use InvalidArgumentException;
 use Pagent\Contracts\Provider;
-
-use function array_merge;
 
 final class AgentBuilder
 {
     private Agent $agent;
 
-    public function __construct(string $name)
+    public function __construct(string|Agent $agent)
     {
-        $this->agent = new Agent($name);
-    }
-
-    public function __destruct()
-    {
-        Registry::set($this->agent->getName(), $this->agent);
+        $this->agent = $agent instanceof Agent ? $agent : new Agent($agent);
     }
 
     public function __call(string $method, array $args): mixed
@@ -41,32 +33,24 @@ final class AgentBuilder
      */
     public function provider(string|Provider $provider, array $config = []): self
     {
-        // If already a Provider instance, use it directly
-        if ($provider instanceof Provider) {
-            $this->agent->provider($provider);
-
-            return $this;
-        }
-
-        // String resolution - create instance from name
-        $providerInstance = match ($provider) {
-            'anthropic' => new Providers\Anthropic($config),
-            'openai' => new Providers\OpenAI($config),
-            'opencode' => new Providers\OpenCode($config),
-            'opencode-zen' => new Providers\OpenCode(array_merge($config, ['gateway' => 'zen'])),
-            'opencode-go' => new Providers\OpenCode(array_merge($config, ['gateway' => 'go'])),
-            'ollama' => new Providers\Ollama($config),
-            'mock' => new Providers\Mock($config),
-            default => throw new InvalidArgumentException("Unknown provider: {$provider}"),
-        };
-
-        $this->agent->provider($providerInstance);
+        $this->agent->provider(ProviderFactory::resolve($provider, $config));
 
         return $this;
     }
 
     public function build(): Agent
     {
+        Registry::set($this->agent->getName(), $this->agent);
+
         return $this->agent;
+    }
+
+    /**
+     * Explicit alias for build() for configuration code that wants to make
+     * registration visible at the call site.
+     */
+    public function register(): Agent
+    {
+        return $this->build();
     }
 }

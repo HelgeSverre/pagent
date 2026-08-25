@@ -88,7 +88,7 @@ if (file_exists(__DIR__ . '/../.env')) {
 
 agent('support')
     ->provider('anthropic')
-    ->model('claude-3-haiku-20240307')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful customer support agent. Be concise and professional.')
     ->temperature(0.3)
     ->tool('search_orders', 'Search customer orders by email', function (string $email) {
@@ -122,7 +122,7 @@ agent('blog-writer')
 
 agent('product-descriptions')
     ->provider('anthropic')
-    ->model('claude-3-sonnet-20240229')
+    ->model('claude-sonnet-4-6')
     ->system('Write compelling product descriptions that highlight benefits and features.')
     ->temperature(0.7);
 
@@ -540,7 +540,7 @@ $app->run();
 {
   "name": "yourname/slim-pagent-app",
   "require": {
-    "php": "^8.3",
+    "php": "^8.4",
     "slim/slim": "^4.0",
     "slim/psr7": "^1.6",
     "php-di/php-di": "^7.0",
@@ -586,7 +586,7 @@ Response:
 ```json
 {
   "reply": "I'd be happy to help you with order #12345. Let me check the status for you...",
-  "model": "claude-3-haiku-20240307",
+  "model": "claude-sonnet-4-6",
   "tokens": 42
 }
 ```
@@ -683,24 +683,24 @@ $app->add(new RateLimiter([
 
 ```php
 $model = $_ENV['APP_ENV'] === 'production'
-    ? 'claude-3-opus-20240229'
-    : 'claude-3-haiku-20240307';
+    ? 'claude-sonnet-4-6'
+    : 'claude-sonnet-4-6';
 
 agent('support')->model($model);
 ```
 
 ---
 
-## Complete Example Application
+## Extending the Example
 
-See [`examples/slim-app/`](../examples/slim-app/) for a complete working Slim application with:
+The application structure in this guide can be extended with:
 
-- ✅ Full CRUD API using Pagent
-- ✅ Multi-agent workflows
-- ✅ Conversation persistence
-- ✅ Error handling
-- ✅ Logging middleware
-- ✅ Docker setup
+- Full CRUD API using Pagent
+- Multi-agent workflows
+- Conversation persistence
+- Error handling
+- Logging middleware
+- Docker setup
 
 ---
 
@@ -708,10 +708,11 @@ See [`examples/slim-app/`](../examples/slim-app/) for a complete working Slim ap
 
 This integration provides:
 
-- ✅ Clean separation of concerns
-- ✅ Dependency injection support
-- ✅ PSR-7/PSR-15 compliance
-- ✅ Easy testing and mocking
-- ✅ Production-ready patterns
+- Clean separation of concerns
+- Dependency injection support
+- PSR-7/PSR-15 compliance
+- Easy testing and mocking
+- Production-ready patterns
 
-Your Slim app now has AI superpowers! 🚀
+Use these patterns as a starting point and adapt dependency lifetimes, middleware,
+and error handling to the requirements of your application.

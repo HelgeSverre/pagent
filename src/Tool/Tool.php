@@ -51,9 +51,19 @@ final readonly class Tool implements ToolInterface
         return $this->name;
     }
 
+    public function getName(): string
+    {
+        return $this->name();
+    }
+
     public function description(): string
     {
         return $this->description;
+    }
+
+    public function getDescription(): string
+    {
+        return $this->description();
     }
 
     public function execute(array $arguments): mixed
@@ -63,7 +73,7 @@ final readonly class Tool implements ToolInterface
         return ($this->callable)(...$arguments);
     }
 
-    public function toAnthropicSchema(): array
+    public function getInputSchema(): array
     {
         $properties = [];
         $required = [];
@@ -77,50 +87,34 @@ final readonly class Tool implements ToolInterface
         }
 
         $schema = [
-            'name' => $this->name,
-            'description' => $this->description,
-            'input_schema' => [
-                'type' => 'object',
-                'properties' => $properties,
-            ],
+            'type' => 'object',
+            'properties' => $properties,
         ];
 
         if (! empty($required)) {
-            $schema['input_schema']['required'] = $required;
+            $schema['required'] = $required;
         }
 
         return $schema;
     }
 
+    /**
+     * @deprecated Use ToolSchemaSerializer::anthropic().
+     *
+     * @return array<string, mixed>
+     */
+    public function toAnthropicSchema(): array
+    {
+        return ToolSchemaSerializer::anthropic($this);
+    }
+
+    /**
+     * @deprecated Use ToolSchemaSerializer::openAI().
+     *
+     * @return array<string, mixed>
+     */
     public function toOpenAISchema(): array
     {
-        $properties = [];
-        $required = [];
-
-        foreach ($this->arguments as $arg) {
-            $properties[$arg->name] = $arg->toJsonSchema();
-
-            if (! $arg->nullable && $arg->default === null) {
-                $required[] = $arg->name;
-            }
-        }
-
-        $schema = [
-            'type' => 'function',
-            'function' => [
-                'name' => $this->name,
-                'description' => $this->description,
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => $properties,
-                ],
-            ],
-        ];
-
-        if (! empty($required)) {
-            $schema['function']['parameters']['required'] = $required;
-        }
-
-        return $schema;
+        return ToolSchemaSerializer::openAI($this);
     }
 }

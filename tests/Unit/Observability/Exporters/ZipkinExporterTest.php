@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use OpenTelemetry\SDK\Common\Future\FutureInterface;
 use Pagent\Observability\Exporters\ZipkinExporter;
 
 test('it initializes with Zipkin defaults', function () {
@@ -39,7 +40,7 @@ test('it exports empty span list successfully', function () {
 
     $result = $exporter->export([]);
 
-    expect($result)->toBeInstanceOf(\OpenTelemetry\SDK\Common\Future\FutureInterface::class)
+    expect($result)->toBeInstanceOf(FutureInterface::class)
         ->and($result->await())->toBeTrue();
 });
 

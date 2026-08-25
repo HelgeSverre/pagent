@@ -15,7 +15,7 @@ if (file_exists(__DIR__.'/../.env')) {
 /**
  * Example 1: Conversation with Context.
  */
-echo "=== Example 1: Conversation with Context ===\n\n";
+echo "\n[Example 1: Conversation with Context]\n";
 
 $agent = agent('contextual-assistant')
     ->provider('openai')
@@ -47,7 +47,7 @@ echo "Bot: {$r4->content}\n\n";
 /**
  * Example 2: Role-Playing with Context.
  */
-echo "=== Example 2: Role-Playing Scenario ===\n\n";
+echo "\n[Example 2: Role-Playing Scenario]\n";
 
 $character = agent('dungeon-master')
     ->provider('openai')
@@ -67,7 +67,7 @@ echo "DM: {$r2->content}\n\n";
 /**
  * Example 3: Customer Support with Context.
  */
-echo "=== Example 3: Customer Support ===\n\n";
+echo "\n[Example 3: Customer Support]\n";
 
 $support = agent('support-bot')
     ->provider('openai')
@@ -91,7 +91,7 @@ echo "Support: {$r3->content}\n\n";
 /**
  * Example 4: Inspecting Message History.
  */
-echo "=== Example 4: Message History ===\n\n";
+echo "\n[Example 4: Message History]\n";
 
 $testAgent = agent('history-test')
     ->provider('openai')
@@ -111,4 +111,4 @@ foreach ($agent->messages as $i => $message) {
 
 echo "\nTotal messages: ".count($agent->messages)."\n\n";
 
-echo "✅ All context/memory examples completed!\n";
+echo "\nDone.\n";

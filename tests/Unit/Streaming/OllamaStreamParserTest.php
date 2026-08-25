@@ -31,14 +31,17 @@ test('it parses start chunk with role', function (): void {
 
 test('it parses content chunks', function (): void {
     $ndjson = "{\"model\":\"qwen3:8b\",\"message\":{\"role\":\"assistant\",\"content\":\"Hello\"},\"done\":false}\n".
-              "{\"model\":\"qwen3:8b\",\"message\":{\"role\":\"assistant\",\"content\":\"Hello World\"},\"done\":true}\n";
+              "{\"model\":\"qwen3:8b\",\"message\":{\"role\":\"assistant\",\"content\":\" World\"},\"done\":true}\n";
 
     $stream = createOllamaStream($ndjson);
     $parser = new OllamaStreamParser;
     $chunks = iterator_to_array($parser->parse($stream, 'qwen3:8b'));
 
-    $textChunks = array_filter($chunks, fn ($c) => $c->isText());
-    expect($textChunks)->not->toBeEmpty();
+    $textChunks = array_values(array_filter($chunks, fn ($c) => $c->isText()));
+    $endChunk = array_values(array_filter($chunks, fn ($c) => $c->isEnd()))[0];
+
+    expect(array_map(fn ($chunk) => $chunk->content, $textChunks))->toBe(['Hello', ' World'])
+        ->and($endChunk->getMetadata('full_content'))->toBe('Hello World');
 
     fclose($stream);
 });
@@ -61,15 +64,16 @@ test('it parses done chunk with usage statistics', function (): void {
 });
 
 test('it parses tool calls', function (): void {
-    $ndjson = "{\"model\":\"qwen3:8b\",\"message\":{\"role\":\"assistant\",\"content\":\"\",\"tool_calls\":[{\"id\":\"call_123\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{\\\"location\\\":\\\"London\\\"}\"}}]},\"done\":false}\n".
+    $ndjson = "{\"model\":\"qwen3:8b\",\"message\":{\"role\":\"assistant\",\"content\":\"\",\"tool_calls\":[{\"id\":\"call_123\",\"function\":{\"name\":\"get_weather\",\"arguments\":{\"location\":\"London\"}}}]},\"done\":false}\n".
               "{\"model\":\"qwen3:8b\",\"message\":{\"role\":\"assistant\",\"content\":\"\"},\"done\":true}\n";
 
     $stream = createOllamaStream($ndjson);
     $parser = new OllamaStreamParser;
     $chunks = iterator_to_array($parser->parse($stream, 'qwen3:8b'));
 
-    $toolCallChunks = array_filter($chunks, fn ($c) => $c->isToolCall());
-    expect($toolCallChunks)->not->toBeEmpty();
+    $toolCallChunks = array_values(array_filter($chunks, fn ($c) => $c->isToolCall()));
+    expect($toolCallChunks)->toHaveCount(1)
+        ->and($toolCallChunks[0]->content)->toBe('{"location":"London"}');
 
     fclose($stream);
 });

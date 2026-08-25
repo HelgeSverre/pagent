@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Pagent\Agent;
+use Pagent\Usage\Storage\InMemoryUsageStorage;
 use Pagent\Usage\UsageTracker;
 
 beforeEach(function () {
@@ -88,11 +89,13 @@ test('agent trackUsage accepts custom configuration', function () {
 });
 
 test('multiple agents can have independent trackers', function () {
+    $storage1 = new InMemoryUsageStorage;
+    $storage2 = new InMemoryUsageStorage;
     $agent1 = new Agent('agent-1');
-    $agent1->provider(mock())->trackUsage();
+    $agent1->provider(mock())->trackUsage(['storage' => $storage1]);
 
     $agent2 = new Agent('agent-2');
-    $agent2->provider(mock())->trackUsage();
+    $agent2->provider(mock())->trackUsage(['storage' => $storage2]);
 
     $agent1->prompt('Hello from 1');
     $agent2->prompt('Hello from 2');
@@ -104,7 +107,9 @@ test('multiple agents can have independent trackers', function () {
     expect($usage1)->toHaveCount(2)
         ->and($usage2)->toHaveCount(1)
         ->and($usage1[0]->agentName)->toBe('agent-1')
-        ->and($usage2[0]->agentName)->toBe('agent-2');
+        ->and($usage2[0]->agentName)->toBe('agent-2')
+        ->and($storage1->getAll())->toHaveCount(2)
+        ->and($storage2->getAll())->toHaveCount(1);
 });
 
 test('agent getUsage filters correctly by agent name', function () {

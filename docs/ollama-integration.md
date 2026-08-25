@@ -303,6 +303,8 @@ use Pagent\Tools\FileRead;
 use Pagent\Tools\WebFetch;
 use Pagent\Tools\Bash;
 
+// Bash is optional: composer require symfony/process
+
 $agent = agent('assistant')
     ->provider(ollama())
     ->model('qwen3:8b')
@@ -428,7 +430,7 @@ $result = $delegation->run();
 
 ### For Tool Calling (Recommended)
 
-**qwen3:8b** ⭐ Best for tool calling
+**Recommended: qwen3:8b**
 
 - Excellent function calling support
 - Fast inference
@@ -729,7 +731,7 @@ function getAgent(): Agent
     // Fallback to cloud provider
     return agent('assistant')
         ->provider(anthropic())
-        ->model('claude-3-haiku-20240307');
+        ->model('claude-sonnet-4-6');
 }
 ```
 

@@ -13,6 +13,16 @@ test('it creates evaluator for agent', function (): void {
     expect($evaluator)->toBeInstanceOf(Evaluator::class);
 });
 
+test('it reports an unregistered evaluator agent without creating one', function (): void {
+    $dataset = Dataset::fromArray([
+        ['input' => 'Hello'],
+    ]);
+
+    expect(fn () => evaluate('missing-evaluator-agent')->dataset($dataset)->run())
+        ->toThrow(RuntimeException::class, "Agent 'missing-evaluator-agent' not found");
+    expect(getAgent('missing-evaluator-agent'))->toBeNull();
+});
+
 test('it runs evaluation on dataset', function (): void {
     agent('eval-test')
         ->provider('mock')

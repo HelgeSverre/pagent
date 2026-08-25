@@ -11,7 +11,7 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-echo "=== Ollama Basic Usage Examples ===\n\n";
+echo "\n[Ollama Basic Usage Examples]\n";
 echo "Prerequisites: Ollama server running with qwen3:8b model\n";
 echo "Run: ollama pull qwen3:8b && ollama serve\n\n";
 
@@ -31,15 +31,15 @@ function checkOllama(): bool
 }
 
 if (! checkOllama()) {
-    echo "❌ Ollama server not available at http://localhost:11434\n";
+    echo "Error: Ollama server not available at http://localhost:11434\n";
     echo "Please start Ollama server with: ollama serve\n";
     exit(1);
 }
 
-echo "✅ Ollama server is running\n\n";
+echo "Status: Ollama server is running\n\n";
 
 // Example 1: Simple question
-echo "=== Example 1: Simple Question ===\n\n";
+echo "\n[Example 1: Simple Question]\n";
 
 agent('ollama-assistant')
     ->provider(ollama())
@@ -49,12 +49,12 @@ agent('ollama-assistant')
 
 $response = agent('ollama-assistant')->prompt('What is dependency injection in PHP?');
 
-echo "Q: What is dependency injection in PHP?\n";
-echo "A: {$response->content}\n";
+echo "Input: What is dependency injection in PHP?\n";
+echo "Output: {$response->content}\n";
 echo "Tokens used: {$response->tokens}\n\n";
 
 // Example 2: Conversation with context
-echo "=== Example 2: Multi-Turn Conversation ===\n\n";
+echo "\n[Example 2: Multi-Turn Conversation]\n";
 
 agent('ollama-chat')
     ->provider(ollama())
@@ -72,7 +72,7 @@ $response2 = $chat->prompt("What's my name?");
 echo "Bot: {$response2->content}\n\n";
 
 // Example 3: Temperature control
-echo "=== Example 3: Temperature Control ===\n\n";
+echo "\n[Example 3: Temperature Control]\n";
 
 echo "Low temperature (0.0) - deterministic:\n";
 agent('ollama-temp-low')
@@ -93,7 +93,7 @@ $response = agent('ollama-temp-high')->prompt('Write a creative sentence about c
 echo "Response: {$response->content}\n\n";
 
 // Example 4: Custom configuration
-echo "=== Example 4: Custom Configuration ===\n\n";
+echo "\n[Example 4: Custom Configuration]\n";
 
 $provider = ollama([
     'base_url' => 'http://localhost:11434',
@@ -110,7 +110,8 @@ echo "Response: {$response->content}\n";
 echo "Model: {$response->model}\n";
 echo "Provider: {$response->provider}\n\n";
 
-echo "✅ All examples completed!\n";
 echo "\nNext steps:\n";
 echo "- Try examples/13-ollama-streaming.php for streaming examples\n";
 echo "- Try examples/14-ollama-tools.php for tool calling examples\n";
+
+echo "\nDone.\n";

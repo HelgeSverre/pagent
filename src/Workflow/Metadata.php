@@ -14,16 +14,21 @@ final readonly class Metadata
         public string $completedAt,
     ) {}
 
-    public static function create(int $totalTokens, float $duration, int $stepsExecuted): self
-    {
+    public static function create(
+        int $totalTokens,
+        float $duration,
+        int $stepsExecuted,
+        ?string $startedAt = null,
+        ?string $completedAt = null,
+    ): self {
         $now = date('Y-m-d H:i:s');
 
         return new self(
             totalTokens: $totalTokens,
             duration: $duration,
             stepsExecuted: $stepsExecuted,
-            startedAt: $now,
-            completedAt: $now,
+            startedAt: $startedAt ?? $now,
+            completedAt: $completedAt ?? $now,
         );
     }
 

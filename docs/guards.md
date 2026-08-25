@@ -1,233 +1,168 @@
 # Guards
 
-Guards provide a safety layer that validates LLM responses before they're returned to users. They can detect and block responses containing sensitive information, inappropriate content, or signs of prompt injection attacks.
+Guards are phase-aware safety policies. Input guards run before a provider request
+or a tool can execute; output guards run after the final model response and before
+it is committed to conversation history or returned to the caller.
 
-## How Guards Work
+## Built-in policies
 
-Guards are executed after the LLM responds but before the response is returned. Each guard implements a simple interface:
-
-```php
-interface Guard
-{
-    public function check(string $input, string $output): bool;
-    public function getName(): string;
-    public function getViolationMessage(): string;
-}
-```
-
-- `check()` returns `true` if the response is safe, `false` if it should be blocked
-- `$input` is the user's message
-- `$output` is the LLM's response
-
-## Built-in Guards
-
-### PIIGuard
-
-Detects personally identifiable information in responses:
+- `PromptInjectionGuard` is an `InputGuard`. It rejects suspicious user input
+  before it leaves the agent.
+- `PIIGuard` and `ContentFilterGuard` are `OutputGuard`s. They inspect generated
+  content before it is exposed.
 
 ```php
-use Pagent\Guards\PIIGuard;
-
-agent('assistant')
+$assistant = agent('public-assistant')
     ->provider('anthropic')
-    ->guard(new PIIGuard())
-    ->prompt('What is my SSN?');
+    ->guard('promptInjection') // before provider/tool execution
+    ->guard('pii')             // before output is committed or returned
+    ->guard('contentFilter');
 ```
 
-**Default patterns detected:**
-- Social Security Numbers (SSN): `123-45-6789`
-- Credit card numbers: `1234-5678-9012-3456`
-- Email addresses
-- Phone numbers
-
-**Customizing which checks are enabled:**
-
-```php
-// Only check for SSN and credit cards
-$guard = new PIIGuard(['ssn', 'credit_card']);
-
-// All available checks: 'ssn', 'credit_card', 'email', 'phone', 'ip_address'
-```
-
-### ContentFilterGuard
-
-Blocks responses containing profanity, violent content, or security-related instructions:
+The built-in PII policy detects SSNs, credit cards, email addresses, phone
+numbers, and optionally IP addresses. `ContentFilterGuard` supports custom regex
+patterns and strict mode.
 
 ```php
 use Pagent\Guards\ContentFilterGuard;
-
-agent('assistant')
-    ->provider('anthropic')
-    ->guard(new ContentFilterGuard())
-    ->prompt('Tell me a story');
-```
-
-**Adding custom patterns:**
-
-```php
-$guard = new ContentFilterGuard(
-    customPatterns: ['/\bsecret-word\b/i'],
-    strictMode: true
-);
-```
-
-### PromptInjectionGuard
-
-Detects attempts to manipulate the LLM through prompt injection in user input:
-
-```php
-use Pagent\Guards\PromptInjectionGuard;
-
-agent('assistant')
-    ->provider('anthropic')
-    ->guard(new PromptInjectionGuard())
-    ->prompt($userInput);  // Validates user input for injection attempts
-```
-
-**Patterns detected:**
-- "Ignore previous instructions"
-- "Forget everything"
-- "You are now..."
-- "[SYSTEM]" markers
-- "New instructions:"
-
-## Using Guards
-
-### By String Name
-
-```php
-agent('assistant')
-    ->provider('anthropic')
-    ->guard('pii')              // PIIGuard
-    ->guard('contentFilter')    // ContentFilterGuard
-    ->guard('promptInjection')  // PromptInjectionGuard
-    ->prompt('Hello');
-```
-
-### By Instance
-
-```php
 use Pagent\Guards\PIIGuard;
 
-agent('assistant')
-    ->provider('anthropic')
-    ->guard(new PIIGuard(['ssn', 'email']))
-    ->prompt('Hello');
+$assistant
+    ->guard(new PIIGuard(['ssn', 'credit_card', 'email']))
+    ->guard(new ContentFilterGuard(
+        customPatterns: ['/\\bsecret-word\\b/i'],
+        strictMode: true,
+    ));
 ```
 
-### Multiple Guards
+## Custom input guards
 
-Guards are executed in order. If any guard fails, the response is blocked:
-
-```php
-agent('assistant')
-    ->provider('anthropic')
-    ->guard('promptInjection')  // Check input first
-    ->guard('pii')              // Then check output
-    ->guard('contentFilter')    // Then filter content
-    ->prompt($userInput);
-```
-
-## Creating Custom Guards
+Implement `InputGuard` for a policy that must prevent a request from reaching a
+provider or tool. It still implements the legacy `Guard` methods for compatibility,
+but Pagent calls `checkInput()` in the input phase.
 
 ```php
-use Pagent\Contracts\Guard;
+use Pagent\Contracts\InputGuard;
 
-final class MyCustomGuard implements Guard
+final class TenantBoundaryGuard implements InputGuard
 {
+    public function checkInput(string $input): bool
+    {
+        return !str_contains($input, 'other-tenant-secret');
+    }
+
     public function check(string $input, string $output): bool
     {
-        // Return true if safe, false to block
-        return !str_contains($output, 'forbidden-word');
+        return $this->checkInput($input);
     }
 
     public function getName(): string
     {
-        return 'my_custom_guard';
+        return 'tenant_boundary';
     }
 
     public function getViolationMessage(): string
     {
-        return 'Response contained forbidden content.';
+        return 'The request crosses a tenant boundary.';
     }
 }
-
-// Use it
-agent('bot')->guard(new MyCustomGuard());
 ```
 
-### Closure-based Guards
+## Custom output guards
 
-For simple checks, use a closure:
+Implement `OutputGuard` for a policy over generated content. Return `false` from
+`supportsIncrementalInspection()` unless it is safe to release every prefix of a
+response. A value such as an email address can cross chunk boundaries, so a PII
+policy must return `false`.
 
 ```php
-agent('assistant')
-    ->provider('anthropic')
-    ->guard('length_check', fn($input, $output) => strlen($output) < 1000)
-    ->prompt('Write a short story');
+use Pagent\Contracts\OutputGuard;
+
+final class BrandNameGuard implements OutputGuard
+{
+    public function checkOutput(string $output): bool
+    {
+        return !str_contains(mb_strtolower($output), 'forbidden brand');
+    }
+
+    public function supportsIncrementalInspection(): bool
+    {
+        return false;
+    }
+
+    public function check(string $input, string $output): bool
+    {
+        return $this->checkOutput($output);
+    }
+
+    public function getName(): string
+    {
+        return 'brand_name';
+    }
+
+    public function getViolationMessage(): string
+    {
+        return 'Response contains a forbidden brand.';
+    }
+}
 ```
 
-## Handling Guard Violations
+## Legacy guards and closures
 
-When a guard fails, a `GuardException` is thrown by default:
+The original `Guard::check(string $input, string $output)` contract and
+`guard('name', fn ($input, $output) => ...)` remain supported. Their phase cannot
+be inferred safely, so Pagent treats them as output policies. Prefer
+`InputGuard`/`OutputGuard` for new code.
+
+```php
+$assistant->guard(
+    'legacy_length_check',
+    fn (string $input, string $output): bool => mb_strlen($output) < 1_000,
+);
+```
+
+## Streaming safety
+
+Streams are normally delivered incrementally. Pagent buffers and validates before
+delivery if a stream has a non-incremental output guard, a legacy guard, or
+middleware that can transform the response. This deliberately trades time to first
+token for the guarantee that rejected content is never sent to the callback.
+
+```php
+$assistant
+    ->guard(new PIIGuard())
+    ->streamTo('Summarize this document', function ($chunk): void {
+        if ($chunk->isText()) {
+            echo $chunk->content;
+        }
+    });
+```
+
+## Violations and fallbacks
+
+A rejected turn throws `GuardException` unless the agent has a fallback. Rejected
+input is not retained in history; provider/tool failures and all other failed turns
+roll back their staged conversation state.
 
 ```php
 use Pagent\Exceptions\GuardException;
 
+$assistant->fallback(
+    fn (GuardException $error): string => 'This request cannot be processed.',
+);
+
 try {
-    $response = agent('assistant')
-        ->guard('pii')
-        ->prompt('What is 123-45-6789?');
-} catch (GuardException $e) {
-    echo "Blocked: " . $e->getMessage();
-    echo "Guard: " . $e->guardName;
+    $response = $assistant->prompt($userInput);
+} catch (GuardException $error) {
+    logger()->warning('Guard blocked a turn', ['guard' => $error->guardName]);
 }
 ```
 
-### Using Fallbacks
+## Events
 
-Provide a fallback response instead of throwing:
+Guards emit `GuardCheckingEvent`, `GuardPassedEvent`, `GuardViolatedEvent`, and
+`GuardFallbackEvent`. Agent-local listeners and global `EventManager` subscribers
+observe the same event publication.
 
-```php
-agent('assistant')
-    ->provider('anthropic')
-    ->guard('pii')
-    ->fallback(fn() => "I can't share that information.")
-    ->prompt('What is my SSN?');
-```
-
-## Guard Events
-
-Guards emit events for observability:
-
-| Event | When |
-|-------|------|
-| `GuardCheckingEvent` | Before guard executes |
-| `GuardPassedEvent` | Guard check passed |
-| `GuardViolatedEvent` | Guard check failed |
-| `GuardFallbackEvent` | Fallback was used |
-
-```php
-use Pagent\Events\Events\Guard\GuardViolatedEvent;
-
-agent('assistant')
-    ->on(GuardViolatedEvent::class, function($event) {
-        log_security_event($event->guardName, $event->input);
-    })
-    ->guard('pii')
-    ->prompt($userInput);
-```
-
-## Best Practices
-
-1. **Order matters**: Place `PromptInjectionGuard` first to validate input before processing
-2. **Layer guards**: Use multiple guards for defense in depth
-3. **Use fallbacks**: Provide graceful degradation instead of errors for user-facing apps
-4. **Log violations**: Use events to track guard violations for security monitoring
-5. **Test guards**: Include edge cases in your test suite
-
-## See Also
-
-- [Middleware](middleware.md) - For request/response transformation
-- [Events](events.md) - For guard event handling
-- [Observability](observability.md) - For telemetry and monitoring
+See [events](events.md) for listener examples and [streaming](streaming.md) for
+SSE delivery details.

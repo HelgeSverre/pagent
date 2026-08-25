@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use OpenTelemetry\API\Trace\StatusCode;
 use Pagent\Agent;
+use Pagent\Contracts\Provider;
 use Pagent\Observability\Exporters\InMemoryExporter;
 use Pagent\Observability\TelemetryManager;
 use Pagent\Providers\Mock;
@@ -131,7 +133,7 @@ test('it records step failures in pipeline', function () {
 
     // Create agent that throws exception
     $agent2 = new Agent('exception-agent');
-    $mockProvider = new class implements Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         public function prompt(string $message, array $options = []): object
         {
@@ -161,14 +163,14 @@ test('it records step failures in pipeline', function () {
     expect($pipelineSpans)->toHaveCount(1);
 
     $pipelineSpan = $pipelineSpans[0];
-    expect($pipelineSpan->getStatus()->getCode())->toBe(\OpenTelemetry\API\Trace\StatusCode::STATUS_ERROR);
+    expect($pipelineSpan->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR);
 
     // Verify step spans were created
     $stepSpans = $this->exporter->findSpansByName('workflow.step');
     expect($stepSpans)->toHaveCount(2);
 
     // Second step should have error status
-    expect($stepSpans[1]->getStatus()->getCode())->toBe(\OpenTelemetry\API\Trace\StatusCode::STATUS_ERROR);
+    expect($stepSpans[1]->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR);
 });
 
 test('it includes step metadata in pipeline spans', function () {
@@ -326,7 +328,7 @@ test('it records chain failures with telemetry', function () {
 
     // Create failing agent
     $agent2 = new Agent('chain-failing-agent');
-    $mockProvider = new class implements Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         public function prompt(string $message, array $options = []): object
         {
@@ -354,14 +356,14 @@ test('it records chain failures with telemetry', function () {
     // Verify chain span has error status
     $chainSpans = $this->exporter->findSpansByName('workflow.chain.run');
     expect($chainSpans)->toHaveCount(1);
-    expect($chainSpans[0]->getStatus()->getCode())->toBe(\OpenTelemetry\API\Trace\StatusCode::STATUS_ERROR);
+    expect($chainSpans[0]->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR);
 
     // Verify step spans
     $stepSpans = $this->exporter->findSpansByName('workflow.step');
     expect($stepSpans)->toHaveCount(2);
 
     // Second step should have error
-    expect($stepSpans[1]->getStatus()->getCode())->toBe(\OpenTelemetry\API\Trace\StatusCode::STATUS_ERROR);
+    expect($stepSpans[1]->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR);
 });
 
 test('it works with mixed telemetry settings in pipeline', function () {

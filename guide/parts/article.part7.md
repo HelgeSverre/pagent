@@ -2,116 +2,79 @@
 
 In Chapter 6, we learned how to add tool calling capabilities to agents using simple closures. But as your applications grow more sophisticated, you'll need tools that are reusable, composable, and well-documented. You'll want to share tools across multiple agents, add validation logic, handle edge cases gracefully, and create libraries of functionality that other developers can use.
 
-This is where custom tool classes come in. Pagent provides a powerful tool system that lets you build professional-grade tools with proper interfaces, automatic schema generation, and built-in validation. In this chapter, we'll explore how to create custom tools from scratch, implement the `ToolInterface`, and build production-ready tool libraries.
+This is where custom tool classes come in. Pagent provides a provider-neutral tool
+contract, automatic provider-boundary serialization, and input validation. In
+this chapter, we'll create a reusable tool and build a production-ready tool
+library.
 
 ## Understanding the Tool Architecture
 
 Pagent offers two approaches to creating tools: quick closures (which we covered in Chapter 6) and custom tool classes. While closures are great for simple, one-off tools, custom classes give you complete control over tool behavior.
 
-The foundation is the `ToolInterface`, which defines the contract every tool must implement:
+The canonical contract is `Pagent\Contracts\Tool`. A tool describes itself once
+with JSON Schema; it does not know which provider will receive that schema.
 
 ```php
 namespace Pagent\Contracts;
 
-interface ToolInterface
+interface Tool
 {
-    public function name(): string;
-    public function description(): string;
-    public function execute(array $params): mixed;
-    public function toAnthropicSchema(): array;
-    public function toOpenAISchema(): array;
+    public function getName(): string;
+    public function getDescription(): string;
+    public function getInputSchema(): array;
+    public function execute(array $arguments): mixed;
 }
 ```
 
-Every tool needs five things: a name, a description, execution logic, and schema definitions for both Anthropic and OpenAI formats. This interface ensures your tools work seamlessly with any provider.
+Every tool needs a name, description, input schema, and execution logic. Pagent
+serializes that provider-neutral metadata at the provider boundary: Anthropic
+receives its `input_schema` shape and OpenAI-compatible providers receive their
+function-tool shape.
 
 ## Creating Your First Custom Tool
 
 Let's build a simple but complete custom tool - a calculator that performs basic arithmetic operations:
 
 ```php
-use Pagent\Contracts\ToolInterface;
+use Pagent\Contracts\Tool;
 
-class Calculator implements ToolInterface
+class Calculator implements Tool
 {
-    public function name(): string
+    public function getName(): string
     {
         return 'calculator';
     }
 
-    public function description(): string
+    public function getDescription(): string
     {
         return 'Perform basic arithmetic operations (add, subtract, multiply, divide)';
     }
 
-    public function execute(array $params): mixed
+    public function getInputSchema(): array
     {
-        $operation = $params['operation'];
-        $x = $params['x'];
-        $y = $params['y'];
+        return [
+            'type' => 'object',
+            'properties' => [
+                'operation' => ['type' => 'string', 'enum' => ['add', 'subtract', 'multiply', 'divide']],
+                'x' => ['type' => 'number'],
+                'y' => ['type' => 'number'],
+            ],
+            'required' => ['operation', 'x', 'y'],
+        ];
+    }
 
-        return match($operation) {
+    public function execute(array $arguments): mixed
+    {
+        $operation = $arguments['operation'];
+        $x = $arguments['x'];
+        $y = $arguments['y'];
+
+        return match ($operation) {
             'add' => $x + $y,
             'subtract' => $x - $y,
             'multiply' => $x * $y,
             'divide' => $y !== 0 ? $x / $y : throw new RuntimeException('Division by zero'),
-            default => throw new RuntimeException("Unknown operation: {$operation}"),
         };
-    }
-
-    public function toAnthropicSchema(): array
-    {
-        return [
-            'name' => $this->name(),
-            'description' => $this->description(),
-            'input_schema' => [
-                'type' => 'object',
-                'properties' => [
-                    'operation' => [
-                        'type' => 'string',
-                        'description' => 'The operation to perform: add, subtract, multiply, or divide',
-                    ],
-                    'x' => [
-                        'type' => 'number',
-                        'description' => 'First number',
-                    ],
-                    'y' => [
-                        'type' => 'number',
-                        'description' => 'Second number',
-                    ],
-                ],
-                'required' => ['operation', 'x', 'y'],
-            ],
-        ];
-    }
-
-    public function toOpenAISchema(): array
-    {
-        return [
-            'type' => 'function',
-            'function' => [
-                'name' => $this->name(),
-                'description' => $this->description(),
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'operation' => [
-                            'type' => 'string',
-                            'description' => 'The operation to perform: add, subtract, multiply, or divide',
-                        ],
-                        'x' => [
-                            'type' => 'number',
-                            'description' => 'First number',
-                        ],
-                        'y' => [
-                            'type' => 'number',
-                            'description' => 'Second number',
-                        ],
-                    ],
-                    'required' => ['operation', 'x', 'y'],
-                ],
-            ],
-        ];
     }
 }
 ```
@@ -121,18 +84,21 @@ Now you can use this tool with any agent:
 ```php
 $agent = agent('math-assistant')
     ->provider(anthropic())
-    ->tool(new Calculator())
-    ->build();
+    ->tool(new Calculator());
 
 $response = $agent->prompt('What is 156 multiplied by 23?');
 // The agent will automatically call the calculator tool and return: "3,588"
 ```
 
-The LLM sees the tool's schema, understands what it does, and knows exactly what parameters to provide. When it decides to use the calculator, Pagent automatically calls your `execute()` method with the right parameters.
+The LLM sees the serialized schema, understands what the tool does, and knows
+what parameters to provide. When it decides to use the calculator, Pagent
+validates those arguments and calls `execute()`.
 
 ## Using the Abstract Tool Class
 
-Writing schema definitions for both Anthropic and OpenAI can be repetitive - the schemas are almost identical, just structured differently. Pagent provides an abstract `Tool` class that handles this boilerplate:
+Pagent also supplies `Pagent\Tools\Tool`, a convenience base class for tools
+that prefer the older `name()`, `description()`, and `parameters()` method
+names. It still exposes the canonical contract and remains provider-neutral:
 
 ```php
 use Pagent\Tools\Tool;
@@ -188,7 +154,9 @@ class Calculator extends Tool
 }
 ```
 
-The abstract `Tool` class provides default implementations of `toAnthropicSchema()` and `toOpenAISchema()` that automatically convert your `parameters()` definition into the correct format for each provider. This eliminates duplication while maintaining full compatibility.
+The base class maps `name()`, `description()`, and `parameters()` to the
+canonical getters. Provider adapters perform the final serialization, so custom
+tools should never construct an Anthropic- or OpenAI-specific schema themselves.
 
 ## Building Tools with Configuration
 
@@ -719,24 +687,23 @@ class CalculatorTest extends TestCase
         ]);
     }
 
-    public function test_it_has_valid_schema(): void
+    public function test_it_has_a_provider_neutral_schema(): void
     {
         $calculator = new Calculator();
 
-        $schema = $calculator->toAnthropicSchema();
+        $schema = $calculator->getInputSchema();
 
-        $this->assertEquals('calculator', $schema['name']);
-        $this->assertArrayHasKey('input_schema', $schema);
-        $this->assertArrayHasKey('properties', $schema['input_schema']);
+        $this->assertSame('calculator', $calculator->getName());
+        $this->assertArrayHasKey('properties', $schema);
         $this->assertEquals(
             ['operation', 'x', 'y'],
-            $schema['input_schema']['required']
+            $schema['required']
         );
     }
 }
 ```
 
-Testing ensures your tools behave correctly and provide accurate schemas to LLMs.
+Testing ensures your tools behave correctly and describe their inputs accurately.
 
 ## Building Stateful Tools
 
@@ -854,6 +821,9 @@ This pattern lets you integrate any PHP library into your agent's capabilities.
 
 ## Next Steps
 
-You now understand how to build production-ready custom tools with proper validation, configuration, and error handling. You know how to implement the `ToolInterface`, use the abstract `Tool` class to reduce boilerplate, and organize tools into reusable libraries.
+You now understand how to build production-ready custom tools with proper
+validation, configuration, and error handling. You know how to implement the
+canonical `Tool` contract, use the convenience base class when it fits, and
+organize tools into reusable libraries.
 
 In the next chapter, we'll explore recursive tool execution - how agents can chain multiple tool calls together, handle complex multi-step workflows, and avoid infinite loops. You'll learn how Pagent's automatic recursion handling makes it easy to build agents that break down complex tasks into a series of tool calls.

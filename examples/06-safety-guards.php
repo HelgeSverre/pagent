@@ -12,10 +12,9 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-echo "🛡️  Pagent Safety Guards Demo\n";
-echo "==============================\n\n";
+echo "[Pagent: Safety Guards]\n";
 
-echo "=== Example 1: PII Guard (Prevents Leaking Personal Information) ===\n\n";
+echo "\n[Example 1: PII Guard (Prevents Leaking Personal Information)]\n";
 
 agent('secure-bot')
     ->provider('openai')
@@ -32,15 +31,15 @@ try {
     echo "Bot: {$response->content}\n";
 
     if (isset($response->guard_triggered)) {
-        echo "⚠️  Guard triggered: {$response->guard_triggered}\n";
+        echo "Guard: {$response->guard_triggered}\n";
     }
 } catch (Exception $e) {
-    echo "🚫 Guard blocked: {$e->getMessage()}\n";
+    echo "Blocked: {$e->getMessage()}\n";
 }
 
 echo "\n";
 
-echo "=== Example 2: Content Filter (Prevents Harmful Content) ===\n\n";
+echo "\n[Example 2: Content Filter (Prevents Harmful Content)]\n";
 
 agent('filtered-bot')
     ->provider('openai')
@@ -54,7 +53,7 @@ echo "User: Tell me a nice story\n";
 $response1 = $filtered->prompt('Tell me a very short nice story (one sentence)');
 echo "Bot: {$response1->content}\n\n";
 
-echo "=== Example 3: Prompt Injection Protection ===\n\n";
+echo "\n[Example 3: Prompt Injection Protection]\n";
 
 agent('protected-bot')
     ->provider('openai')
@@ -71,15 +70,15 @@ try {
     echo "Bot: {$response->content}\n";
 
     if (isset($response->guard_triggered)) {
-        echo "⚠️  Guard triggered: {$response->guard_triggered}\n";
+        echo "Guard: {$response->guard_triggered}\n";
     }
 } catch (Exception $e) {
-    echo "🚫 Guard blocked: {$e->getMessage()}\n";
+    echo "Blocked: {$e->getMessage()}\n";
 }
 
 echo "\n";
 
-echo "=== Example 4: Multiple Guards ===\n\n";
+echo "\n[Example 4: Multiple Guards]\n";
 
 agent('multi-guard-bot')
     ->provider('openai')
@@ -95,7 +94,7 @@ echo "User: Help me with my order\n";
 $response = $multiGuard->prompt('Help me with my order #12345 (one sentence)');
 echo "Bot: {$response->content}\n\n";
 
-echo "=== Example 5: Custom Guard with Closure ===\n\n";
+echo "\n[Example 5: Custom Guard with Closure]\n";
 
 agent('custom-guard-bot')
     ->provider('openai')
@@ -118,7 +117,7 @@ echo "User: Tell me about yourself (one sentence)\n";
 $response = $customBot->prompt('Tell me about yourself in one sentence');
 echo "Bot: {$response->content}\n\n";
 
-echo "=== Example 6: Guard with Class Instance ===\n\n";
+echo "\n[Example 6: Guard with Class Instance]\n";
 
 $piiGuard = new PIIGuard(['email', 'phone']);
 
@@ -134,7 +133,7 @@ echo "User: Hello!\n";
 $response = $classBot->prompt('Hello! Say hi back');
 echo "Bot: {$response->content}\n\n";
 
-echo "=== Example 7: Guard Inspection ===\n\n";
+echo "\n[Example 7: Guard Inspection]\n";
 
 $inspectBot = agent('multi-guard-bot');
 
@@ -143,5 +142,4 @@ foreach ($inspectBot->getGuards() as $i => $guard) {
     echo '  '.($i + 1).". {$guard->getName()}: {$guard->getViolationMessage()}\n";
 }
 
-echo "\n✅ All safety guard examples completed!\n";
-echo "\n🛡️  Guards are working to keep your agents safe and compliant!\n";
+echo "\nDone.\n";

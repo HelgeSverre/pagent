@@ -116,7 +116,7 @@ use function Pagent\anthropic;
 
 $agent = agent('analyzer')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->build();
 
 $response = $agent->prompt('Analyze the performance implications of using Redis vs Memcached for session storage.');
@@ -156,7 +156,7 @@ class CostTracker
 {
     // Pricing per million tokens (as of Nov 2024)
     private const PRICING = [
-        'claude-sonnet-4-20250514' => [
+        'claude-sonnet-4-6' => [
             'input' => 3.00,   // $3 per million input tokens
             'output' => 15.00, // $15 per million output tokens
         ],
@@ -194,13 +194,13 @@ class CostTracker
 
 // Usage
 $tracker = new CostTracker();
-$agent = agent('assistant')->provider(anthropic())->model('claude-sonnet-4-20250514')->build();
+$agent = agent('assistant')->provider(anthropic())->model('claude-sonnet-4-6')->build();
 
 $response1 = $agent->prompt('Explain dependency injection.');
-$cost1 = $tracker->trackPrompt('claude-sonnet-4-20250514', $response1);
+$cost1 = $tracker->trackPrompt('claude-sonnet-4-6', $response1);
 
 $response2 = $agent->prompt('Give me a code example.');
-$cost2 = $tracker->trackPrompt('claude-sonnet-4-20250514', $response2);
+$cost2 = $tracker->trackPrompt('claude-sonnet-4-6', $response2);
 
 echo "Total cost: $" . number_format($tracker->getTotalCost(), 4) . "\n";
 ```
@@ -353,7 +353,7 @@ $response = $agent->prompt('Explain closures in PHP.');
 //   agent.operation = prompt
 // Span: llm.request (duration: 1.1s)
 //   gen_ai.system = anthropic
-//   gen_ai.request.model = claude-sonnet-4-20250514
+//   gen_ai.request.model = claude-sonnet-4-6
 //   gen_ai.usage.input_tokens = 25
 //   gen_ai.usage.output_tokens = 180
 ```
@@ -557,8 +557,8 @@ $agent = agent('logged-agent')
 $response = $agent->prompt('What is dependency injection?');
 
 // Logs written:
-// [INFO] Agent prompt initiated {"message":"What is dependency injection?","model":"claude-sonnet-4-20250514","temperature":0.7}
-// [INFO] Agent response received {"provider":"anthropic","model":"claude-sonnet-4-20250514","tokens":245,"content_length":1024}
+// [INFO] Agent prompt initiated {"message":"What is dependency injection?","model":"claude-sonnet-4-6","temperature":0.7}
+// [INFO] Agent response received {"provider":"anthropic","model":"claude-sonnet-4-6","tokens":245,"content_length":1024}
 ```
 
 The `LoggingMiddleware` implementation is simple but effective:
@@ -900,13 +900,13 @@ In **Chapter 24: Testing LLM Agents**, we'll explore:
 
 **Key Takeaways:**
 
-✅ Use `getStats()` for quick insight into agent usage and configuration
-✅ Track token usage with `response->tokens` and `response->usage` to monitor costs
-✅ Export conversations with `exportConversation()` for debugging and audit trails
-✅ Enable OpenTelemetry with `telemetry_console()` or `telemetry_jaeger()` for production observability
-✅ Use the observability stack (Jaeger, Phoenix, Langfuse) for comprehensive LLM monitoring
-✅ Implement custom middleware for application-specific logging and metrics
-✅ Profile performance to identify bottlenecks and optimize latency
-✅ Track costs per feature to understand spending and inform pricing
+- Use `getStats()` for a summary of agent usage and configuration
+- Track token usage with `response->tokens` and `response->usage`
+- Export conversations with `exportConversation()` for debugging and audit trails
+- Enable OpenTelemetry with `telemetry_console()` or `telemetry_jaeger()`
+- Use an observability backend to inspect model interactions
+- Implement custom middleware for application-specific logging and metrics
+- Profile performance to identify latency bottlenecks
+- Track costs by feature to inform capacity and pricing decisions
 
-Continue to [Chapter 24: Testing LLM Agents](./article.part24.md) →
+Continue to [Chapter 24: Laravel and Symfony Integration](./article.part24.md) →

@@ -19,7 +19,7 @@ if (file_exists(__DIR__.'/../.env')) {
  * simultaneously. Each session maintains its own isolated context.
  * Perfect for multi-user applications where each user has their own chat history.
  */
-echo "=== Example 1: Multiple Concurrent Sessions ===\n\n";
+echo "\n[Example 1: Multiple Concurrent Sessions]\n";
 
 echo "Setting up 3 independent user sessions...\n\n";
 
@@ -49,14 +49,14 @@ agent('support-carol')
  *
  * Simulate conversations happening simultaneously across different sessions.
  */
-echo "=== Example 2: Parallel Conversations ===\n\n";
+echo "\n[Example 2: Parallel Conversations]\n";
 
 $alice = agent('support-alice');
 $bob = agent('support-bob');
 $carol = agent('support-carol');
 
 // Round 1: Initial messages
-echo "--- Round 1: Initial Contact ---\n\n";
+echo "[Round 1: Initial Contact]\n";
 
 echo "[Alice's Session - support-alice-001]\n";
 echo "Alice: I need help with my order\n";
@@ -77,7 +77,7 @@ echo "Agent: {$carol1->content}\n";
 echo 'Messages: '.count($carol->messages)."\n\n";
 
 // Round 2: Follow-up messages
-echo "--- Round 2: Follow-up Questions ---\n\n";
+echo "[Round 2: Follow-up Questions]\n";
 
 echo "[Alice's Session]\n";
 echo "Alice: My order number is #12345\n";
@@ -98,7 +98,7 @@ echo "Agent: {$carol2->content}\n";
 echo 'Messages: '.count($carol->messages)."\n\n";
 
 // Round 3: More context
-echo "--- Round 3: Adding More Context ---\n\n";
+echo "[Round 3: Adding More Context]\n";
 
 echo "[Alice's Session]\n";
 echo "Alice: I ordered it 2 weeks ago\n";
@@ -124,7 +124,7 @@ echo 'Messages: '.count($carol->messages)."\n\n";
  * Demonstrate that all sessions persist independently and can be
  * restored after a system restart.
  */
-echo "=== Example 3: Simulating System Restart ===\n\n";
+echo "\n[Example 3: Simulating System Restart]\n";
 
 echo "Simulating server restart...\n";
 echo "Creating new agent instances with same session IDs...\n\n";
@@ -164,7 +164,7 @@ echo str_repeat('-', 70)."\n\n";
  *
  * Continue each conversation from where it left off.
  */
-echo "=== Example 4: Continuing Conversations After Restart ===\n\n";
+echo "\n[Example 4: Continuing Conversations After Restart]\n";
 
 echo "[Alice's Session - Continued]\n";
 echo "Alice: Can you help me track it?\n";
@@ -189,7 +189,7 @@ echo "(Context preserved: Agent remembers 500 users)\n\n";
  *
  * Verify that sessions don't leak information to each other.
  */
-echo "=== Example 5: Session Isolation ===\n\n";
+echo "\n[Example 5: Session Isolation]\n";
 
 echo "Testing session isolation...\n\n";
 
@@ -210,7 +210,7 @@ echo "(Carol's agent has no knowledge of Bob's conversation)\n\n";
  *
  * Display a summary of all active sessions.
  */
-echo "=== Example 6: Session Overview ===\n\n";
+echo "\n[Example 6: Session Overview]\n";
 
 $sessions = [
     ['id' => 'support-alice-001', 'user' => 'Alice', 'agent' => $aliceReloaded],
@@ -219,7 +219,6 @@ $sessions = [
 ];
 
 echo "Active Sessions Summary:\n";
-echo str_repeat('=', 70)."\n";
 
 foreach ($sessions as $session) {
     echo "\nUser: {$session['user']}\n";
@@ -237,14 +236,14 @@ foreach ($sessions as $session) {
     }
 }
 
-echo "\n".str_repeat('=', 70)."\n\n";
+echo "\n";
 
 /**
  * Example 7: Creating a New Session
  *
  * Show how easy it is to add a new independent session.
  */
-echo "=== Example 7: Adding New Session ===\n\n";
+echo "\n[Example 7: Adding New Session]\n";
 
 agent('support-dave')
     ->provider('mock')
@@ -265,7 +264,7 @@ echo "New session created independently of existing ones!\n\n";
 /**
  * Example 8: Final Statistics
  */
-echo "=== Example 8: Final Statistics ===\n\n";
+echo "\n[Example 8: Final Statistics]\n";
 
 echo "Total Active Sessions: 4\n";
 echo '- Alice: '.count($aliceReloaded->messages)." messages\n";
@@ -280,10 +279,11 @@ $totalMessages = count($aliceReloaded->messages)
 
 echo "Total Messages Across All Sessions: {$totalMessages}\n\n";
 
-echo "✅ All multi-session examples completed!\n";
 echo "\nKey Takeaways:\n";
 echo "- Each session maintains independent conversation history\n";
 echo "- Sessions persist across application restarts\n";
 echo "- No information leakage between sessions\n";
 echo "- Easy to manage multiple concurrent users\n";
 echo "\nNote: All sessions stored in storage/multi-session.db\n";
+
+echo "\nDone.\n";

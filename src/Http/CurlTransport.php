@@ -138,8 +138,18 @@ final class CurlTransport implements HttpClientInterface
 
             $ch = curl_init($url);
             if ($ch === false) {
+                fclose($stream);
                 throw new ConnectionException('Unable to initialise cURL');
             }
+
+            $multi = curl_multi_init();
+            $chunks = [];
+            $headersReady = false;
+            $completed = false;
+            $closed = false;
+            $status = 0;
+            $info = [];
+            $error = null;
 
             curl_setopt_array($ch, [
                 CURLOPT_CUSTOMREQUEST => $method,
@@ -147,10 +157,16 @@ final class CurlTransport implements HttpClientInterface
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_ENCODING => '',
                 CURLOPT_USERAGENT => $options['user_agent'] ?? 'pagent-http-client/1.0',
-                CURLOPT_WRITEFUNCTION => static function ($ch, string $chunk) use ($stream): int {
+                CURLOPT_WRITEFUNCTION => static function ($ch, string $chunk) use ($stream, &$chunks): int {
                     $written = fwrite($stream, $chunk);
 
-                    return $written === false ? 0 : $written;
+                    if ($written === false || $written !== strlen($chunk)) {
+                        return 0;
+                    }
+
+                    $chunks[] = $chunk;
+
+                    return $written;
                 },
             ]);
 
@@ -167,9 +183,33 @@ final class CurlTransport implements HttpClientInterface
             curl_setopt(
                 $ch,
                 CURLOPT_HEADERFUNCTION,
-                static function ($ch, string $header) use (&$headerBag): int {
+                static function ($ch, string $header) use (&$headerBag, &$headersReady, &$status): int {
                     $trimmed = trim($header);
-                    if ($trimmed === '' || str_starts_with($trimmed, 'HTTP/') || ! str_contains($trimmed, ':')) {
+                    if ($trimmed === '') {
+                        // cURL invokes the header callback once for every response
+                        // in a redirect/interim chain. Only expose metadata after
+                        // the final response headers have arrived.
+                        $isInterim = $status >= 100 && $status < 200;
+                        $isRedirect = $status >= 300
+                            && $status < 400
+                            && isset($headerBag['location']);
+                        $headersReady = ! $isInterim && ! $isRedirect;
+
+                        return strlen($header);
+                    }
+
+                    if (str_starts_with($trimmed, 'HTTP/')) {
+                        $headerBag = [];
+                        $headersReady = false;
+
+                        if (preg_match('/^HTTP\\/\\S+\\s+(\\d{3})/', $trimmed, $matches) === 1) {
+                            $status = (int) $matches[1];
+                        }
+
+                        return strlen($header);
+                    }
+
+                    if (! str_contains($trimmed, ':')) {
                         return strlen($header);
                     }
 
@@ -180,46 +220,176 @@ final class CurlTransport implements HttpClientInterface
                 }
             );
 
-            $result = curl_exec($ch);
-            $info = curl_getinfo($ch);
-
-            if ($result === false) {
-                $error = curl_error($ch);
+            if (curl_multi_add_handle($multi, $ch) !== CURLM_OK) {
+                curl_multi_close($multi);
                 curl_close($ch);
                 fclose($stream);
-                throw new ConnectionException($error !== '' ? $error : 'Unknown cURL error');
+                throw new ConnectionException('Unable to add cURL handle to multi transport.');
             }
 
-            if ($info === false) {
-                $info = [];
-            }
+            $finalize = static function (?Throwable $exception = null) use (
+                $span,
+                $multi,
+                $ch,
+                &$closed,
+                &$info,
+                &$status
+            ): void {
+                if ($closed) {
+                    return;
+                }
 
-            curl_close($ch);
-            rewind($stream);
+                $closed = true;
+                $latestInfo = curl_getinfo($ch);
+                if (is_array($latestInfo)) {
+                    $info = $latestInfo;
+                }
 
-            $transport = new StreamTransport(
+                if (isset($info['http_code']) && (int) $info['http_code'] > 0) {
+                    $status = (int) $info['http_code'];
+                }
+
+                curl_multi_remove_handle($multi, $ch);
+                curl_close($ch);
+                curl_multi_close($multi);
+
+                $span->setAttributes([
+                    'http.status_code' => $status,
+                    'http.response.content_length' => $info['size_download'] ?? 0,
+                ]);
+
+                if ($exception !== null) {
+                    $span->recordException($exception);
+                    $span->setStatus('error', $exception->getMessage());
+                } else {
+                    $span->setStatus($status >= 200 && $status < 300 ? 'ok' : 'error');
+                }
+
+                $span->end();
+            };
+
+            $advance = static function (bool $wait) use (
+                $multi,
+                $ch,
+                &$completed,
+                &$closed,
+                &$info,
+                &$error,
+                $finalize
+            ): void {
+                if ($completed || $closed) {
+                    return;
+                }
+
+                do {
+                    $result = curl_multi_exec($multi, $running);
+                } while ($result === CURLM_CALL_MULTI_PERFORM);
+
+                if ($result !== CURLM_OK) {
+                    $error = new ConnectionException('cURL multi transport failed.');
+                    $completed = true;
+                    $finalize($error);
+
+                    return;
+                }
+
+                if ($wait && $running > 0) {
+                    $selected = curl_multi_select($multi, 0.1);
+                    if ($selected === -1) {
+                        usleep(1_000);
+                    }
+
+                    do {
+                        $result = curl_multi_exec($multi, $running);
+                    } while ($result === CURLM_CALL_MULTI_PERFORM);
+
+                    if ($result !== CURLM_OK) {
+                        $error = new ConnectionException('cURL multi transport failed.');
+                        $completed = true;
+                        $finalize($error);
+
+                        return;
+                    }
+                }
+
+                while (($message = curl_multi_info_read($multi)) !== false) {
+                    $completed = true;
+                    $latestInfo = curl_getinfo($ch);
+                    if (is_array($latestInfo)) {
+                        $info = $latestInfo;
+                    }
+
+                    if (($message['result'] ?? CURLE_OK) !== CURLE_OK) {
+                        $curlError = curl_error($ch);
+                        $error = new ConnectionException($curlError !== '' ? $curlError : 'Unknown cURL error');
+                        $finalize($error);
+
+                        return;
+                    }
+
+                    $finalize();
+                }
+            };
+
+            $awaitHeaders = static function () use (&$headersReady, &$completed, &$error, $advance): void {
+                while (! $headersReady && ! $completed) {
+                    $advance(true);
+                }
+
+                if ($error !== null) {
+                    throw $error;
+                }
+            };
+
+            $nextChunk = static function () use (&$chunks, &$completed, &$error, $advance): ?string {
+                while ($chunks === [] && ! $completed) {
+                    $advance(true);
+                }
+
+                if ($chunks !== []) {
+                    return array_shift($chunks);
+                }
+
+                if ($error !== null) {
+                    throw $error;
+                }
+
+                return null;
+            };
+
+            $metadata = static function () use (&$status, &$headerBag, &$info, $ch, &$closed): array {
+                if (! $closed) {
+                    $latestInfo = curl_getinfo($ch);
+                    if (is_array($latestInfo)) {
+                        $info = $latestInfo;
+                    }
+                }
+
+                if (isset($info['http_code']) && (int) $info['http_code'] > 0) {
+                    $status = (int) $info['http_code'];
+                }
+
+                return [
+                    'status' => $status,
+                    'headers' => $headerBag,
+                    'info' => $info,
+                ];
+            };
+
+            return new StreamTransport(
                 resource: $stream,
-                status: isset($info['http_code']) ? (int) $info['http_code'] : 0,
-                headers: $headerBag,
-                info: $info
+                status: 0,
+                headers: [],
+                nextChunk: $nextChunk,
+                awaitHeaders: $awaitHeaders,
+                metadata: $metadata,
+                closeCallback: $finalize,
             );
-
-            $span->setAttributes([
-                'http.status_code' => $transport->status(),
-                'http.response.content_length' => $transport->info()['size_download'] ?? 0,
-            ]);
-
-            $span->setStatus(
-                $transport->status() >= 200 && $transport->status() < 300 ? 'ok' : 'error'
-            );
-
-            return $transport;
         } catch (Throwable $e) {
             $span->recordException($e);
             $span->setStatus('error', $e->getMessage());
-            throw $e;
-        } finally {
             $span->end();
+            throw $e;
         }
     }
 

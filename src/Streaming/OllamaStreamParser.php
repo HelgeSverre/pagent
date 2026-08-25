@@ -8,6 +8,7 @@ use Generator;
 use RuntimeException;
 
 use function json_decode;
+use function json_encode;
 use function trim;
 
 /**
@@ -27,17 +28,16 @@ final class OllamaStreamParser
     /**
      * Parse NDJSON stream from Ollama API
      *
-     * @param  resource  $stream  cURL stream resource
+     * @param  resource|iterable<string>  $stream  cURL stream or incremental byte chunks
      * @return Generator<StreamChunk>
      */
     public function parse($stream, string $model): Generator
     {
-        while (! feof($stream)) {
-            $line = fgets($stream);
-            if ($line === false) {
-                break;
-            }
+        $this->accumulatedText = '';
+        $this->usage = [];
+        $this->isFirstChunk = true;
 
+        foreach (LineIterator::from($stream) as $line) {
             $line = trim($line);
 
             // Skip empty lines
@@ -57,7 +57,9 @@ final class OllamaStreamParser
                 break;
             }
 
-            yield from $this->handleChunk($chunk, $model);
+            foreach ($this->handleChunk($chunk, $model) as $streamChunk) {
+                yield $streamChunk;
+            }
 
             // Check if this is the final chunk
             if ($chunk['done'] ?? false) {
@@ -87,25 +89,20 @@ final class OllamaStreamParser
         // Handle text content (Ollama sends incremental content, not delta)
         if (isset($message['content']) && $message['content'] !== '') {
             $content = $message['content'];
+            $this->accumulatedText .= $content;
 
-            // Calculate the delta by comparing with accumulated text
-            // Ollama sends the full accumulated text each time, so we need to extract the new part
-            if (strlen($content) > strlen($this->accumulatedText)) {
-                $delta = substr($content, strlen($this->accumulatedText));
-                $this->accumulatedText = $content;
-
-                yield StreamChunk::text($delta, [
-                    'model' => $model,
-                ]);
-            }
+            yield StreamChunk::text($content, [
+                'model' => $model,
+            ]);
         }
 
         // Handle tool calls
         if (isset($message['tool_calls'])) {
             foreach ($message['tool_calls'] as $toolCall) {
+                $arguments = $toolCall['function']['arguments'] ?? '';
                 yield new StreamChunk(
                     type: 'tool_call',
-                    content: $toolCall['function']['arguments'] ?? '',
+                    content: is_string($arguments) ? $arguments : json_encode($arguments, JSON_THROW_ON_ERROR),
                     delta: $toolCall,
                     metadata: [
                         'tool_call_id' => $toolCall['id'] ?? null,

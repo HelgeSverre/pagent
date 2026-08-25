@@ -20,7 +20,7 @@ $streamResponse = $agent->stream('Write a haiku about coding');
 
 // StreamResponse provides metadata
 echo $streamResponse->getProvider(); // 'anthropic'
-echo $streamResponse->getModel();    // 'claude-sonnet-4-20250514'
+echo $streamResponse->getModel();    // 'claude-sonnet-4-6'
 ```
 
 The `StreamResponse` class wraps a PHP Generator that yields `StreamChunk` objects. It provides two primary methods for consuming the stream:
@@ -182,7 +182,10 @@ if (!$receivedEndChunk) {
 
 ### Guard Exceptions After Streaming
 
-Guards run on the complete content after streaming finishes. A guard violation throws a `GuardException`:
+Guards inspect streamed output before it is delivered. Policies that cannot
+make safe incremental decisions automatically buffer the provider response,
+so rejected content never reaches the callback. A guard violation throws a
+`GuardException`:
 
 ```php
 use Pagent\Exceptions\GuardException;
@@ -194,10 +197,10 @@ $agent = agent('safe-bot')
 
 try {
     $agent->streamTo('Generate some text', function ($chunk) {
-        echo $chunk->content; // Stream completes successfully
+        echo $chunk->content;
     });
 } catch (GuardException $e) {
-    // Guard failed AFTER streaming completed
+    // No rejected content was passed to the callback.
     echo "Content violated guard: " . $e->getMessage();
 }
 ```
@@ -225,7 +228,10 @@ $result = $agent->streamTo('Some prompt', function ($chunk) {
 // $result might be the streamed content OR the fallback message
 ```
 
-When a guard fails during `streamTo()`, the fallback is invoked and its return value becomes the function's return value. No exception is thrown to the caller.
+When a guard fails during `streamTo()`, the rejected output remains
+quarantined, the fallback is committed to conversation memory, and its return
+value becomes the function's return value. No exception is thrown to the
+caller, and the callback receives none of the rejected provider content.
 
 ## Memory Integration
 
@@ -545,7 +551,7 @@ This reduces syscall overhead while maintaining responsiveness.
 Process chunks efficiently:
 
 ```php
-// ❌ Bad: Expensive operation per chunk
+// Bad: Expensive operation per chunk
 $agent->streamTo('Generate JSON', function ($chunk) {
     if ($chunk->isText()) {
         // Don't parse incomplete JSON on every chunk
@@ -554,7 +560,7 @@ $agent->streamTo('Generate JSON', function ($chunk) {
     }
 });
 
-// ✅ Good: Accumulate and process once
+// Good: Accumulate and process once
 $jsonBuffer = '';
 
 $agent->streamTo('Generate JSON', function ($chunk) use (&$jsonBuffer) {
@@ -607,13 +613,13 @@ In **Chapter 12: Memory Systems**, we'll explore:
 
 **Key Takeaways:**
 
-✅ `StreamResponse` provides `collect()` and `streamTo()` for consuming streams
-✅ `Agent::streamTo()` integrates streaming with memory, guards, and history
-✅ Guard exceptions are thrown after streaming completes
-✅ Fallbacks can replace guard exception throwing
-✅ Usage metadata is available in end chunks and via `StreamResponse`
-✅ Memory operations (load/save) happen automatically around streaming
-✅ Chunk types are normalized across providers via `StreamChunk` methods
-✅ Batch chunk processing for better performance in production
+- `StreamResponse` provides `collect()` and `streamTo()` for consuming streams
+- `Agent::streamTo()` integrates streaming with memory, guards, and history
+- Guard exceptions are thrown after streaming completes
+- Fallbacks can replace guard exception throwing
+- Usage metadata is available in end chunks and via `StreamResponse`
+- Memory operations happen automatically around streaming
+- Chunk types are normalized across providers through `StreamChunk` methods
+- Batch processing can reduce per-chunk overhead
 
 Continue to [Chapter 12: Memory Systems](./article.part12.md) →

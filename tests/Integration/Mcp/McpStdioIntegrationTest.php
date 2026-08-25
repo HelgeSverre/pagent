@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pagent\Contracts\Tool;
 use Pagent\Mcp\McpClient;
 use Pagent\Mcp\McpToolAdapter;
 use Pagent\Mcp\Transports\StdioTransport;
@@ -123,7 +124,7 @@ test('can create tool adapters from MCP tools', function () {
         ->and($adapters)->not->toBeEmpty();
 
     foreach ($adapters as $adapter) {
-        expect($adapter)->toBeInstanceOf(\Pagent\Contracts\Tool::class)
+        expect($adapter)->toBeInstanceOf(Tool::class)
             ->and($adapter->getName())->toBeString()
             ->and($adapter->getDescription())->toBeString()
             ->and($adapter->getInputSchema())->toBeArray();

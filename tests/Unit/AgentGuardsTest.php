@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Pagent\Agent;
+use Pagent\Contracts\Provider;
 use Pagent\Exceptions\GuardException;
 use Pagent\Guards\PIIGuard;
 
@@ -135,7 +136,7 @@ test('it stops guard execution at first violation', function (): void {
 });
 
 test('it handles empty response content correctly', function (): void {
-    $mockProvider = new class implements \Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         public function prompt(string $message, array $options = []): object
         {
@@ -165,7 +166,7 @@ test('it handles empty response content correctly', function (): void {
 });
 
 test('it handles null response content correctly', function (): void {
-    $mockProvider = new class implements \Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         public function prompt(string $message, array $options = []): object
         {
@@ -196,7 +197,7 @@ test('it handles null response content correctly', function (): void {
 });
 
 test('it does not add empty content to history', function (): void {
-    $mockProvider = new class implements \Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         public function prompt(string $message, array $options = []): object
         {

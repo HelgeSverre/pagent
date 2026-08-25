@@ -40,7 +40,7 @@ use function Pagent\agent;
 
 $agent = agent('production-assistant')
     ->provider('anthropic')  // Uses $_ENV['ANTHROPIC_API_KEY']
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful production assistant.');
 
 $response = $agent->prompt('Hello');
@@ -96,7 +96,7 @@ For complex deployments, use configuration files with environment interpolation:
 // config/agents.php
 return [
     'default_provider' => env('AGENT_PROVIDER', 'anthropic'),
-    'default_model' => env('AGENT_MODEL', 'claude-sonnet-4-20250514'),
+    'default_model' => env('AGENT_MODEL', 'claude-sonnet-4-6'),
 
     'providers' => [
         'anthropic' => [
@@ -866,7 +866,7 @@ final class FallbackAgent
 
 // Usage
 $primary = agent('gpt4')->provider('openai')->model('gpt-4-turbo');
-$fallback = agent('claude')->provider('anthropic')->model('claude-sonnet-4-20250514');
+$fallback = agent('claude')->provider('anthropic')->model('claude-sonnet-4-6');
 
 $robust = new FallbackAgent($primary, $fallback);
 ```

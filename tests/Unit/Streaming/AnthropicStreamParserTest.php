@@ -45,6 +45,24 @@ test('it parses content_block_delta event', function (): void {
     fclose($stream);
 });
 
+test('it associates streamed tool arguments with their tool call', function (): void {
+    $events = "event: content_block_start\n".
+              "data: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_123\",\"name\":\"lookup\",\"input\":{}}}\n\n".
+              "event: content_block_delta\n".
+              'data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\\"query\\":\\"docs\\"}"}}';
+
+    $stream = createStreamFromEvents($events);
+    $parser = new AnthropicStreamParser;
+    $chunks = iterator_to_array($parser->parse($stream, 'claude-sonnet-4-6'));
+
+    expect($chunks)->toHaveCount(1)
+        ->and($chunks[0]->isToolCall())->toBeTrue()
+        ->and($chunks[0]->getMetadata('tool_call_id'))->toBe('toolu_123')
+        ->and($chunks[0]->getMetadata('tool_name'))->toBe('lookup');
+
+    fclose($stream);
+});
+
 test('it parses message_stop event', function (): void {
     $events = "event: message_delta\n".
               "data: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":25}}\n\n".

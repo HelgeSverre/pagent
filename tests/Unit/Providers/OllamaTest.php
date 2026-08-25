@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Pagent\Http\HttpClientInterface;
 use Pagent\Http\HttpResponse;
+use Pagent\Http\StreamTransport;
 use Pagent\Providers\Ollama;
 
 it('accepts default base url when not configured', function (): void {
@@ -18,7 +20,7 @@ it('accepts base url in config', function (): void {
 });
 
 it('removes trailing slash from base url', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public string $capturedUrl = '';
 
@@ -28,7 +30,7 @@ it('removes trailing slash from base url', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             $this->capturedUrl = $url;
 
             return new HttpResponse(
@@ -45,7 +47,7 @@ it('removes trailing slash from base url', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -58,7 +60,7 @@ it('removes trailing slash from base url', function (): void {
 });
 
 it('makes successful request with basic options', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public array $capturedJson = [];
 
@@ -68,7 +70,7 @@ it('makes successful request with basic options', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             $this->capturedJson = $json ?? [];
 
             return new HttpResponse(
@@ -85,7 +87,7 @@ it('makes successful request with basic options', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -103,7 +105,7 @@ it('makes successful request with basic options', function (): void {
 });
 
 it('uses default model when not specified', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public array $capturedJson = [];
 
@@ -113,7 +115,7 @@ it('uses default model when not specified', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             $this->capturedJson = $json ?? [];
 
             return new HttpResponse(
@@ -128,7 +130,7 @@ it('uses default model when not specified', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -141,7 +143,7 @@ it('uses default model when not specified', function (): void {
 });
 
 it('includes system message when provided', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public array $capturedJson = [];
 
@@ -151,7 +153,7 @@ it('includes system message when provided', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             $this->capturedJson = $json ?? [];
 
             return new HttpResponse(
@@ -166,7 +168,7 @@ it('includes system message when provided', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -184,7 +186,7 @@ it('includes system message when provided', function (): void {
 });
 
 it('passes temperature option', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public array $capturedJson = [];
 
@@ -194,7 +196,7 @@ it('passes temperature option', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             $this->capturedJson = $json ?? [];
 
             return new HttpResponse(
@@ -209,7 +211,7 @@ it('passes temperature option', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -218,11 +220,11 @@ it('passes temperature option', function (): void {
     $provider = new Ollama([], $mockHttp);
     $provider->prompt('test', ['temperature' => 0.8]);
 
-    expect($mockHttp->capturedJson['temperature'])->toBe(0.8);
+    expect($mockHttp->capturedJson['options']['temperature'])->toBe(0.8);
 });
 
 it('converts max_tokens to ollama num_predict format', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public array $capturedJson = [];
 
@@ -232,7 +234,7 @@ it('converts max_tokens to ollama num_predict format', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             $this->capturedJson = $json ?? [];
 
             return new HttpResponse(
@@ -247,7 +249,7 @@ it('converts max_tokens to ollama num_predict format', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -260,7 +262,7 @@ it('converts max_tokens to ollama num_predict format', function (): void {
 });
 
 it('includes tools when provided', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public array $capturedJson = [];
 
@@ -270,7 +272,7 @@ it('includes tools when provided', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             $this->capturedJson = $json ?? [];
 
             return new HttpResponse(
@@ -285,7 +287,7 @@ it('includes tools when provided', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -302,7 +304,7 @@ it('includes tools when provided', function (): void {
 });
 
 it('parses tool calls from response', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public function requestJson(
             string $method,
@@ -310,7 +312,7 @@ it('parses tool calls from response', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             return new HttpResponse(
                 status: 200,
                 headers: [],
@@ -336,7 +338,7 @@ it('parses tool calls from response', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -352,7 +354,7 @@ it('parses tool calls from response', function (): void {
 });
 
 it('handles tool calls with string arguments', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public function requestJson(
             string $method,
@@ -360,7 +362,7 @@ it('handles tool calls with string arguments', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             return new HttpResponse(
                 status: 200,
                 headers: [],
@@ -383,7 +385,7 @@ it('handles tool calls with string arguments', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -396,7 +398,7 @@ it('handles tool calls with string arguments', function (): void {
 });
 
 it('generates unique tool call id when missing', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public function requestJson(
             string $method,
@@ -404,7 +406,7 @@ it('generates unique tool call id when missing', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             return new HttpResponse(
                 status: 200,
                 headers: [],
@@ -427,7 +429,7 @@ it('generates unique tool call id when missing', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -440,7 +442,7 @@ it('generates unique tool call id when missing', function (): void {
 });
 
 it('calculates token usage correctly', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public function requestJson(
             string $method,
@@ -448,7 +450,7 @@ it('calculates token usage correctly', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             return new HttpResponse(
                 status: 200,
                 headers: [],
@@ -463,7 +465,7 @@ it('calculates token usage correctly', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -479,7 +481,7 @@ it('calculates token usage correctly', function (): void {
 });
 
 it('throws exception on http error', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public function requestJson(
             string $method,
@@ -487,7 +489,7 @@ it('throws exception on http error', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             return new HttpResponse(
                 status: 500,
                 headers: [],
@@ -496,7 +498,7 @@ it('throws exception on http error', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -509,7 +511,7 @@ it('throws exception on http error', function (): void {
 });
 
 it('throws exception when response contains error field', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public function requestJson(
             string $method,
@@ -517,7 +519,7 @@ it('throws exception when response contains error field', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             return new HttpResponse(
                 status: 200,
                 headers: [],
@@ -526,7 +528,7 @@ it('throws exception when response contains error field', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -539,7 +541,7 @@ it('throws exception when response contains error field', function (): void {
 });
 
 it('handles response with missing optional fields', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public function requestJson(
             string $method,
@@ -547,7 +549,7 @@ it('handles response with missing optional fields', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             return new HttpResponse(
                 status: 200,
                 headers: [],
@@ -559,7 +561,7 @@ it('handles response with missing optional fields', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -576,7 +578,7 @@ it('handles response with missing optional fields', function (): void {
 });
 
 it('passes through ollama-specific options', function (): void {
-    $mockHttp = new class implements \Pagent\Http\HttpClientInterface
+    $mockHttp = new class implements HttpClientInterface
     {
         public array $capturedJson = [];
 
@@ -586,7 +588,7 @@ it('passes through ollama-specific options', function (): void {
             array $headers = [],
             array|string|null $json = null,
             array $options = []
-        ): \Pagent\Http\HttpResponse {
+        ): HttpResponse {
             $this->capturedJson = $json ?? [];
 
             return new HttpResponse(
@@ -601,7 +603,7 @@ it('passes through ollama-specific options', function (): void {
             );
         }
 
-        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): \Pagent\Http\StreamTransport
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
         {
             throw new RuntimeException('Not implemented');
         }
@@ -614,7 +616,7 @@ it('passes through ollama-specific options', function (): void {
         'repeat_penalty' => 1.1,
     ]);
 
-    expect($mockHttp->capturedJson['top_p'])->toBe(0.9)
-        ->and($mockHttp->capturedJson['top_k'])->toBe(40)
-        ->and($mockHttp->capturedJson['repeat_penalty'])->toBe(1.1);
+    expect($mockHttp->capturedJson['options']['top_p'])->toBe(0.9)
+        ->and($mockHttp->capturedJson['options']['top_k'])->toBe(40)
+        ->and($mockHttp->capturedJson['options']['repeat_penalty'])->toBe(1.1);
 });

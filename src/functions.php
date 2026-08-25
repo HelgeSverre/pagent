@@ -4,23 +4,64 @@ declare(strict_types=1);
 
 use Pagent\Agent;
 use Pagent\AgentBuilder;
+use Pagent\AgentRegistry;
+use Pagent\Evaluation\Evaluator;
+use Pagent\Observability\TelemetryEventBridge;
 use Pagent\Observability\TelemetryManager;
+use Pagent\Orchestration\Pipeline;
+use Pagent\Providers\Anthropic;
+use Pagent\Providers\Mock;
+use Pagent\Providers\Ollama;
+use Pagent\Providers\OpenAI;
+use Pagent\Providers\OpenCode;
 use Pagent\Registry;
+use Pagent\Tools\SearchTool;
+use Pagent\Usage\Storage\UsageStorage;
+use Pagent\Usage\UsageTracker;
 
 if (! function_exists('agent')) {
     /**
-     * Create or retrieve an agent.
+     * Create or retrieve a named agent.
+     *
+     * The returned Agent is registered immediately, so a named agent can be
+     * passed to typed orchestration APIs without a build/destructor phase.
      */
-    function agent(string $name): Agent|AgentBuilder
+    function agent(string $name): Agent
     {
-        if (Registry::has($name)) {
-            $agent = Registry::get($name);
-            assert($agent instanceof Agent);
+        return Registry::getOrCreate($name, static fn (string $agentName): Agent => new Agent($agentName));
+    }
+}
 
-            return $agent;
-        }
+if (! function_exists('defineAgent')) {
+    /**
+     * Start configuring a named agent and register it immediately.
+     *
+     * Use build() or register() when handing the Agent to APIs that require an
+     * Agent rather than a fluent builder.
+     */
+    function defineAgent(string $name): AgentBuilder
+    {
+        return new AgentBuilder(agent($name));
+    }
+}
 
-        return new AgentBuilder($name);
+if (! function_exists('getAgent')) {
+    /**
+     * Look up a registered agent without creating one.
+     */
+    function getAgent(string $name): ?Agent
+    {
+        return Registry::get($name);
+    }
+}
+
+if (! function_exists('useAgentRegistry')) {
+    /**
+     * Set the registry used by the global helper functions.
+     */
+    function useAgentRegistry(AgentRegistry $registry): AgentRegistry
+    {
+        return Registry::use($registry);
     }
 }
 
@@ -48,9 +89,9 @@ if (! function_exists('anthropic')) {
     /**
      * Create an Anthropic provider instance.
      */
-    function anthropic(array $config = []): Pagent\Providers\Anthropic
+    function anthropic(array $config = []): Anthropic
     {
-        return new Pagent\Providers\Anthropic($config);
+        return new Anthropic($config);
     }
 }
 
@@ -58,9 +99,9 @@ if (! function_exists('openai')) {
     /**
      * Create an OpenAI provider instance.
      */
-    function openai(array $config = []): Pagent\Providers\OpenAI
+    function openai(array $config = []): OpenAI
     {
-        return new Pagent\Providers\OpenAI($config);
+        return new OpenAI($config);
     }
 }
 
@@ -68,9 +109,9 @@ if (! function_exists('opencode')) {
     /**
      * Create an OpenCode Zen or Go provider instance.
      */
-    function opencode(array $config = []): Pagent\Providers\OpenCode
+    function opencode(array $config = []): OpenCode
     {
-        return new Pagent\Providers\OpenCode($config);
+        return new OpenCode($config);
     }
 }
 
@@ -78,9 +119,9 @@ if (! function_exists('ollama')) {
     /**
      * Create an Ollama provider instance.
      */
-    function ollama(array $config = []): Pagent\Providers\Ollama
+    function ollama(array $config = []): Ollama
     {
-        return new Pagent\Providers\Ollama($config);
+        return new Ollama($config);
     }
 }
 
@@ -88,9 +129,9 @@ if (! function_exists('mock')) {
     /**
      * Create a mock provider instance.
      */
-    function mock(array $responses = []): Pagent\Providers\Mock
+    function mock(array $responses = []): Mock
     {
-        return new Pagent\Providers\Mock(['responses' => $responses]);
+        return new Mock(['responses' => $responses]);
     }
 }
 
@@ -98,9 +139,9 @@ if (! function_exists('evaluate')) {
     /**
      * Create an evaluator for an agent.
      */
-    function evaluate(string $agentName): Pagent\Evaluation\Evaluator
+    function evaluate(string $agentName): Evaluator
     {
-        return new Pagent\Evaluation\Evaluator($agentName);
+        return new Evaluator($agentName);
     }
 }
 
@@ -108,9 +149,9 @@ if (! function_exists('pipeline')) {
     /**
      * Create a pipeline for sequential agent execution.
      */
-    function pipeline(string $name): Pagent\Orchestration\Pipeline
+    function pipeline(string $name): Pipeline
     {
-        return new Pagent\Orchestration\Pipeline($name);
+        return new Pipeline($name);
     }
 }
 
@@ -118,9 +159,13 @@ if (! function_exists('resolveAgent')) {
     /**
      * Resolve an agent from a string name or Agent instance.
      */
-    function resolveAgent(string|Agent $agent): Agent|AgentBuilder
+    function resolveAgent(string|Agent $agent): ?Agent
     {
-        return is_string($agent) ? \agent($agent) : $agent;
+        if ($agent instanceof Agent) {
+            return $agent;
+        }
+
+        return getAgent($agent);
     }
 }
 
@@ -232,14 +277,9 @@ if (! function_exists('telemetry_bridge')) {
      * agent('bot')->prompt('Hello');
      * ```
      */
-    function telemetry_bridge(array $config = []): Pagent\Observability\TelemetryEventBridge
+    function telemetry_bridge(array $config = []): TelemetryEventBridge
     {
-        $bridge = new Pagent\Observability\TelemetryEventBridge($config);
-
-        // Register with EventManager to receive all events
-        Pagent\Events\EventManager::instance()->listen($bridge);
-
-        return $bridge;
+        return TelemetryEventBridge::global($config);
     }
 }
 
@@ -250,7 +290,7 @@ if (! function_exists('usage_tracker')) {
      * This tracker listens to LLM events and automatically records usage and cost data,
      * enabling budget enforcement and usage analytics.
      *
-     * @param  array{enabled?: bool, track_llm?: bool, track_streaming?: bool, storage?: Pagent\Usage\Storage\UsageStorage, pricing?: array<string, array<string, array{input: float, output: float, cached_input?: float}>>}  $config  Tracker configuration
+     * @param  array{enabled?: bool, track_llm?: bool, track_streaming?: bool, storage?: UsageStorage, pricing?: array<string, array<string, array{input: float, output: float, cached_input?: float}>>}  $config  Tracker configuration
      *
      * @example
      * ```php
@@ -269,14 +309,9 @@ if (! function_exists('usage_tracker')) {
      * echo "Total cost: " . $tracker->getTotalCost();
      * ```
      */
-    function usage_tracker(array $config = []): Pagent\Usage\UsageTracker
+    function usage_tracker(array $config = []): UsageTracker
     {
-        $tracker = new Pagent\Usage\UsageTracker($config);
-
-        // Register with EventManager to receive all events
-        Pagent\Events\EventManager::instance()->listen($tracker);
-
-        return $tracker;
+        return UsageTracker::global($config);
     }
 }
 
@@ -296,7 +331,7 @@ if (! function_exists('search')) {
         ?string $query = null,
         ?array $paths = null,
         array $config = []
-    ): Pagent\Tools\SearchTool {
+    ): SearchTool {
         /** @var array<string, mixed> $params */
         $params = array_merge([
             'indexPath' => $indexPath,
@@ -306,7 +341,7 @@ if (! function_exists('search')) {
         ], $config);
 
         /** @phpstan-ignore-next-line */
-        return new Pagent\Tools\SearchTool(...$params);
+        return new SearchTool(...$params);
     }
 }
 
@@ -314,9 +349,9 @@ if (! function_exists('searchIndex')) {
     /**
      * Create a SearchTool for a pre-built index file.
      */
-    function searchIndex(string $indexPath, bool $returnContent = false): Pagent\Tools\SearchTool
+    function searchIndex(string $indexPath, bool $returnContent = false): SearchTool
     {
-        return new Pagent\Tools\SearchTool(
+        return new SearchTool(
             indexPath: $indexPath,
             returnContent: $returnContent
         );
@@ -330,9 +365,9 @@ if (! function_exists('searchDocuments')) {
      * @param  array<int, array<string, mixed>>  $documents  Array of documents (each must have 'id' field)
      * @param  bool  $returnContent  Whether to return full content or just IDs
      */
-    function searchDocuments(array $documents, bool $returnContent = true): Pagent\Tools\SearchTool
+    function searchDocuments(array $documents, bool $returnContent = true): SearchTool
     {
-        return new Pagent\Tools\SearchTool(
+        return new SearchTool(
             documents: $documents,
             storage: ':memory:',
             returnContent: $returnContent

@@ -27,32 +27,18 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-// Helper function to display section headers
-function showSection(string $title, string $level = 'main'): void
+// Keep console output compact and consistent with the other examples.
+function showSection(string $title): void
 {
-    $width = 80;
-    $border = str_repeat('=', $width);
-    $subBorder = str_repeat('-', $width);
-
-    echo "\n";
-    if ($level === 'main') {
-        echo $border."\n";
-        echo str_pad($title, $width, ' ', STR_PAD_BOTH)."\n";
-        echo $border."\n\n";
-    } else {
-        echo $subBorder."\n";
-        echo $title."\n";
-        echo $subBorder."\n\n";
-    }
+    echo "\n[{$title}]\n";
 }
 
-// Helper function to display results nicely
+// Display metric scores in a format that is easy to scan and copy.
 function showResult(string $label, float $score, string $description = ''): void
 {
     $percentage = round($score * 100, 1);
-    $bar = str_repeat('█', (int) ($score * 20)).str_repeat('░', 20 - (int) ($score * 20));
 
-    echo "{$label}: {$bar} {$percentage}%";
+    echo "{$label}: {$percentage}%";
     if ($description) {
         echo " - {$description}";
     }
@@ -63,29 +49,27 @@ function showResult(string $label, float $score, string $description = ''): void
 //                                   INTRODUCTION
 // ==============================================================================
 
-showSection('PAGENT EVALUATION SYSTEM - PROGRESSIVE TUTORIAL', 'main');
+showSection('Pagent: Progressive Evaluation Tutorial');
 
-echo "Welcome! This tutorial will teach you how to evaluate AI agent quality.\n";
-echo "We'll progress from simple examples to production-ready evaluation systems.\n\n";
+echo "This tutorial progresses from basic evaluations to regression testing.\n\n";
 echo "What you'll learn:\n";
-echo "  ✓ Creating test datasets\n";
-echo "  ✓ Using built-in metrics\n";
-echo "  ✓ Building custom metrics\n";
-echo "  ✓ Generating reports\n";
-echo "  ✓ A/B testing prompts\n";
-echo "  ✓ Setting up regression tests\n";
+echo "- Create test datasets\n";
+echo "- Use built-in and custom metrics\n";
+echo "- Generate reports\n";
+echo "- Compare prompts\n";
+echo "- Detect regressions\n";
 
 // ==============================================================================
 //                          LEVEL 1: BEGINNER - GETTING STARTED
 // ==============================================================================
 
-showSection('LEVEL 1: BEGINNER - Your First Evaluation', 'main');
+showSection('Level 1: First Evaluation');
 
 // -------------------------------
 // Example 1: Hello World
 // -------------------------------
 
-showSection('Example 1: Hello World of Evaluation', 'sub');
+showSection('Example 1: Minimal Evaluation');
 
 echo "Let's start with the simplest possible evaluation.\n";
 echo "We'll test if an agent knows what PHP is.\n\n";
@@ -116,13 +100,13 @@ echo "Test Input: 'What is PHP?'\n";
 echo 'Agent Response: '.$result1->results[0]['output']."\n\n";
 showResult('Keyword Match Score', $result1->getAverageScore('keywords'), 'Found required keywords');
 
-echo "\n💡 Pro Tip: Start simple! Even one test case can reveal issues.\n";
+echo "\nTip: Start simple! Even one test case can reveal issues.\n";
 
 // -------------------------------
 // Example 2: Multiple Test Cases
 // -------------------------------
 
-showSection('Example 2: Testing Multiple Scenarios', 'sub');
+showSection('Example 2: Testing Multiple Scenarios');
 
 echo "Now let's test a customer support bot with multiple test cases.\n\n";
 
@@ -172,7 +156,7 @@ showResult('Average Conciseness', $result2->getAverageScore('conciseness'));
 // Example 3: Understanding Metrics
 // -------------------------------
 
-showSection('Example 3: How Metrics Work', 'sub');
+showSection('Example 3: How Metrics Work');
 
 echo "Let's understand how different metrics calculate scores.\n\n";
 
@@ -207,19 +191,19 @@ showResult('  Score', $partialResult->getAverageScore('partial_keywords'), '50% 
 echo "\nRequire All (both keywords found):\n";
 showResult('  Score', $strictResult->getAverageScore('all_keywords'), 'All required keywords present');
 
-echo "\n⚠️ Warning: Choose requireAll=true carefully - it's very strict!\n";
+echo "\nWarning: Choose requireAll=true carefully - it's very strict!\n";
 
 // ==============================================================================
-//                        LEVEL 2: INTERMEDIATE - BUILDING SKILLS
+//                        Level 2: BUILDING SKILLS
 // ==============================================================================
 
-showSection('LEVEL 2: INTERMEDIATE - Building Real Test Suites', 'main');
+showSection('Level 2: Building Real Test Suites');
 
 // -------------------------------
 // Example 4: Loading from JSON
 // -------------------------------
 
-showSection('Example 4: Loading Datasets from Files', 'sub');
+showSection('Example 4: Loading Datasets from Files');
 
 echo "Managing test data in files is cleaner and more maintainable.\n\n";
 
@@ -227,7 +211,7 @@ echo "Managing test data in files is cleaner and more maintainable.\n\n";
 $datasetPath = __DIR__.'/datasets/support_tickets.json';
 if (file_exists($datasetPath)) {
     $fileDataset = Dataset::fromJson($datasetPath);
-    echo '✅ Loaded '.$fileDataset->count()." test cases from JSON file\n";
+    echo 'Loaded: '.$fileDataset->count()." test cases from JSON file\n";
 
     // Show first test case as example
     $items = $fileDataset->items();
@@ -241,7 +225,7 @@ if (file_exists($datasetPath)) {
         }
     }
 } else {
-    echo "⚠️ Dataset file not found. Creating example dataset...\n";
+    echo "Status: Dataset file not found; creating an example dataset\n";
 
     // Create example dataset file
     $exampleData = [
@@ -263,14 +247,14 @@ if (file_exists($datasetPath)) {
     }
 
     file_put_contents($datasetPath, json_encode($exampleData, JSON_PRETTY_PRINT));
-    echo "✅ Created example dataset at: {$datasetPath}\n";
+    echo "Created: {$datasetPath}\n";
 }
 
 // -------------------------------
 // Example 5: Custom Metrics
 // -------------------------------
 
-showSection('Example 5: Building Custom Metrics with Closures', 'sub');
+showSection('Example 5: Building Custom Metrics with Closures');
 
 echo "Sometimes you need metrics specific to your use case.\n\n";
 
@@ -333,13 +317,13 @@ foreach ($toneResult->results as $i => $test) {
     echo "\n";
 }
 
-echo "💡 Pro Tip: Custom metrics let you measure what really matters for YOUR use case!\n";
+echo "Tip: Custom metrics let you measure what really matters for YOUR use case!\n";
 
 // -------------------------------
 // Example 6: Generating Reports
 // -------------------------------
 
-showSection('Example 6: Professional Reporting', 'sub');
+showSection('Example 6: Professional Reporting');
 
 echo "Transform your evaluation results into professional reports.\n\n";
 
@@ -383,17 +367,17 @@ $report->save($htmlPath);
 $report->save($mdPath);
 $report->save($jsonPath);
 
-echo "✅ Generated HTML report: {$htmlPath}\n";
-echo "✅ Generated Markdown report: {$mdPath}\n";
-echo "✅ Generated JSON report: {$jsonPath}\n\n";
+echo "Saved: {$htmlPath}\n";
+echo "Saved: {$mdPath}\n";
+echo "Saved: {$jsonPath}\n\n";
 
-echo "Open the HTML report in your browser to see a professional presentation!\n";
+echo "Open the HTML report in a browser to inspect the rendered results.\n";
 
 // -------------------------------
 // Example 7: A/B Testing
 // -------------------------------
 
-showSection('Example 7: A/B Testing Different Prompts', 'sub');
+showSection('Example 7: A/B Testing Different Prompts');
 
 echo "Compare different agent configurations to find the best one.\n\n";
 
@@ -450,7 +434,7 @@ foreach ($metricsToTest as $name => $metric) {
 $resultB = $resultB->run();
 
 // Compare results
-echo "\n📊 A/B Test Results:\n\n";
+echo "\n A/B Test Results:\n\n";
 echo "Metric         | Version A | Version B | Winner\n";
 echo "---------------|-----------|-----------|--------\n";
 
@@ -467,19 +451,19 @@ foreach (['helpfulness', 'empathy', 'brevity'] as $metric) {
     );
 }
 
-echo "\n💡 Pro Tip: A/B testing helps you make data-driven decisions about prompts!\n";
+echo "\nTip: A/B testing helps you make data-driven decisions about prompts!\n";
 
 // ==============================================================================
-//                      LEVEL 3: ADVANCED - PRODUCTION READY
+//                      Level 3: PRODUCTION READY
 // ==============================================================================
 
-showSection('LEVEL 3: ADVANCED - Production-Ready Systems', 'main');
+showSection('Level 3: Production-Ready Systems');
 
 // -------------------------------
 // Example 8: Dataset Transformations
 // -------------------------------
 
-showSection('Example 8: Dataset Filtering and Transformation', 'sub');
+showSection('Example 8: Dataset Filtering and Transformation');
 
 echo "Dynamically filter and transform your test datasets.\n\n";
 
@@ -522,13 +506,13 @@ foreach ($robustnessDataset->items() as $item) {
     echo '  Transformed: "'.$item['input']."\"\n";
 }
 
-echo "\n💡 Pro Tip: Test with transformed data to ensure your agent handles edge cases!\n";
+echo "\nTip: Test with transformed data to ensure your agent handles edge cases!\n";
 
 // -------------------------------
 // Example 9: Complex Custom Metrics
 // -------------------------------
 
-showSection('Example 9: Implementing Complex Metrics', 'sub');
+showSection('Example 9: Implementing Complex Metrics');
 
 echo "Build sophisticated metrics for specific use cases.\n\n";
 
@@ -628,7 +612,7 @@ foreach ($sentimentResult->results as $test) {
 // Example 10: Regression Testing
 // -------------------------------
 
-showSection('Example 10: Regression Testing System', 'sub');
+showSection('Example 10: Regression Testing System');
 
 echo "Ensure new versions don't break existing functionality.\n\n";
 
@@ -650,7 +634,7 @@ class RegressionTester
         $result = $evaluator->run();
         $this->baseline = $result->getSummary();
 
-        echo "📸 Baseline captured for agent: {$agentName}\n";
+        echo "Baseline: {$agentName}\n";
         foreach ($this->baseline['metrics'] as $name => $data) {
             echo "  {$name}: ".round($data['average'] * 100, 1)."%\n";
         }
@@ -659,7 +643,7 @@ class RegressionTester
     public function testRegression(string $agentName, Dataset $dataset, array $metrics): bool
     {
         if (empty($this->baseline)) {
-            echo "⚠️ No baseline captured. Capturing now...\n";
+            echo "Status: No baseline found; capturing one now\n";
             $this->captureBaseline($agentName, $dataset, $metrics);
 
             return true;
@@ -674,7 +658,7 @@ class RegressionTester
         $result = $evaluator->run();
         $current = $result->getSummary();
 
-        echo "\n🔍 Regression Test Results:\n";
+        echo "\n[Regression Test Results]\n";
         echo "Metric         | Baseline | Current | Change | Status\n";
         echo "---------------|----------|---------|--------|--------\n";
 
@@ -685,12 +669,12 @@ class RegressionTester
             $currentScore = $data['average'];
             $change = $currentScore - $baselineScore;
 
-            $status = '✅ PASS';
+            $status = 'PASS';
             if ($change < -$this->threshold) {
-                $status = '❌ FAIL';
+                $status = 'FAIL';
                 $passed = false;
             } elseif ($change > $this->threshold) {
-                $status = '📈 IMPROVED';
+                $status = 'IMPROVED';
             }
 
             printf("%-14s | %7.1f%% | %7.1f%% | %+6.1f%% | %s\n",
@@ -747,22 +731,21 @@ echo "\nTesting production-v2 for regressions:\n";
 $passed = $tester->testRegression('production-v2', $regressionDataset, $regressionMetrics);
 
 if ($passed) {
-    echo "\n✅ All regression tests passed! Safe to deploy.\n";
+    echo "\nStatus: Regression checks passed\n";
 } else {
-    echo "\n❌ Regression detected! Review changes before deploying.\n";
+    echo "\nStatus: Regression detected; review changes before deployment\n";
 }
 
 // -------------------------------
 // Example 11: Real-World Scenarios
 // -------------------------------
 
-showSection('Example 11: Real-World Use Cases', 'sub');
+showSection('Example 11: Real-World Use Cases');
 
 echo "Complete examples for common AI agent use cases.\n\n";
 
 // Scenario 1: Customer Support Bot
-echo "📞 Scenario 1: Customer Support Bot\n";
-echo str_repeat('-', 40)."\n\n";
+showSection('Scenario 1: Customer Support Bot');
 
 agent('customer-support')
     ->provider('mock', [
@@ -795,8 +778,7 @@ foreach ($supportResult->results as $i => $result) {
 }
 
 // Scenario 2: Code Review Assistant
-echo "👨‍💻 Scenario 2: Code Review Assistant\n";
-echo str_repeat('-', 40)."\n\n";
+showSection('Scenario 2: Code Review Assistant');
 
 agent('code-reviewer')
     ->provider('mock', [
@@ -827,8 +809,7 @@ foreach ($codeReviewResult->results as $i => $result) {
 }
 
 // Scenario 3: Content Summarizer
-echo "📝 Scenario 3: Content Summarizer\n";
-echo str_repeat('-', 40)."\n\n";
+showSection('Scenario 3: Content Summarizer');
 
 $longArticle = 'Artificial intelligence has transformed how we interact with technology. '.
                'From voice assistants to recommendation systems, AI is everywhere. '.
@@ -867,40 +848,34 @@ showResult('Similarity', $summaryResult->results[0]['metrics']['similarity']);
 //                              CONCLUSION & SUMMARY
 // ==============================================================================
 
-showSection('TUTORIAL COMPLETE! 🎉', 'main');
+showSection('Summary');
 
-echo "Congratulations! You've learned how to:\n\n";
+echo "Beginner level\n";
+echo "- Create simple test datasets\n";
+echo "- Use built-in metrics\n";
+echo "- Run basic evaluations\n\n";
 
-echo "✅ BEGINNER LEVEL\n";
-echo "   - Create simple test datasets\n";
-echo "   - Use built-in metrics (Keywords, Length)\n";
-echo "   - Run basic evaluations\n\n";
+echo "Intermediate level\n";
+echo "- Load datasets from JSON files\n";
+echo "- Build custom metrics with closures\n";
+echo "- Generate reports\n";
+echo "- Compare prompts\n\n";
 
-echo "✅ INTERMEDIATE LEVEL\n";
-echo "   - Load datasets from JSON files\n";
-echo "   - Build custom metrics with closures\n";
-echo "   - Generate professional reports\n";
-echo "   - Perform A/B testing on prompts\n\n";
+echo "Advanced level\n";
+echo "- Transform and filter datasets\n";
+echo "- Implement complex custom metrics\n";
+echo "- Set up regression testing\n";
+echo "- Handle application-specific scenarios\n\n";
 
-echo "✅ ADVANCED LEVEL\n";
-echo "   - Transform and filter datasets\n";
-echo "   - Implement complex custom metrics\n";
-echo "   - Set up regression testing\n";
-echo "   - Handle real-world scenarios\n\n";
+echo "Next steps:\n";
+echo "1. Create a representative dataset for your use case\n";
+echo "2. Design metrics that reflect user requirements\n";
+echo "3. Add automated evaluation to CI\n";
+echo "4. Track metrics over time\n\n";
 
-echo "🚀 NEXT STEPS:\n";
-echo "1. Create a dataset for YOUR specific use case\n";
-echo "2. Design custom metrics that matter to YOUR users\n";
-echo "3. Set up automated evaluation in your CI/CD pipeline\n";
-echo "4. Track metrics over time to measure improvements\n\n";
-
-echo "📚 RESOURCES:\n";
+echo "Resources:\n";
 echo "- Tutorial Guide: examples/evaluation-tutorial.md\n";
 echo "- Dataset Examples: examples/datasets/\n";
 echo "- Generated Reports: examples/reports/\n\n";
 
-echo "Remember: Good evaluation leads to better AI agents!\n\n";
-
-echo str_repeat('=', 80)."\n";
-echo "Thank you for completing the Pagent Evaluation Tutorial! 🎓\n";
-echo str_repeat('=', 80)."\n";
+echo "Done.\n";

@@ -83,7 +83,7 @@ if (file_exists(__DIR__ . '/../.env')) {
 
 agent('support')
     ->provider('anthropic')
-    ->model('claude-3-haiku-20240307')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful customer support agent. Be concise and professional.')
     ->temperature(0.3)
     ->tool('search_orders', 'Search customer orders by email', function (string $email) {
@@ -112,7 +112,7 @@ agent('blog-writer')
 
 agent('product-descriptions')
     ->provider('anthropic')
-    ->model('claude-3-sonnet-20240229')
+    ->model('claude-sonnet-4-6')
     ->system('Write compelling product descriptions that highlight benefits and features.')
     ->temperature(0.7);
 
@@ -138,7 +138,7 @@ agent('data-analyst')
 
 agent('code-reviewer')
     ->provider('anthropic')
-    ->model('claude-3-opus-20240229')
+    ->model('claude-sonnet-4-6')
     ->system('You are a senior code reviewer. Provide constructive feedback on code quality, security, and best practices.')
     ->temperature(0.2);
 ```
@@ -287,7 +287,7 @@ function handleError(\Throwable $e, bool $debug = false): void
 {
   "name": "yourname/vanilla-pagent-app",
   "require": {
-    "php": "^8.3",
+    "php": "^8.4",
     "helgesverre/pagent": "^1.0",
     "vlucas/phpdotenv": "^5.6"
   },
@@ -548,7 +548,7 @@ ensureSession();
     </style>
 </head>
 <body>
-    <h1>🤖 AI Agent Demo</h1>
+    <h1> AI Agent Demo</h1>
 
     <div class="chat-box" id="chatBox"></div>
 
@@ -666,7 +666,7 @@ Response:
 ```json
 {
   "reply": "I'd be happy to help you with your order. Could you please provide your order number or email address?",
-  "model": "claude-3-haiku-20240307",
+  "model": "claude-sonnet-4-6",
   "tokens": 38
 }
 ```
@@ -826,7 +826,7 @@ $isProd = ($_ENV['APP_ENV'] ?? 'development') === 'production';
 
 agent('support')
     ->provider('anthropic')
-    ->model($isProd ? 'claude-3-opus-20240229' : 'claude-3-haiku-20240307')
+    ->model($isProd ? 'claude-sonnet-4-6' : 'claude-sonnet-4-6')
     ->temperature($isProd ? 0.3 : 0.5);
 ```
 
@@ -852,14 +852,14 @@ server {
 
     location /api.php {
         try_files $uri =404;
-        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;
         fastcgi_index api.php;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
 
     location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;
         fastcgi_index index.php;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
@@ -894,11 +894,12 @@ echo ".env" >> .gitignore
 
 This vanilla PHP integration provides:
 
-- ✅ **Simple Setup** - No framework required
-- ✅ **Session Persistence** - Conversation history
-- ✅ **RESTful API** - JSON endpoints
-- ✅ **Helper Functions** - Clean, reusable code
-- ✅ **Error Handling** - Production-ready
-- ✅ **Extensible** - Easy to add features
+- **Simple Setup** - No framework required
+- **Session Persistence** - Conversation history
+- **RESTful API** - JSON endpoints
+- **Helper Functions** - Clean, reusable code
+- **Error Handling** - Production-ready
+- **Extensible** - Easy to add features
 
-Perfect for small projects, prototypes, or when you want full control without framework overhead! 🚀
+This structure is suitable for small applications, prototypes, and projects that
+need direct control without a framework integration layer.

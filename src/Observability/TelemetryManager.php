@@ -7,6 +7,7 @@ namespace Pagent\Observability;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
+use OpenTelemetry\SDK\Common\Attribute\Attributes;
 use OpenTelemetry\SDK\Resource\ResourceInfo;
 use OpenTelemetry\SDK\Resource\ResourceInfoFactory;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
@@ -214,7 +215,7 @@ final class TelemetryManager
     {
         $resource = ResourceInfoFactory::defaultResource()->merge(
             ResourceInfo::create(
-                \OpenTelemetry\SDK\Common\Attribute\Attributes::create([
+                Attributes::create([
                     ResourceAttributes::SERVICE_NAME => $this->config['service_name'],
                     ResourceAttributes::SERVICE_VERSION => $this->config['service_version'],
                 ])

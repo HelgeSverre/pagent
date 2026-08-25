@@ -41,5 +41,5 @@ interface Tool
      * @param  array<string, mixed>  $arguments  Tool arguments matching the input schema
      * @return mixed Tool execution result
      */
-    public function execute(array $arguments = []): mixed;
+    public function execute(array $arguments): mixed;
 }

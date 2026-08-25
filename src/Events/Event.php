@@ -17,6 +17,18 @@ abstract class Event
     private bool $propagationStopped = false;
 
     /**
+     * Listener identities that have handled this event.
+     *
+     * An event may be published to both the application-wide and an
+     * agent-scoped dispatcher. Keeping delivery state on the event makes that
+     * one logical publication, so registering the same listener in both
+     * scopes cannot produce duplicate side effects.
+     *
+     * @var array<string, true>
+     */
+    private array $deliveredTo = [];
+
+    /**
      * Event timestamp (microtime).
      */
     public readonly float $timestamp;
@@ -45,6 +57,28 @@ abstract class Event
     public function isPropagationStopped(): bool
     {
         return $this->propagationStopped;
+    }
+
+    /**
+     * Determine whether a listener has already handled this event.
+     *
+     * @internal Used by event dispatchers to provide once-per-publication
+     * delivery across event scopes.
+     */
+    public function wasDeliveredTo(string $listenerId): bool
+    {
+        return isset($this->deliveredTo[$listenerId]);
+    }
+
+    /**
+     * Mark a listener as having handled this event.
+     *
+     * @internal Used by event dispatchers to provide once-per-publication
+     * delivery across event scopes.
+     */
+    public function markDeliveredTo(string $listenerId): void
+    {
+        $this->deliveredTo[$listenerId] = true;
     }
 
     /**

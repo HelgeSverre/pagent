@@ -17,7 +17,7 @@ final class EventDispatcher
     /**
      * Registered listeners by event name.
      *
-     * @var array<string, array<int, array{listener: EventListener, priority: int, id: string}>>
+     * @var array<string, array<int, array{listener: EventListener, priority: int, id: string, delivery_id: string}>>
      */
     private array $listeners = [];
 
@@ -35,17 +35,17 @@ final class EventDispatcher
      * Closures are automatically wrapped in an anonymous EventListener.
      *
      * @param  string  $eventName  Event name (e.g., 'before_prompt')
-     * @param  Closure|EventListener  $listener  The listener to register
+     * @param  (Closure(Event): void)|EventListener  $listener  The listener to register
      * @param  int  $priority  Priority (higher = executed first, default 0)
      * @return string Unique listener ID for later removal
      */
     public function on(string $eventName, Closure|EventListener $listener, int $priority = 0): string
     {
+        $id = $this->listenerId($listener);
+
         if ($listener instanceof Closure) {
             $listener = $this->wrapClosure($eventName, $listener);
         }
-
-        $id = spl_object_hash($listener);
 
         if (! isset($this->listeners[$eventName])) {
             $this->listeners[$eventName] = [];
@@ -55,6 +55,7 @@ final class EventDispatcher
             'listener' => $listener,
             'priority' => $priority,
             'id' => $id,
+            'delivery_id' => $id,
         ];
 
         $this->sorted[$eventName] = false;
@@ -68,7 +69,7 @@ final class EventDispatcher
      * The listener will be automatically removed after it executes once.
      *
      * @param  string  $eventName  Event name
-     * @param  Closure|EventListener  $listener  The listener
+     * @param  (Closure(Event): void)|EventListener  $listener  The listener
      * @param  int  $priority  Priority (higher = executed first)
      * @return string Unique listener ID
      */
@@ -85,7 +86,7 @@ final class EventDispatcher
 
             // Remove self after execution
             if ($wrappedListener !== null) {
-                $this->off($eventName, spl_object_hash($wrappedListener));
+                $this->off($eventName, $this->listenerId($wrappedListener));
             }
         };
 
@@ -144,6 +145,11 @@ final class EventDispatcher
                 break;
             }
 
+            if ($event->wasDeliveredTo($item['delivery_id'])) {
+                continue;
+            }
+
+            $event->markDeliveredTo($item['delivery_id']);
             $item['listener']->handle($event);
         }
     }
@@ -158,26 +164,51 @@ final class EventDispatcher
      */
     public function listen(EventListener $listener, int $priority = 0): void
     {
+        $this->subscribe($listener, $priority);
+    }
+
+    /**
+     * Register a class-based listener and return a cancellable subscription.
+     */
+    public function subscribe(EventListener $listener, int $priority = 0): EventSubscription
+    {
+        $registrations = [];
+
         foreach ($listener->listensTo() as $eventName) {
-            $this->on($eventName, $listener, $priority);
+            $registrations[] = [$eventName, $this->on($eventName, $listener, $priority)];
         }
+
+        return new EventSubscription(function () use ($registrations): void {
+            foreach ($registrations as [$eventName, $listenerId]) {
+                $this->off($eventName, $listenerId);
+            }
+        });
     }
 
     /**
      * Wrap a closure in an anonymous EventListener.
      *
      * @param  string  $eventName  Event name this closure handles
-     * @param  Closure  $closure  The closure to wrap
+     * @param  Closure(Event): void  $closure  The closure to wrap
      * @return EventListener Anonymous EventListener instance
      */
     private function wrapClosure(string $eventName, Closure $closure): EventListener
     {
         return new class($eventName, $closure) implements EventListener
         {
-            public function __construct(
-                private readonly string $eventName,
-                private readonly Closure $closure,
-            ) {}
+            private readonly string $eventName;
+
+            /** @var Closure(Event): void */
+            private readonly Closure $closure;
+
+            /**
+             * @param  Closure(Event): void  $closure
+             */
+            public function __construct(string $eventName, Closure $closure)
+            {
+                $this->eventName = $eventName;
+                $this->closure = $closure;
+            }
 
             public function handle(Event $event): void
             {
@@ -189,5 +220,15 @@ final class EventDispatcher
                 return [$this->eventName];
             }
         };
+    }
+
+    /**
+     * Stable identity used for unsubscription and cross-scope de-duplication.
+     *
+     * @param  (Closure(Event): void)|EventListener  $listener
+     */
+    private function listenerId(Closure|EventListener $listener): string
+    {
+        return ($listener instanceof Closure ? 'closure:' : 'listener:').spl_object_hash($listener);
     }
 }

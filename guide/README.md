@@ -1,107 +1,57 @@
 # Pagent Guide
 
-This directory contains the complete Pagent framework tutorial.
+The [complete guide](complete.md) is the long-form introduction to Pagent. It
+covers the framework from initial agent configuration through testing,
+observability, optimization, and deployment.
 
-## Files
+The files in [`parts`](parts/) contain the same material as individual chapters
+for readers who need a specific topic.
 
-- **complete.md** - The complete 28-chapter guide (recommended)
-- **parts/** - Individual chapter files for reference
+## Contents
 
-## Reading the Guide
+| Part                          | Chapters | Topics                                                                    |
+| ----------------------------- | -------- | ------------------------------------------------------------------------- |
+| Foundations                   | 1-5, 5B  | Agents, providers, conversations, prompting, responses, and events        |
+| Tool integration              | 6-9, 7B  | Closure tools, class tools, built-in tools, validation, and external APIs |
+| Real-time interaction         | 10-11    | Streaming responses and interactive interfaces                            |
+| Persistence and state         | 12-13    | Memory adapters, sessions, and context management                         |
+| Reliability and safety        | 14-15    | Error handling, guards, middleware, and rate limiting                     |
+| Multi-agent orchestration     | 16-19    | Pipelines, chains, handoffs, delegation, and agent systems                |
+| Quality assurance             | 20-21    | Evaluation datasets, metrics, reports, and testing                        |
+| Observability                 | 22-23    | Events, tracing, usage, cost, and debugging                               |
+| Integration and extensibility | 24-25    | Application integration and extension points                              |
+| Production                    | 26-28    | Performance, deployment, and architecture                                 |
 
-### Option 1: Read the Complete Guide
+## Suggested reading paths
 
-Open `complete.md` for the full guide experience with:
+### First application
 
-- Professional introduction
-- Comprehensive table of contents
-- 28 core chapters + 2 supplementary chapters (5B, 7B)
-- Multiple learning paths
-- Detailed conclusion and next steps
+Read Chapters 1-3 for agent fundamentals, Chapter 6 for tool calling, Chapter 12
+for persistence, and Chapters 20-21 for testing and evaluation.
 
-**Stats:**
+### Production preparation
 
-- 30 chapters total (28 core + Chapter 5B: Event System Architecture + Chapter 7B: Tool Architecture)
-- ~19,500+ lines
-- ~70,000+ words
-- ~600KB
-- ~13-16 hours reading time
+Read Chapters 1-7, 14-15, 20-23, and 26-28. Use the focused
+[feature guides](../docs/README.md) alongside the relevant chapters for
+implementation details.
 
-### Option 2: Read Individual Chapters
+### Multi-agent systems
 
-The `parts/` directory contains individual chapter files (article.part1.md through article.part28.md) if you prefer to read specific chapters.
+Review Chapters 1-6, then focus on Chapters 16-19. The
+[orchestration guide](../docs/orchestration-workflows.md) provides additional
+runnable patterns.
 
-## Chapter Structure
+### Reference use
 
-### Part 1: Foundations (Chapters 1-5)
+Use the [table of contents](complete.md#table-of-contents) to navigate directly to
+a chapter, or open the corresponding file under [`parts`](parts/).
 
-Master core concepts and basic usage patterns
+## Other documentation
 
-### Part 2: Tool Integration (Chapters 6-9)
+- [Project overview and quick start](../README.md)
+- [Feature and integration guides](../docs/README.md)
+- [Runnable examples](../examples/README.md)
+- [Contributing guide](../CONTRIBUTING.md)
 
-Learn how agents interact with external systems
-
-### Part 3: Real-Time Interaction (Chapters 10-11)
-
-Implement streaming responses
-
-### Part 4: Persistence and State (Chapters 12-13)
-
-Build agents that remember conversations
-
-### Part 5: Reliability and Safety (Chapters 14-15)
-
-Ensure production-ready robustness
-
-### Part 6: Multi-Agent Orchestration (Chapters 16-19)
-
-Coordinate multiple specialized agents
-
-### Part 7: Quality Assurance (Chapters 20-21)
-
-Test and evaluate systematically
-
-### Part 8: Observability (Chapters 22-23)
-
-Monitor and debug in production
-
-### Part 9: Integration and Extensibility (Chapters 24-25)
-
-Integrate with frameworks and extend capabilities
-
-### Part 10: Production Excellence (Chapters 26-28)
-
-Optimize and deploy sophisticated systems
-
-## Learning Paths
-
-### Quick Start (4-6 hours)
-
-Chapters 1, 2, 3, 6, 12, 20
-
-### Production-Ready (8-10 hours)
-
-Chapters 1-7, 14-15, 20-23, 26-27
-
-### Full Mastery (12-15 hours)
-
-All 28 chapters in sequence
-
-### Expert Track (6-8 hours)
-
-Skim 1-5, deep dive 16-19, master 24-28
-
-## Quality Metrics
-
-✅ All 30 chapters present (28 core + 2 supplementary)
-✅ 1,200+ code examples
-✅ 650+ section headers
-✅ Proper markdown formatting
-✅ Working TOC links
-✅ Professional introduction and conclusion
-✅ Comprehensive Event System Architecture (Chapter 5B)
-✅ Complete Tool Architecture Guide (Chapter 7B)
-
-## Contributing
-
-Found an error or want to improve the guide? Please open an issue or PR on the main Pagent repository.
+Corrections and focused improvements are welcome through the repository's standard
+pull request process.

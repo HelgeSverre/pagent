@@ -1,117 +1,54 @@
 # Pagent Documentation
 
-Comprehensive guides for integrating Pagent into your PHP applications.
+This directory contains focused guides for Pagent features and application
+integration. Start with the [project README](../README.md) if you are new to the
+library.
 
-## 📚 Guides
+## Feature guides
 
-### Core Features
+| Guide                                                     | Covers                                                                  |
+| --------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [Streaming](streaming.md)                                 | Stream iteration, callbacks, SSE endpoints, and error handling          |
+| [Memory and persistence](memory-persistence.md)           | File and SQLite storage, sessions, context windows, and custom adapters |
+| [Guards](guards.md)                                       | Built-in safety checks, custom guards, fallbacks, and violations        |
+| [Middleware](middleware.md)                               | Logging, metrics, rate limiting, and custom request/response hooks      |
+| [Events](events.md)                                       | Agent lifecycle events, listeners, priorities, and global events        |
+| [Orchestration and workflows](orchestration-workflows.md) | Pipelines, chains, handoffs, delegation, transforms, and metadata       |
+| [Observability](observability.md)                         | OpenTelemetry setup, exporters, spans, sampling, and troubleshooting    |
+| [MCP integration](mcp-integration.md)                     | Stdio and HTTP/SSE transports, tool discovery, events, and security     |
+| [Ollama integration](ollama-integration.md)               | Local model setup, streaming, tool calling, and deployment              |
 
-- [Guards](guards.md) - Safety validation for LLM responses (PII, content filtering, prompt injection)
-- [Middleware](middleware.md) - Request/response hooks for logging, metrics, and rate limiting
-- [Events](events.md) - Lifecycle hooks for monitoring and custom behavior
-- [Streaming](streaming.md) - Real-time SSE streaming implementation
-- [Memory & Persistence](memory-persistence.md) - SQLite, File, and custom storage adapters
-- [Observability](observability.md) - OpenTelemetry integration for tracing
-- [MCP Integration](mcp-integration.md) - Model Context Protocol for external tool servers
+## Framework integration
 
-### Framework Integration
+| Framework   | Guide                                                                                      |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| Vanilla PHP | [Application structure, configuration, and HTTP endpoints](vanilla-php.md)                 |
+| Laravel     | [Service providers, facades, controllers, queues, and testing](laravel-integration.md)     |
+| Symfony     | [Bundle configuration, services, commands, Messenger, and testing](symfony-integration.md) |
+| Slim        | [Dependency injection, middleware, routes, persistence, and testing](slim-integration.md)  |
 
-- [Vanilla PHP Integration](vanilla-php.md) - Simple setup without any framework
-- [Slim Framework Integration](slim-integration.md) - Complete guide for Slim 4.x with DI and middleware
-- [Laravel Integration](laravel-integration.md) - Service providers, facades, and Artisan commands
-- [Symfony Integration](symfony-integration.md) - Bundle configuration and service container
+## Recommended paths
 
-### Patterns & Best Practices
+For a first application:
 
-- [Agent Orchestration & Workflows](orchestration-workflows.md) - Pipelines, chains, handoffs, and delegation
-- [Ollama Integration](ollama-integration.md) - Local LLM setup and usage
+1. Complete the [quick start](../README.md#quick-start).
+2. Choose the relevant framework guide.
+3. Add [tool calling](../README.md#tool-calling) and
+   [conversation memory](../README.md#conversation-memory) as needed.
+4. Review [guards](guards.md), [testing and evaluation](../README.md#testing-and-evaluation),
+   and [observability](observability.md) before deployment.
 
-## 🎯 Quick Links
+For a structured, long-form introduction, use the
+[complete guide](../guide/complete.md). The [guide index](../guide/README.md)
+provides shorter reading paths by topic.
 
-### Core Documentation
+## Examples
 
-- [Main README](../README.md) - Project overview and quick start
-- [Complete Guide](../guide/complete.md) - Comprehensive 28-chapter tutorial
-- [Guide README](../guide/README.md) - Learning paths and chapter overview
+The [examples index](../examples/README.md) maps each feature to a runnable PHP
+program. Run examples from the repository root after installing dependencies:
 
-## 🔧 Integration Overview
-
-### The Centralized Pattern
-
-Instead of configuring agents everywhere:
-
-```php
-// ❌ Repeated configuration
-agent('support')
-    ->provider('anthropic')
-    ->model('claude-3-haiku-20240307')
-    ->system('You are a support agent...');
+```bash
+php examples/01-basic-chat.php
 ```
 
-Configure once, use everywhere:
-
-```php
-// ✅ In config/agents.php
-agent('support')
-    ->provider('anthropic')
-    ->model('claude-3-haiku-20240307')
-    ->system('You are a support agent...');
-
-// ✅ Anywhere in your app
-$response = pagent('support')->prompt('Help needed!');
-```
-
-### Supported Frameworks
-
-| Framework       | Status      | Guide                           |
-| --------------- | ----------- | ------------------------------- |
-| **Vanilla PHP** | ✅ Complete | [Guide](vanilla-php.md)         |
-| **Slim**        | ✅ Complete | [Guide](slim-integration.md)    |
-| **Laravel**     | ✅ Complete | [Guide](laravel-integration.md) |
-| **Symfony**     | ✅ Complete | [Guide](symfony-integration.md) |
-
-## 💡 Common Use Cases
-
-### 1. Customer Support Bot
-
-```php
-// config/agents.php
-agent('support')
-    ->provider('anthropic')
-    ->tool('search_orders', fn($email) => /* ... */)
-    ->tool('process_refund', fn($orderId) => /* ... */);
-
-// Your app
-$response = pagent('support')->prompt($customerMessage);
-```
-
-### 2. Content Generation
-
-```php
-// config/agents.php
-agent('blog-writer')->provider('openai')->model('gpt-4');
-agent('social-media')->provider('openai')->model('gpt-4o-mini');
-
-// Your app
-$blog = pagent('blog-writer')->prompt("Write about: {$topic}");
-$tweet = pagent('social-media')->prompt("Summarize: {$blog}");
-```
-
-### 3. Multi-Agent Workflow
-
-```php
-use function Pagent\pipeline;
-
-$result = pipeline('research')
-    ->agent('researcher')
-    ->agent('fact-checker')
-    ->agent('report-generator')
-    ->run($query);
-```
-
-## 🚀 Next Steps
-
-1. **Choose your integration**: Select the guide that matches your project setup
-2. **Framework-specific setup**: Follow the detailed guide for your framework
-3. **Explore patterns**: Learn about multi-agent workflows and orchestration
-4. **Production ready**: Review [SECURITY.md](../SECURITY.md)
+Examples backed by the mock provider do not require network access or API keys.

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pagent\Events\Event;
 use Pagent\Events\Events\Agent\AfterPromptEvent;
 use Pagent\Events\Events\Agent\BeforePromptEvent;
 use Pagent\Events\Events\Agent\ContextPrunedEvent;
@@ -235,6 +236,6 @@ test('all event classes extend Event base class', function () {
     ];
 
     foreach ($events as $event) {
-        expect($event)->toBeInstanceOf(\Pagent\Events\Event::class);
+        expect($event)->toBeInstanceOf(Event::class);
     }
 });

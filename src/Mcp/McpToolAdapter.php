@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Pagent\Mcp;
 
-use Pagent\Contracts\Tool;
+use Pagent\Contracts\ToolInterface;
+use Pagent\Tool\ToolSchemaSerializer;
 
 /**
  * Adapter that wraps an MCP tool as a Pagent Tool.
  *
  * This allows MCP tools to be used seamlessly with Pagent agents.
  */
-final class McpToolAdapter implements Tool
+final class McpToolAdapter implements ToolInterface
 {
     /**
      * Create a new MCP tool adapter.
@@ -52,6 +53,50 @@ final class McpToolAdapter implements Tool
     public function getInputSchema(): array
     {
         return $this->inputSchema;
+    }
+
+    /**
+     * @deprecated Use getName().
+     */
+    public function name(): string
+    {
+        return $this->getName();
+    }
+
+    /**
+     * @deprecated Use getDescription().
+     */
+    public function description(): string
+    {
+        return $this->getDescription();
+    }
+
+    /**
+     * @deprecated Use getInputSchema().
+     */
+    public function inputSchema(): array
+    {
+        return $this->getInputSchema();
+    }
+
+    /**
+     * @deprecated Use ToolSchemaSerializer::anthropic().
+     *
+     * @return array<string, mixed>
+     */
+    public function toAnthropicSchema(): array
+    {
+        return ToolSchemaSerializer::anthropic($this);
+    }
+
+    /**
+     * @deprecated Use ToolSchemaSerializer::openAI().
+     *
+     * @return array<string, mixed>
+     */
+    public function toOpenAISchema(): array
+    {
+        return ToolSchemaSerializer::openAI($this);
     }
 
     /**

@@ -14,18 +14,16 @@ require __DIR__.'/../vendor/autoload.php';
  *
  * Prerequisites:
  * - An MCP server executable (e.g., npx -y @modelcontextprotocol/server-filesystem /path/to/directory)
- * - PHP 8.3+ with proc_open support
+ * - PHP 8.4+ with proc_open support
  */
 
 use Pagent\Mcp\McpClient;
 use Pagent\Mcp\Transports\StdioTransport;
 
-echo "MCP Client Example\n";
-echo "==================\n\n";
+echo "[Pagent: MCP Client]\n";
 
 // Example 1: Basic connection (requires an MCP server)
-echo "Example 1: Connecting to an MCP Server\n";
-echo "---------------------------------------\n";
+echo "\n[Example 1: Connecting to an MCP Server]\n";
 echo "To run this example, you need an MCP server.\n";
 echo "Install the filesystem server:\n";
 echo "  npm install -g @modelcontextprotocol/server-filesystem\n\n";
@@ -45,7 +43,7 @@ $client = new McpClient($transport, 'pagent-example', '0.7.0');
 // 3. Connect and initialize
 $client->connect();
 
-echo "✓ Connected to MCP server\n";
+echo "Connected to MCP server\n";
 echo "Server capabilities: " . json_encode($client->getServerCapabilities(), JSON_PRETTY_PRINT) . "\n\n";
 
 // 4. Discover available tools
@@ -67,12 +65,11 @@ echo json_encode($result, JSON_PRETTY_PRINT) . "\n\n";
 
 // 6. Disconnect
 $client->disconnect();
-echo "✓ Disconnected\n\n";
+echo "Disconnected\n\n";
 */
 
 // Example 2: HTTP/SSE Transport for Web-based MCP Servers
-echo "Example 2: HTTP/SSE Transport (context7, web servers)\n";
-echo "------------------------------------------------------\n";
+echo "\n[Example 2: HTTP/SSE Transport (context7, web servers)]\n";
 echo "For web-based MCP servers, use HTTP/SSE transport:\n\n";
 
 echo <<<'PHP'
@@ -101,8 +98,7 @@ PHP;
 echo "\n";
 
 // Example 3: Using MCP tools with Pagent agents
-echo "Example 3: Integrating MCP Tools with Pagent Agents\n";
-echo "----------------------------------------------------\n";
+echo "\n[Example 3: Integrating MCP Tools with Pagent Agents]\n";
 echo "MCP tools can be seamlessly integrated with Pagent agents using McpToolAdapter.\n\n";
 
 echo "Code example:\n";
@@ -127,8 +123,7 @@ PHP;
 echo "\n";
 
 // Example 4: Transport Comparison
-echo "Example 4: Choosing the Right Transport\n";
-echo "----------------------------------------\n";
+echo "\n[Example 4: Choosing the Right Transport]\n";
 echo "Stdio Transport:\n";
 echo "  - For local MCP server processes\n";
 echo "  - Spawns server as subprocess\n";
@@ -156,9 +151,8 @@ $httpTransport = new HttpSseTransport(
 PHP;
 echo "\n";
 
-// Example 4: Available MCP Servers
-echo "Example 4: Available MCP Servers\n";
-echo "---------------------------------\n";
+// Example 5: Available MCP Servers
+echo "\n[Example 5: Available MCP Servers]\n";
 echo "Some official MCP servers you can use:\n\n";
 
 echo "1. Filesystem Server:\n";
@@ -179,9 +173,8 @@ echo "   Command: npx @modelcontextprotocol/server-brave-search\n\n";
 
 echo "See https://github.com/modelcontextprotocol/servers for more MCP servers\n\n";
 
-// Example 5: Error handling
-echo "Example 5: Error Handling\n";
-echo "-------------------------\n";
+// Example 6: Error handling
+echo "\n[Example 6: Error Handling]\n";
 echo <<<'PHP'
 use Pagent\Mcp\Exceptions\McpConnectionException;
 use Pagent\Mcp\Exceptions\McpProtocolException;
@@ -206,7 +199,7 @@ try {
 PHP;
 echo "\n";
 
-echo "✅ MCP client provides:\n";
+echo "MCP client capabilities:\n";
 echo "  - Standardized protocol for tool integration\n";
 echo "  - Automatic tool discovery\n";
 echo "  - Seamless integration with Pagent agents\n";
@@ -216,3 +209,4 @@ echo "  - Type-safe tool execution\n\n";
 echo "For more information:\n";
 echo "  - MCP Specification: https://spec.modelcontextprotocol.io\n";
 echo "  - MCP Servers: https://github.com/modelcontextprotocol/servers\n";
+echo "\nDone.\n";

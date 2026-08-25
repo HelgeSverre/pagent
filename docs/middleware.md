@@ -54,11 +54,13 @@ agent('assistant')
 **Logged information:**
 
 Before request:
+
 - Message content
 - Model name
 - Temperature setting
 
 After response:
+
 - Provider name
 - Model used
 - Token count
@@ -86,6 +88,7 @@ $totalTokens = $metrics->getTotalTokens();
 ```
 
 **Metrics collected per request:**
+
 - Timestamp
 - Duration (ms)
 - Token count
@@ -230,15 +233,16 @@ final class SanitizeMiddleware implements Middleware
 
 ## Middleware vs Guards
 
-| Feature | Middleware | Guards |
-|---------|------------|--------|
-| Purpose | Transform request/response | Validate response safety |
-| Timing | Before and after LLM call | After LLM call only |
-| Can modify | Yes (options and response) | No (only pass/fail) |
+| Feature    | Middleware                  | Guards                         |
+| ---------- | --------------------------- | ------------------------------ |
+| Purpose    | Transform request/response  | Validate response safety       |
+| Timing     | Before and after each provider round | Input before provider/tools; output before delivery |
+| Can modify | Yes (options and response)  | No (only pass/fail)            |
 | On failure | Throw exception or continue | Block response or use fallback |
-| Use case | Logging, metrics, defaults | Security, content filtering |
+| Use case   | Logging, metrics, defaults  | Security, content filtering    |
 
 **Use middleware when you need to:**
+
 - Log or track requests
 - Collect metrics
 - Add default options
@@ -246,10 +250,19 @@ final class SanitizeMiddleware implements Middleware
 - Rate limit requests
 
 **Use guards when you need to:**
-- Validate response safety
+
+- Validate input and output safety
 - Block sensitive content
 - Detect prompt injection
 - Enforce content policies
+
+## Streaming interaction
+
+`before()` middleware runs before a stream starts. Because `after()` may replace
+the complete response, Pagent quarantines a stream until completion whenever any
+middleware is installed, then runs `after()` and delivers the accepted result. Use
+an agent without middleware for the lowest-latency token stream, or accept that safety
+and response transformation take precedence over time to first token.
 
 ## Clearing Middleware
 

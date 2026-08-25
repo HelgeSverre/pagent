@@ -558,7 +558,7 @@ use Pagent\Memory\{FileAdapter, DatabaseAdapter, NullAdapter};
 $agent->memory(null);  // NullAdapter
 
 // Fast: File-based persistence
-$agent->memory(new FileAdapter('/tmp/agents'));
+$agent->memory(new FileAdapter(['path' => '/tmp/agents']));
 
 // Slower: Database persistence (but queryable/shareable)
 $agent->memory(new DatabaseAdapter($pdo));
@@ -586,7 +586,7 @@ $cache = new RedisCachingMiddleware(
 // Create optimized agent
 $agent = agent('optimized-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->temperature(0.0)              // Deterministic for caching
     ->contextWindow(3000, 'sliding') // Limit context growth
     ->middleware($cache)             // Cache responses

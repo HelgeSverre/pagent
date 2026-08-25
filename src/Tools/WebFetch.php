@@ -65,8 +65,12 @@ final class WebFetch extends Tool
 
     public function execute(array $params): mixed
     {
-        $url = $params['url'] ?? throw new RuntimeException('URL parameter is required');
-        $headers = $params['headers'] ?? [];
+        if (! array_key_exists('url', $params)) {
+            throw new RuntimeException('URL parameter is required');
+        }
+
+        $url = $this->requiredString($params, 'url');
+        $headers = $this->headers($params);
 
         // Parse URL
         $parsed = parse_url($url);
@@ -121,6 +125,36 @@ final class WebFetch extends Tool
             'size' => strlen($content),
             'url' => $url,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, string>
+     */
+    private function headers(array $params): array
+    {
+        if (! array_key_exists('headers', $params)) {
+            return [];
+        }
+
+        $headers = $params['headers'];
+
+        if (! is_array($headers)) {
+            throw new \InvalidArgumentException('headers parameter must be an object with string header values');
+        }
+
+        foreach ($headers as $name => $value) {
+            if (! is_string($name) || $name === '') {
+                throw new \InvalidArgumentException('headers parameter must use non-empty string header names');
+            }
+
+            if (! is_string($value)) {
+                throw new \InvalidArgumentException("Header '{$name}' value must be a string");
+            }
+        }
+
+        /** @var array<string, string> $headers */
+        return $headers;
     }
 
     /**

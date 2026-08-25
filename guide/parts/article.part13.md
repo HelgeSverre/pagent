@@ -13,7 +13,7 @@ Pagent's `ContextManager` provides automatic pruning to keep conversations withi
 ```php
 $agent = agent('support-bot')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory('sqlite', ['path' => 'support.db'])
     ->sessionId('ticket-12345')
     ->contextWindow(4000, 'oldest')  // Max 4000 tokens, remove oldest first
@@ -208,7 +208,7 @@ Using this wrapper:
 // Create summarizer agent (separate from main agent)
 $summarizer = agent('summarizer')
     ->provider(anthropic())
-    ->model('claude-haiku-3-5-20250514')  // Fast, cheap model for summaries
+    ->model('claude-sonnet-4-6')  // Fast, cheap model for summaries
     ->build();
 
 // Wrap base memory with summarization
@@ -595,7 +595,7 @@ $cachedStorage = new CachedMemory($sqliteStorage, cacheSize: 200);
 // Add summarization for long conversations
 $summarizer = agent('summarizer')
     ->provider(anthropic())
-    ->model('claude-haiku-3-5-20250514')
+    ->model('claude-sonnet-4-6')
     ->build();
 
 $summarizingMemory = new SummarizingMemory(
@@ -607,7 +607,7 @@ $summarizingMemory = new SummarizingMemory(
 // Create agent with context window management
 $agent = agent('support-bot')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory($summarizingMemory)
     ->sessionId('ticket-789')
     ->contextWindow(8000, 'sliding')

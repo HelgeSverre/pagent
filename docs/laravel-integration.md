@@ -67,7 +67,7 @@ OPENAI_API_KEY=your-key-here
 
 # Agent Configuration
 AGENT_DEFAULT_PROVIDER=anthropic
-AGENT_DEFAULT_MODEL=claude-3-haiku-20240307
+AGENT_DEFAULT_MODEL=claude-sonnet-4-6
 AGENT_TIMEOUT=30
 ```
 
@@ -100,7 +100,7 @@ return [
     | Default model to use when not specified.
     |
     */
-    'default_model' => env('AGENT_DEFAULT_MODEL', 'claude-3-haiku-20240307'),
+    'default_model' => env('AGENT_DEFAULT_MODEL', 'claude-sonnet-4-6'),
 
     /*
     |--------------------------------------------------------------------------
@@ -123,7 +123,7 @@ return [
     'agents' => [
         'support' => [
             'provider' => 'anthropic',
-            'model' => 'claude-3-haiku-20240307',
+            'model' => 'claude-sonnet-4-6',
             'system' => 'You are a helpful customer support agent for our e-commerce platform. Be concise, professional, and helpful.',
             'temperature' => 0.3,
             'tools' => [
@@ -142,7 +142,7 @@ return [
 
         'code-reviewer' => [
             'provider' => 'anthropic',
-            'model' => 'claude-3-opus-20240229',
+            'model' => 'claude-sonnet-4-6',
             'system' => 'You are a senior code reviewer. Provide constructive feedback on code quality, security, and best practices.',
             'temperature' => 0.2,
         ],
@@ -830,8 +830,8 @@ class LogAgentResponse
     'support' => [
         'provider' => 'anthropic',
         'model' => app()->environment('production')
-            ? 'claude-3-opus-20240229'
-            : 'claude-3-haiku-20240307',
+            ? 'claude-sonnet-4-6'
+            : 'claude-sonnet-4-6',
         'temperature' => app()->environment('production') ? 0.3 : 0.5,
     ],
 ],
@@ -843,13 +843,14 @@ class LogAgentResponse
 
 This Laravel integration provides:
 
-- ✅ **Service Container Integration** - Agents as singletons
-- ✅ **Configuration Management** - Centralized `config/agents.php`
-- ✅ **Facade Support** - Clean `Pagent('name')` syntax
-- ✅ **Queue Integration** - Async agent processing
-- ✅ **Artisan Commands** - CLI testing and management
-- ✅ **Event System** - Track agent interactions
-- ✅ **Testing Support** - Easy to mock and test
-- ✅ **Laravel Conventions** - Follows Laravel patterns
+- **Service Container Integration** - Agents as singletons
+- **Configuration Management** - Centralized `config/agents.php`
+- **Facade Support** - Clean `Pagent('name')` syntax
+- **Queue Integration** - Async agent processing
+- **Artisan Commands** - CLI testing and management
+- **Event System** - Track agent interactions
+- **Testing Support** - Easy to mock and test
+- **Laravel Conventions** - Follows Laravel patterns
 
-Your Laravel app now has AI superpowers! 🚀
+Use these patterns as a starting point and adapt service lifetimes, queue policy,
+and error handling to the requirements of your application.

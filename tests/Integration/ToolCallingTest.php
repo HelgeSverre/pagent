@@ -1,6 +1,8 @@
 <?php
 
 declare(strict_types=1);
+use Pagent\Tools\FileRead;
+use Pagent\Tools\FileWrite;
 
 /**
  * Tool Calling Integration Tests.
@@ -150,7 +152,7 @@ describe('Class-Based Tools with OpenAI', function (): void {
         agent('file-reader')
             ->provider('openai')
             ->system('You are a helpful assistant that reads files.')
-            ->tool(new \Pagent\Tools\FileRead);
+            ->tool(new FileRead);
 
         $response = agent('file-reader')->prompt("Read the file at {$testFile} and tell me what it says.");
 
@@ -169,7 +171,7 @@ describe('Class-Based Tools with OpenAI', function (): void {
             ->provider('openai')
             ->model('gpt-4')
             ->system('You are a helpful assistant that writes files.')
-            ->tool(new \Pagent\Tools\FileWrite);
+            ->tool(new FileWrite);
 
         $response = agent('file-writer')->prompt("Write 'Test content from OpenAI' to the file {$testFile}");
 
@@ -181,7 +183,7 @@ describe('Class-Based Tools with OpenAI', function (): void {
     });
 
     it('generates correct schemas for class-based tools', function (): void {
-        $fileRead = new \Pagent\Tools\FileRead;
+        $fileRead = new FileRead;
 
         $anthropicSchema = $fileRead->toAnthropicSchema();
         expect($anthropicSchema)->toHaveKey('name')
@@ -211,7 +213,7 @@ describe('Class-Based Tools with Anthropic', function (): void {
         agent('claude-file-reader')
             ->provider('anthropic')
             ->system('You are a helpful assistant that reads files.')
-            ->tool(new \Pagent\Tools\FileRead);
+            ->tool(new FileRead);
 
         $response = agent('claude-file-reader')->prompt("Read the file at {$testFile} and tell me what it says.");
 
@@ -229,7 +231,7 @@ describe('Class-Based Tools with Anthropic', function (): void {
         agent('claude-file-writer')
             ->provider('anthropic')
             ->system('You are a helpful assistant that writes files.')
-            ->tool(new \Pagent\Tools\FileWrite);
+            ->tool(new FileWrite);
 
         $response = agent('claude-file-writer')->prompt("Write 'Test content from Claude' to the file {$testFile}");
 
@@ -249,8 +251,8 @@ describe('Class-Based Tools with Anthropic', function (): void {
         agent('claude-multi-class-tools')
             ->provider('anthropic')
             ->system('You are a helpful assistant that can read and write files.')
-            ->tool(new \Pagent\Tools\FileRead)
-            ->tool(new \Pagent\Tools\FileWrite);
+            ->tool(new FileRead)
+            ->tool(new FileWrite);
 
         $response = agent('claude-multi-class-tools')
             ->prompt("Read the file at {$sourceFile} and write its contents to {$destFile}");

@@ -15,7 +15,7 @@ if (file_exists(__DIR__.'/../.env')) {
 /**
  * Example 1: Comparing Providers.
  */
-echo "=== Example 1: Comparing Providers ===\n\n";
+echo "\n[Example 1: Comparing Providers]\n";
 
 $prompt = 'Write a very short poem about PHP (max 2 lines)';
 
@@ -34,7 +34,7 @@ echo "Tokens: {$gptResponse->tokens}\n\n";
 if (! empty($_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY'))) {
     $claude = agent('claude-poet')
         ->provider('anthropic')
-        ->model('claude-sonnet-4-20250514')
+        ->model('claude-sonnet-4-6')
         ->temperature(0.8)
         ->maxTokens(100);
 
@@ -56,7 +56,7 @@ echo "{$mockResponse->content}\n\n";
 /**
  * Example 2: Provider-Specific Features.
  */
-echo "=== Example 2: Provider-Specific Features ===\n\n";
+echo "\n[Example 2: Provider-Specific Features]\n";
 
 // OpenAI with specific parameters
 $gptAdvanced = agent('gpt-advanced')
@@ -73,7 +73,7 @@ echo "Model: {$response->model}\n\n";
 /**
  * Example 3: Different Models for Different Tasks.
  */
-echo "=== Example 3: Task-Specific Agents ===\n\n";
+echo "\n[Example 3: Task-Specific Agents]\n";
 
 // Fast agent for simple tasks
 $quickBot = agent('quick-bot')
@@ -111,13 +111,13 @@ echo "{$r3->content}\n\n";
 /**
  * Example 4: Switching Providers at Runtime.
  */
-echo "=== Example 4: Runtime Provider Selection ===\n\n";
+echo "\n[Example 4: Runtime Provider Selection]\n";
 
 function createAgent(string $provider): void
 {
     $config = match ($provider) {
         'openai' => ['provider' => 'openai', 'model' => 'gpt-3.5-turbo'],
-        'anthropic' => ['provider' => 'anthropic', 'model' => 'claude-sonnet-4-20250514'],
+        'anthropic' => ['provider' => 'anthropic', 'model' => 'claude-sonnet-4-6'],
         default => ['provider' => 'mock'],
     };
 
@@ -136,4 +136,4 @@ $response = agent('dynamic-agent')->prompt('Hello!');
 echo "Provider: {$response->provider}\n";
 echo "Response: {$response->content}\n\n";
 
-echo "✅ All multi-provider examples completed!\n";
+echo "\nDone.\n";

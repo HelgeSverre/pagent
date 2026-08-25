@@ -4,18 +4,22 @@ declare(strict_types=1);
 
 namespace Pagent\Providers;
 
-use Pagent\Contracts\Provider;
+use InvalidArgumentException;
+use Pagent\Contracts\IdentifiedProvider;
+use Pagent\Contracts\StreamingProvider;
 use Pagent\Http\CurlTransport;
 use Pagent\Http\HttpClientInterface;
+use Pagent\ProviderCapabilities;
 use Pagent\Streaming\OpenAIStreamParser;
 use Pagent\Streaming\StreamResponse;
+use Pagent\Tool\ToolCallArgumentNormalizer;
 use RuntimeException;
 
 use function array_unshift;
 use function getenv;
 use function json_decode;
 
-final class OpenAI implements Provider
+final class OpenAI implements IdentifiedProvider, StreamingProvider
 {
     private string $apiKey;
 
@@ -99,10 +103,16 @@ final class OpenAI implements Provider
         // Extract tool calls if present
         if (isset($message['tool_calls'])) {
             foreach ($message['tool_calls'] as $toolCall) {
+                $name = is_string($toolCall['function']['name'] ?? null)
+                    ? $toolCall['function']['name']
+                    : 'unknown';
                 $toolCalls[] = [
                     'id' => $toolCall['id'],
-                    'name' => $toolCall['function']['name'],
-                    'arguments' => json_decode($toolCall['function']['arguments'], true),
+                    'name' => $name,
+                    'arguments' => ToolCallArgumentNormalizer::normalize(
+                        $toolCall['function']['arguments'] ?? null,
+                        "OpenAI tool '{$name}'",
+                    ),
                 ];
             }
         }
@@ -162,6 +172,12 @@ final class OpenAI implements Provider
             }
         }
 
+        $streamOptions = $options['stream_options'] ?? [];
+        if (! is_array($streamOptions)) {
+            throw new InvalidArgumentException('OpenAI stream_options must be an array');
+        }
+        $body['stream_options'] = array_merge(['include_usage' => true], $streamOptions);
+
         // Make streaming API call using HttpClient
         $transport = $this->httpClient->streamJson(
             method: 'POST',
@@ -181,18 +197,33 @@ final class OpenAI implements Provider
             throw new RuntimeException("OpenAI API error: {$error}");
         }
 
-        $stream = $transport->resource();
-
-        // Create generator that parses the stream
         $parser = new OpenAIStreamParser;
         $model = $body['model'];
-        $generator = $parser->parse($stream, $model);
 
-        // Wrap in StreamResponse
         return new StreamResponse(
-            stream: $generator,
+            stream: $parser->parse($transport->chunks(), $model),
             provider: 'openai',
             model: $model,
+            canceller: static function () use ($transport): void {
+                $transport->close();
+            },
+        );
+    }
+
+    public function providerId(): string
+    {
+        return 'openai';
+    }
+
+    public function capabilities(): ProviderCapabilities
+    {
+        return new ProviderCapabilities(
+            supportsStreaming: true,
+            supportsTools: true,
+            supportsSystemMessages: true,
+            supportsStructuredOutput: true,
+            protocol: 'openai-chat-completions',
+            toolProtocol: 'openai',
         );
     }
 }

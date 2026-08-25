@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Pagent\Agent;
 use Pagent\Events\Events\LLM\AfterLLMResponseEvent;
+use Pagent\Events\Events\Stream\StreamCompletedEvent;
 use Pagent\Usage\Storage\InMemoryUsageStorage;
 use Pagent\Usage\UsageTracker;
 
@@ -454,7 +455,7 @@ test('tracker handles StreamCompletedEvent with usage data', function () {
     $agent = new Agent('stream-agent');
     $agent->provider(mock());
 
-    $event = new Pagent\Events\Events\Stream\StreamCompletedEvent(
+    $event = new StreamCompletedEvent(
         $agent,
         'Hello from stream',
         5,
@@ -486,7 +487,7 @@ test('tracker ignores StreamCompletedEvent without usage data', function () {
     $agent = new Agent('stream-agent');
     $agent->provider(mock());
 
-    $event = new Pagent\Events\Events\Stream\StreamCompletedEvent(
+    $event = new StreamCompletedEvent(
         $agent,
         'Hello from stream',
         5,
@@ -506,7 +507,7 @@ test('tracker ignores StreamCompletedEvent when track_streaming is disabled', fu
     $agent = new Agent('stream-agent');
     $agent->provider(mock());
 
-    $event = new Pagent\Events\Events\Stream\StreamCompletedEvent(
+    $event = new StreamCompletedEvent(
         $agent,
         'Hello from stream',
         5,

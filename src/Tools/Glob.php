@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Pagent\Tools;
 
-use RuntimeException;
-
 final class Glob extends Tool
 {
     public function __construct(
@@ -39,7 +37,7 @@ final class Glob extends Tool
 
     public function execute(array $params): mixed
     {
-        $pattern = $params['pattern'] ?? throw new RuntimeException('Pattern parameter is required');
+        $pattern = $this->requiredString($params, 'pattern');
 
         $baseDir = $this->baseDir ?? getcwd();
 

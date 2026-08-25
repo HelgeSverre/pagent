@@ -6,6 +6,7 @@ namespace Pagent\Observability;
 
 use Pagent\Events\Event;
 use Pagent\Events\EventListener;
+use Pagent\Events\EventManager;
 use Pagent\Events\Events\Guard\GuardCheckingEvent;
 use Pagent\Events\Events\Guard\GuardFallbackEvent;
 use Pagent\Events\Events\Guard\GuardPassedEvent;
@@ -26,6 +27,7 @@ use Pagent\Events\Events\Stream\StreamStartedEvent;
 use Pagent\Events\Events\Tool\ToolErrorEvent;
 use Pagent\Events\Events\Tool\ToolExecutedEvent;
 use Pagent\Events\Events\Tool\ToolExecutingEvent;
+use Pagent\Events\EventSubscription;
 
 use function microtime;
 
@@ -59,6 +61,21 @@ use function microtime;
 final class TelemetryEventBridge implements EventListener
 {
     /**
+     * Process-wide bridge used by telemetry_bridge().
+     */
+    private static ?self $globalInstance = null;
+
+    /**
+     * Registration for the global bridge, if one is active.
+     */
+    private static ?EventSubscription $globalSubscription = null;
+
+    /**
+     * EventManager generation that owns the current registration.
+     */
+    private static ?int $globalManagerGeneration = null;
+
+    /**
      * Active spans indexed by operation key.
      *
      * Format: ['llm:{agent_name}:{timestamp}' => ['span' => Span, 'started_at' => float]]
@@ -90,6 +107,36 @@ final class TelemetryEventBridge implements EventListener
             'trace_streams' => true,
             'trace_mcp' => true,
         ], $config);
+    }
+
+    /**
+     * Return the process-wide bridge and bind it to the current global bus.
+     *
+     * Repeated calls are idempotent. If EventManager has been reset, the same
+     * bridge is rebound to the new manager on the next call.
+     *
+     * @param  array{enabled?: bool, trace_llm?: bool, trace_tools?: bool, trace_memory?: bool, trace_guards?: bool, trace_streams?: bool, trace_mcp?: bool}  $config
+     */
+    public static function global(array $config = []): self
+    {
+        $instance = self::$globalInstance ??= new self($config);
+
+        self::registerGlobalInstance($instance);
+
+        return $instance;
+    }
+
+    /**
+     * Unregister and discard the global bridge.
+     *
+     * Useful for test isolation and worker shutdown/reconfiguration.
+     */
+    public static function resetGlobal(): void
+    {
+        self::$globalSubscription?->unsubscribe();
+        self::$globalInstance = null;
+        self::$globalSubscription = null;
+        self::$globalManagerGeneration = null;
     }
 
     /**
@@ -701,5 +748,24 @@ final class TelemetryEventBridge implements EventListener
     public function clearActiveSpans(): void
     {
         $this->activeSpans = [];
+    }
+
+    /**
+     * Bind the singleton to the current EventManager exactly once.
+     */
+    private static function registerGlobalInstance(self $instance): void
+    {
+        $generation = EventManager::generation();
+
+        if (
+            self::$globalSubscription?->isActive()
+            && self::$globalManagerGeneration === $generation
+        ) {
+            return;
+        }
+
+        self::$globalSubscription?->unsubscribe();
+        self::$globalSubscription = EventManager::instance()->subscribe($instance);
+        self::$globalManagerGeneration = $generation;
     }
 }

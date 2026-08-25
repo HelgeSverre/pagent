@@ -56,3 +56,8 @@ it('handles empty responses array', function (): void {
     $response = $mock->prompt('anything');
     expect($response->content)->toBe('Mock response to: anything');
 });
+
+it('rejects non-positive streaming chunk sizes', function (): void {
+    expect(fn () => new Mock(['chunk_size' => 0]))
+        ->toThrow(InvalidArgumentException::class, 'at least 1');
+});

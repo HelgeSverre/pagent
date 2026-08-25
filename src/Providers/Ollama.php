@@ -4,19 +4,32 @@ declare(strict_types=1);
 
 namespace Pagent\Providers;
 
-use Pagent\Contracts\Provider;
+use Pagent\Contracts\IdentifiedProvider;
+use Pagent\Contracts\StreamingProvider;
 use Pagent\Http\CurlTransport;
 use Pagent\Http\HttpClientInterface;
+use Pagent\ProviderCapabilities;
 use Pagent\Streaming\OllamaStreamParser;
 use Pagent\Streaming\StreamResponse;
+use Pagent\Tool\ToolCallArgumentNormalizer;
 use RuntimeException;
 
 use function array_unshift;
 use function getenv;
 use function json_decode;
 
-final class Ollama implements Provider
+final class Ollama implements IdentifiedProvider, StreamingProvider
 {
+    /** @var list<string> */
+    private const MODEL_OPTION_KEYS = [
+        'seed', 'num_predict', 'top_k', 'top_p', 'min_p', 'typical_p',
+        'repeat_last_n', 'repeat_penalty', 'presence_penalty',
+        'frequency_penalty', 'mirostat', 'mirostat_tau', 'mirostat_eta',
+        'penalize_newline', 'stop', 'numa', 'num_ctx', 'num_batch',
+        'num_gpu', 'main_gpu', 'low_vram', 'vocab_only', 'use_mmap',
+        'use_mlock', 'num_thread',
+    ];
+
     private string $baseUrl;
 
     private int $timeout;
@@ -59,14 +72,7 @@ final class Ollama implements Provider
             'stream' => false,
         ];
 
-        if (isset($options['temperature'])) {
-            $body['temperature'] = $options['temperature'];
-        }
-
-        // Ollama uses options.num_predict instead of max_tokens
-        if (isset($options['max_tokens'])) {
-            $body['options']['num_predict'] = $options['max_tokens'];
-        }
+        $this->applyModelOptions($body, $options);
 
         // Add tools if provided
         if (! empty($options['tools'])) {
@@ -75,7 +81,7 @@ final class Ollama implements Provider
 
         // Pass through additional Ollama-specific options
         foreach ($options as $key => $value) {
-            if (! in_array($key, ['messages', 'system', 'model', 'temperature', 'max_tokens', 'tools'], true)) {
+            if (! in_array($key, ['messages', 'system', 'model', 'temperature', 'max_tokens', 'tools', 'options', ...self::MODEL_OPTION_KEYS], true)) {
                 $body[$key] = $value;
             }
         }
@@ -110,16 +116,17 @@ final class Ollama implements Provider
         // Extract tool calls if present
         if (isset($message['tool_calls'])) {
             foreach ($message['tool_calls'] as $toolCall) {
-                // Ollama may return arguments as array or string - handle both
-                $arguments = $toolCall['function']['arguments'] ?? [];
-                if (is_string($arguments)) {
-                    $arguments = json_decode($arguments, true) ?? [];
-                }
+                $name = is_string($toolCall['function']['name'] ?? null)
+                    ? $toolCall['function']['name']
+                    : 'unknown';
 
                 $toolCalls[] = [
                     'id' => $toolCall['id'] ?? uniqid('call_'),
-                    'name' => $toolCall['function']['name'],
-                    'arguments' => $arguments,
+                    'name' => $name,
+                    'arguments' => ToolCallArgumentNormalizer::normalize(
+                        $toolCall['function']['arguments'] ?? null,
+                        "Ollama tool '{$name}'",
+                    ),
                 ];
             }
         }
@@ -168,14 +175,7 @@ final class Ollama implements Provider
             'stream' => true, // Enable streaming
         ];
 
-        if (isset($options['temperature'])) {
-            $body['temperature'] = $options['temperature'];
-        }
-
-        // Ollama uses options.num_predict instead of max_tokens
-        if (isset($options['max_tokens'])) {
-            $body['options']['num_predict'] = $options['max_tokens'];
-        }
+        $this->applyModelOptions($body, $options);
 
         // Add tools if provided
         if (! empty($options['tools'])) {
@@ -184,7 +184,7 @@ final class Ollama implements Provider
 
         // Pass through additional Ollama-specific options
         foreach ($options as $key => $value) {
-            if (! in_array($key, ['messages', 'system', 'model', 'temperature', 'max_tokens', 'tools'], true)) {
+            if (! in_array($key, ['messages', 'system', 'model', 'temperature', 'max_tokens', 'tools', 'options', ...self::MODEL_OPTION_KEYS], true)) {
                 $body[$key] = $value;
             }
         }
@@ -207,18 +207,62 @@ final class Ollama implements Provider
             throw new RuntimeException("Ollama API error: {$error}");
         }
 
-        $stream = $transport->resource();
-
-        // Create generator that parses the stream
         $parser = new OllamaStreamParser;
         $model = $body['model'];
-        $generator = $parser->parse($stream, $model);
 
-        // Wrap in StreamResponse
         return new StreamResponse(
-            stream: $generator,
+            stream: $parser->parse($transport->chunks(), $model),
             provider: 'ollama',
             model: $model,
+            canceller: static function () use ($transport): void {
+                $transport->close();
+            },
         );
+    }
+
+    public function providerId(): string
+    {
+        return 'ollama';
+    }
+
+    public function capabilities(): ProviderCapabilities
+    {
+        return new ProviderCapabilities(
+            supportsStreaming: true,
+            supportsTools: true,
+            supportsSystemMessages: true,
+            supportsStructuredOutput: true,
+            protocol: 'ollama-chat',
+            toolProtocol: 'openai',
+        );
+    }
+
+    /**
+     * Map Pagent's common generation options and Ollama's shorthand model
+     * options to the nested `options` object expected by /api/chat.
+     *
+     * @param  array<string, mixed>  $body
+     * @param  array<string, mixed>  $options
+     */
+    private function applyModelOptions(array &$body, array $options): void
+    {
+        $modelOptions = is_array($options['options'] ?? null) ? $options['options'] : [];
+
+        foreach (self::MODEL_OPTION_KEYS as $key) {
+            if (array_key_exists($key, $options)) {
+                $modelOptions[$key] = $options[$key];
+            }
+        }
+
+        if (array_key_exists('temperature', $options)) {
+            $modelOptions['temperature'] = $options['temperature'];
+        }
+        if (array_key_exists('max_tokens', $options)) {
+            $modelOptions['num_predict'] = $options['max_tokens'];
+        }
+
+        if ($modelOptions !== []) {
+            $body['options'] = $modelOptions;
+        }
     }
 }

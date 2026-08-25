@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Pagent\Agent;
+use Pagent\Events\EventManager;
 use Pagent\Events\Events\Guard\GuardCheckingEvent;
 use Pagent\Events\Events\Guard\GuardFallbackEvent;
 use Pagent\Events\Events\Guard\GuardPassedEvent;
@@ -65,7 +67,7 @@ test('bridge creates LLM span from before/after events', function () {
 
     // Create an actual Agent instance by using the internal Agent constructor
     // We can't use Registry::get() because AgentBuilder hasn't registered it yet
-    $agentInstance = new \Pagent\Agent('test-agent');
+    $agentInstance = new Agent('test-agent');
     $agentInstance->provider(mock())->telemetry(true);
 
     // Fire before event
@@ -123,7 +125,7 @@ test('bridge creates LLM span from before/after events', function () {
 
 test('bridge respects telemetry enabled flag', function () {
     $bridge = new TelemetryEventBridge(['enabled' => false]);
-    $agentInstance = new \Pagent\Agent('test-agent-2');
+    $agentInstance = new Agent('test-agent-2');
     $agentInstance->provider(mock())->telemetry(true);
 
     $beforeEvent = new BeforeLLMRequestEvent($agentInstance, 'anthropic', 'claude-3-opus', []);
@@ -138,7 +140,7 @@ test('bridge respects TelemetryManager enabled state', function () {
     TelemetryManager::instance()->initialize(['enabled' => false]);
 
     $bridge = new TelemetryEventBridge;
-    $agentInstance = new \Pagent\Agent('test-agent-3');
+    $agentInstance = new Agent('test-agent-3');
     $agentInstance->provider(mock())->telemetry(true);
 
     $beforeEvent = new BeforeLLMRequestEvent($agentInstance, 'anthropic', 'claude-3-opus', []);
@@ -150,7 +152,7 @@ test('bridge respects TelemetryManager enabled state', function () {
 
 test('bridge handles missing after event gracefully', function () {
     $bridge = new TelemetryEventBridge;
-    $agentInstance = new \Pagent\Agent('test-agent-4');
+    $agentInstance = new Agent('test-agent-4');
     $agentInstance->provider(mock())->telemetry(true);
 
     // Fire before event
@@ -167,7 +169,7 @@ test('bridge handles missing after event gracefully', function () {
 
 test('bridge handles anthropic cache tokens', function () {
     $bridge = new TelemetryEventBridge;
-    $agentInstance = new \Pagent\Agent('test-agent-5');
+    $agentInstance = new Agent('test-agent-5');
     $agentInstance->provider(mock())->telemetry(true);
 
     $beforeEvent = new BeforeLLMRequestEvent($agentInstance, 'anthropic', 'claude-3-opus', []);
@@ -209,6 +211,25 @@ test('telemetry_bridge helper function creates and registers bridge', function (
         ->and($bridge->listensTo())->toContain('after_llm_response');
 });
 
+test('global telemetry bridge registration is idempotent and resettable', function () {
+    EventManager::reset();
+    TelemetryEventBridge::resetGlobal();
+
+    $first = TelemetryEventBridge::global();
+    $second = TelemetryEventBridge::global();
+
+    EventManager::reset();
+    $rebound = TelemetryEventBridge::global();
+
+    TelemetryEventBridge::resetGlobal();
+    $replacement = TelemetryEventBridge::global();
+    TelemetryEventBridge::resetGlobal();
+
+    expect($second)->toBe($first)
+        ->and($rebound)->toBe($first)
+        ->and($replacement)->not->toBe($first);
+});
+
 test('bridge listens to Tool events when trace_tools is enabled', function () {
     $bridge = new TelemetryEventBridge(['trace_tools' => true]);
 
@@ -231,7 +252,7 @@ test('bridge does not listen to Tool events when trace_tools is disabled', funct
 
 test('bridge creates Tool span from executing/executed events', function () {
     $bridge = new TelemetryEventBridge;
-    $agentInstance = new \Pagent\Agent('tool-test-agent');
+    $agentInstance = new Agent('tool-test-agent');
     $agentInstance->provider(mock())->telemetry(true);
 
     // Fire tool executing event
@@ -269,7 +290,7 @@ test('bridge creates Tool span from executing/executed events', function () {
 
 test('bridge creates Tool span with error', function () {
     $bridge = new TelemetryEventBridge;
-    $agentInstance = new \Pagent\Agent('tool-error-test-agent');
+    $agentInstance = new Agent('tool-error-test-agent');
     $agentInstance->provider(mock())->telemetry(true);
 
     $executingEvent = new ToolExecutingEvent($agentInstance, 'failing_tool', []);
@@ -279,7 +300,7 @@ test('bridge creates Tool span with error', function () {
         $agentInstance,
         'failing_tool',
         [],
-        new \Exception('Tool failed')
+        new Exception('Tool failed')
     );
     $bridge->handle($errorEvent);
 
@@ -309,7 +330,7 @@ test('bridge listens to Guard events when trace_guards is enabled', function () 
 
 test('bridge creates Guard span for passed guard', function () {
     $bridge = new TelemetryEventBridge;
-    $agentInstance = new \Pagent\Agent('guard-test-agent');
+    $agentInstance = new Agent('guard-test-agent');
     $agentInstance->provider(mock())->telemetry(true);
 
     $checkingEvent = new GuardCheckingEvent($agentInstance, 'test_guard', 'test content');
@@ -334,7 +355,7 @@ test('bridge creates Guard span for passed guard', function () {
 
 test('bridge creates Guard span for violated guard', function () {
     $bridge = new TelemetryEventBridge;
-    $agentInstance = new \Pagent\Agent('guard-violated-test-agent');
+    $agentInstance = new Agent('guard-violated-test-agent');
     $agentInstance->provider(mock())->telemetry(true);
 
     $checkingEvent = new GuardCheckingEvent($agentInstance, 'strict_guard', 'bad content');
@@ -355,7 +376,7 @@ test('bridge creates Guard span for violated guard', function () {
 
 test('bridge creates Guard span for fallback guard', function () {
     $bridge = new TelemetryEventBridge;
-    $agentInstance = new \Pagent\Agent('guard-fallback-test-agent');
+    $agentInstance = new Agent('guard-fallback-test-agent');
     $agentInstance->provider(mock())->telemetry(true);
 
     $checkingEvent = new GuardCheckingEvent($agentInstance, 'optional_guard', 'content');
@@ -386,7 +407,7 @@ test('bridge listens to Memory events when trace_memory is enabled', function ()
 
 test('bridge creates Memory span for load operation', function () {
     $bridge = new TelemetryEventBridge;
-    $agentInstance = new \Pagent\Agent('memory-test-agent');
+    $agentInstance = new Agent('memory-test-agent');
     $agentInstance->provider(mock())->telemetry(true);
 
     $loadingEvent = new MemoryLoadingEvent($agentInstance, 'user_data', 'session');
@@ -423,7 +444,7 @@ test('bridge listens to Stream events when trace_streams is enabled', function (
 
 test('bridge creates Stream span from started/completed events', function () {
     $bridge = new TelemetryEventBridge;
-    $agentInstance = new \Pagent\Agent('stream-test-agent');
+    $agentInstance = new Agent('stream-test-agent');
     $agentInstance->provider(mock())->telemetry(true);
 
     $startedEvent = new StreamStartedEvent($agentInstance, 'anthropic', 'claude-3-opus');

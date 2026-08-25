@@ -14,6 +14,14 @@ test('it creates handoff from agent', function (): void {
     expect($handoff)->toBeInstanceOf(Handoff::class);
 });
 
+test('it rejects an unregistered target without creating one', function (): void {
+    $source = testAgent('source');
+
+    expect(fn () => (new Handoff($source))->to('missing-target'))
+        ->toThrow(RuntimeException::class, "Target agent 'missing-target' not found for handoff");
+    expect(getAgent('missing-target'))->toBeNull();
+});
+
 test('it transfers to target agent', function (): void {
     $source = testAgent('source');
     $source->prompt('Hello, I need help with legal matters');

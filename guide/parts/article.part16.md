@@ -347,7 +347,7 @@ function researchTopic(string $topic): array
 $findings = researchTopic('Machine Learning in Healthcare');
 
 foreach ($findings as $finding) {
-    echo "=== {$finding->worker} ===\n";
+    echo "[{$finding->worker}]\n";
     echo $finding->worker_output . "\n\n";
 }
 ```
@@ -551,7 +551,7 @@ declare(strict_types=1);
 
 $template = agent('template')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful assistant')
     ->tools(['calculator'])
     ->guard('pii');

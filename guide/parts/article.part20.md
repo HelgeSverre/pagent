@@ -623,7 +623,7 @@ use Pagent\Evaluation\Metrics\{
 // Configure agent
 agent('support-bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful customer support agent. Always be polite and professional.');
 
 // Create test dataset
@@ -652,8 +652,7 @@ $result = evaluate('support-bot')
 // Analyze results
 $summary = $result->getSummary();
 
-echo "Support Bot Evaluation Results\n";
-echo "==============================\n\n";
+echo "[Support Bot Evaluation Results]\n";
 
 foreach ($summary['metrics'] as $name => $stats) {
     echo ucfirst($name) . ": " . round($stats['average'] * 100) . "%\n";

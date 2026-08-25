@@ -42,7 +42,7 @@ final class Bash extends Tool
 
     public function execute(array $params): mixed
     {
-        $command = $params['command'] ?? throw new RuntimeException('Command parameter is required');
+        $command = $this->requiredString($params, 'command');
 
         // Check if command is allowed
         if (! empty($this->allowedCommands)) {

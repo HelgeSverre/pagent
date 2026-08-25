@@ -25,12 +25,12 @@ A clear description of what the bug is.
 ## Code Sample
 
 ```php
-agent('bot')->tool('example', 'Example', fn() => 'test')->send('Hello');
+agent('bot')->tool('example', 'Example', fn() => 'test')->prompt('Hello');
 ```
 
 ## Environment
 
-- **PHP:** [e.g., 8.3.1]
+- **PHP:** [e.g., 8.4.1]
 - **Pagent:** [e.g., 0.5.0]
 - **Provider:** [e.g., Anthropic]
 

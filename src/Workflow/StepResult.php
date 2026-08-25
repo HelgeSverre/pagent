@@ -12,6 +12,7 @@ final readonly class StepResult
         public mixed $input,
         public string $agent,
         public StepMetadata $meta,
+        public ?object $response = null,
     ) {}
 
     public function json(): array

@@ -42,7 +42,7 @@ final class PdfReader extends Tool
 
     public function execute(array $params): mixed
     {
-        $path = $params['path'] ?? throw new RuntimeException('Path parameter is required');
+        $path = $this->requiredString($params, 'path');
 
         // Resolve path
         $absolutePath = $this->resolvePath($path);

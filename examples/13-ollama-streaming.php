@@ -11,7 +11,7 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-echo "=== Ollama Streaming Examples ===\n\n";
+echo "\n[Ollama Streaming Examples]\n";
 echo "Prerequisites: Ollama server running with qwen3:8b model\n";
 echo "Run: ollama pull qwen3:8b && ollama serve\n\n";
 
@@ -31,14 +31,14 @@ function checkOllama(): bool
 }
 
 if (! checkOllama()) {
-    echo "❌ Ollama server not available at http://localhost:11434\n";
+    echo "Error: Ollama server not available at http://localhost:11434\n";
     exit(1);
 }
 
-echo "✅ Ollama server is running\n\n";
+echo "Status: Ollama server is running\n\n";
 
 // Example 1: Basic streaming with callback
-echo "=== Example 1: Basic Streaming ===\n\n";
+echo "\n[Example 1: Basic Streaming]\n";
 
 agent('ollama-streamer')
     ->provider(ollama())
@@ -55,7 +55,7 @@ $fullContent = agent('ollama-streamer')->streamTo('Write a short poem about PHP'
 echo "\n\n";
 
 // Example 2: Stream with detailed chunk handling
-echo "=== Example 2: Detailed Chunk Handling ===\n\n";
+echo "\n[Example 2: Detailed Chunk Handling]\n";
 
 $response = agent('ollama-streamer')->stream('Explain object-oriented programming in 2 sentences');
 
@@ -89,7 +89,7 @@ foreach ($response->getStream() as $chunk) {
 echo "\n";
 
 // Example 3: Compare streaming vs non-streaming
-echo "=== Example 3: Streaming vs Non-Streaming ===\n\n";
+echo "\n[Example 3: Streaming vs Non-Streaming]\n";
 
 $question = 'List 5 PHP features';
 
@@ -112,7 +112,7 @@ $streamTime = microtime(true) - $start;
 echo "\nTime to complete: ".round($streamTime * 1000)." ms\n\n";
 
 // Example 4: Collect full content from stream
-echo "=== Example 4: Collect Full Content ===\n\n";
+echo "\n[Example 4: Collect Full Content]\n";
 
 $streamResponse = agent('ollama-streamer')->stream('What is Laravel?');
 $fullContent = $streamResponse->collect();
@@ -121,7 +121,7 @@ echo "Full collected content:\n";
 echo $fullContent."\n\n";
 
 // Example 5: Stream with progress indicator
-echo "=== Example 5: Stream with Progress Indicator ===\n\n";
+echo "\n[Example 5: Stream with Progress Indicator]\n";
 
 echo 'Generating response';
 $chunkCount = 0;
@@ -136,8 +136,9 @@ agent('ollama-streamer')->streamTo('Explain MVC pattern', function ($chunk) use 
     }
 });
 
-echo " Done! ({$chunkCount} chunks)\n\n";
+echo "\nStatus: Complete ({$chunkCount} chunks)\n";
 
-echo "✅ All streaming examples completed!\n";
 echo "\nNote: Ollama uses NDJSON streaming (newline-delimited JSON)\n";
 echo "This is different from OpenAI/Anthropic which use Server-Sent Events (SSE)\n";
+
+echo "\nDone.\n";

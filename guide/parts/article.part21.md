@@ -350,17 +350,18 @@ describe('Anthropic API', function (): void {
 });
 ```
 
-Run integration tests separately to keep unit tests fast:
+Composer's default test commands exclude both `live` and `external` groups, so
+they are safe for routine local and CI runs. Live-provider tests are opt-in:
 
 ```bash
-# Run all tests except API integration
-./vendor/bin/pest --exclude-group=api
+# Default: excludes live-provider and external-service tests
+composer test
 
-# Run only API integration tests
-./vendor/bin/pest --group=api
+# Run only explicitly opted-in live-provider tests
+composer test:live
 
-# Run tests for specific provider
-./vendor/bin/pest --group=anthropic
+# Run the externally dependent observability suite when configured
+composer test:observability
 ```
 
 ## Testing Helper Functions
@@ -368,14 +369,17 @@ Run integration tests separately to keep unit tests fast:
 Pagent provides global helper functions - test them thoroughly:
 
 ```php
-test('it creates agent builders with agent() function', function (): void {
+test('agent() creates and registers an Agent immediately', function (): void {
+    clearAgents();
+
     $result = agent('new-agent');
 
-    expect($result)->toBeInstanceOf(AgentBuilder::class);
+    expect($result)->toBeInstanceOf(Agent::class)
+        ->and(getAgent('new-agent'))->toBe($result);
 });
 
 test('it retrieves existing agents with agent() function', function (): void {
-    // First create an agent
+    // `agent()` creates the registered instance on first use.
     agent('existing')
         ->provider('mock')
         ->system('Test agent');

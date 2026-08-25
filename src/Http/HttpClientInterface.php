@@ -22,7 +22,11 @@ interface HttpClientInterface
     ): HttpResponse;
 
     /**
-     * Perform an HTTP request and return a buffered stream transport.
+     * Start a lazy HTTP request and return an incremental stream transport.
+     *
+     * The request begins when status, headers, or chunks are consumed. Calling
+     * StreamTransport::resource() or getContent() materializes the full body
+     * for backwards compatibility.
      *
      * @param  array<string, string>  $headers
      * @param  array<string, mixed>|string|null  $json

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pagent\Contracts\OutputGuard;
 use Pagent\Guards\PIIGuard;
 
 test('it detects social security numbers', function (): void {
@@ -46,4 +47,13 @@ test('it provides correct name and message', function (): void {
 
     expect($guard->getName())->toBe('pii_guard')
         ->and($guard->getViolationMessage())->toContain('personally identifiable information');
+});
+
+test('it is an incrementally inspectable output-phase guard', function (): void {
+    $guard = new PIIGuard;
+
+    expect($guard)->toBeInstanceOf(OutputGuard::class)
+        ->and($guard->supportsIncrementalInspection())->toBeFalse()
+        ->and($guard->checkOutput('Email: test@example.com'))->toBeFalse()
+        ->and($guard->check('Email: test@example.com', 'No PII here'))->toBeTrue();
 });

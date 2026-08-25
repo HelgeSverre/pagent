@@ -5,6 +5,7 @@ declare(strict_types=1);
 require __DIR__.'/../vendor/autoload.php';
 
 use Dotenv\Dotenv;
+use Pagent\Contracts\Middleware;
 use Pagent\Middleware\MetricsMiddleware;
 use Pagent\Middleware\RateLimitMiddleware;
 
@@ -13,10 +14,9 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-echo "🔧 Pagent Middleware System Demo\n";
-echo "=================================\n\n";
+echo "[Pagent: Middleware System]\n";
 
-echo "=== Example 1: Metrics Middleware ===\n\n";
+echo "\n[Example 1: Metrics Middleware]\n";
 
 $metrics = new MetricsMiddleware;
 
@@ -37,7 +37,7 @@ echo '  Total requests: '.count($metrics->getMetrics())."\n";
 echo '  Average duration: '.round($metrics->getAverageDuration(), 2)."ms\n";
 echo '  Total tokens: '.$metrics->getTotalTokens()."\n\n";
 
-echo "=== Example 2: Rate Limiting ===\n\n";
+echo "\n[Example 2: Rate Limiting]\n";
 
 $rateLimit = new RateLimitMiddleware(maxRequests: 3, windowSeconds: 60);
 
@@ -69,7 +69,7 @@ try {
 
 echo "\n";
 
-echo "=== Example 3: Multiple Middleware ===\n\n";
+echo "\n[Example 3: Multiple Middleware]\n";
 
 $metricsMulti = new MetricsMiddleware;
 $rateLimitMulti = new RateLimitMiddleware(maxRequests: 5);
@@ -91,9 +91,9 @@ echo "After 1 request:\n";
 echo '  Metrics collected: '.count($metricsMulti->getMetrics())."\n";
 echo '  Rate limit remaining: '.$rateLimitMulti->getRemainingRequests()."/5\n\n";
 
-echo "=== Example 4: Custom Middleware ===\n\n";
+echo "\n[Example 4: Custom Middleware]\n";
 
-$customMiddleware = new class implements Pagent\Contracts\Middleware
+$customMiddleware = new class implements Middleware
 {
     public int $callCount = 0;
 
@@ -125,7 +125,7 @@ $customBot->prompt('Hello');
 
 echo "\nTotal calls tracked: {$customMiddleware->callCount}\n\n";
 
-echo "=== Example 5: Middleware Inspection ===\n\n";
+echo "\n[Example 5: Middleware Inspection]\n";
 
 $inspectBot = agent('multi-middleware-bot');
 
@@ -136,5 +136,4 @@ foreach ($inspectBot->getMiddleware() as $i => $mw) {
     echo '  '.($i + 1).". {$shortName}\n";
 }
 
-echo "\n✅ All middleware examples completed!\n";
-echo "\n🔧 Middleware system enables powerful extensibility!\n";
+echo "\nDone.\n";

@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use Pagent\Contracts\Tool;
 use Pagent\Mcp\McpClient;
 use Pagent\Mcp\McpToolAdapter;
+use Pagent\Tool\ToolSchemaSerializer;
 use Tests\Unit\Mcp\Transports\FakeTransport;
 
 beforeEach(function () {
@@ -220,5 +222,25 @@ test('adapter can be used as Pagent tool', function () {
     );
 
     // Verify it implements the Tool interface
-    expect($adapter)->toBeInstanceOf(\Pagent\Contracts\Tool::class);
+    expect($adapter)->toBeInstanceOf(Tool::class);
+});
+
+test('adapter metadata is serialized at the provider boundary', function (): void {
+    $adapter = new McpToolAdapter(
+        $this->client,
+        'calculator',
+        'Performs calculations',
+        [
+            'type' => 'object',
+            'properties' => ['expression' => ['type' => 'string']],
+            'required' => ['expression'],
+        ],
+    );
+
+    expect(ToolSchemaSerializer::anthropic($adapter))->toBe([
+        'name' => 'calculator',
+        'description' => 'Performs calculations',
+        'input_schema' => $adapter->getInputSchema(),
+    ])->and(ToolSchemaSerializer::openAI($adapter)['function']['parameters'])
+        ->toBe($adapter->getInputSchema());
 });

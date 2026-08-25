@@ -41,7 +41,7 @@ final class FileRead extends Tool
 
     public function execute(array $params): mixed
     {
-        $path = $params['path'] ?? throw new RuntimeException('Path parameter is required');
+        $path = $this->requiredString($params, 'path');
 
         // Resolve absolute path
         $absolutePath = $this->resolvePath($path);

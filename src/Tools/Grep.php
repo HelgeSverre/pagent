@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Pagent\Tools;
 
-use RuntimeException;
-
 final class Grep extends Tool
 {
     public function __construct(
@@ -48,9 +46,9 @@ final class Grep extends Tool
 
     public function execute(array $params): mixed
     {
-        $pattern = $params['pattern'] ?? throw new RuntimeException('Pattern parameter is required');
-        $files = $params['files'] ?? throw new RuntimeException('Files parameter is required');
-        $isRegex = $params['regex'] ?? false;
+        $pattern = $this->requiredString($params, 'pattern');
+        $files = $this->requiredString($params, 'files');
+        $isRegex = $this->optionalBool($params, 'regex', false);
 
         $baseDir = $this->baseDir ?? getcwd();
 

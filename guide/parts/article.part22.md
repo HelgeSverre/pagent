@@ -62,7 +62,7 @@ This outputs attributes like model names, token counts, and agent configuration:
 │  Duration: 1.201s
 │  Attributes:
 │    - gen_ai.system: anthropic
-│    - gen_ai.request.model: claude-sonnet-4-20250514
+│    - gen_ai.request.model: claude-sonnet-4-6
 │    - gen_ai.request.temperature: 1.0
 │    - gen_ai.usage.input_tokens: 45
 │    - gen_ai.usage.output_tokens: 12
@@ -261,7 +261,7 @@ telemetry_jaeger('http://localhost:4318/v1/traces', 'my-agent');
 
 $agent = agent('support-bot')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->telemetry(true)
     ->build();
 
@@ -315,7 +315,7 @@ telemetry_otlp(
 
 $agent = agent('code-reviewer')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->temperature(0.3)
     ->telemetry(true)
     ->build();
@@ -347,7 +347,7 @@ telemetry_console(verbose: true);
 // Create an agent with multiple tools
 $agent = agent('research-assistant')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->telemetry(true)
     ->build();
 

@@ -98,7 +98,7 @@ use Pagent\Tool\Tool;
 
 $researcher = agent('researcher')
     ->provider(anthropic())
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('You are a research assistant. Use tools to gather information.')
     ->tool(Tool::fromClosure(
         'search_web',
@@ -220,7 +220,7 @@ $sessionData = [];
 
 $orchestrator = agent('api_orchestrator')
     ->provider(anthropic())
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('Call APIs in the correct order respecting dependencies.')
     ->tool(Tool::fromClosure(
         'authenticate',

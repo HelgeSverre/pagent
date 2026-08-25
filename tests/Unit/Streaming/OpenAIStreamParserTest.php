@@ -56,6 +56,20 @@ test('it parses DONE marker', function (): void {
     fclose($stream);
 });
 
+test('it emits one terminal chunk when OpenAI sends finish reason and DONE', function (): void {
+    $events = "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"},\"index\":0}]}\n\n".
+        "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\",\"index\":0}]}\n\n".
+        "data: [DONE]\n\n";
+
+    $stream = createOpenAIStream($events);
+    $parser = new OpenAIStreamParser;
+    $chunks = iterator_to_array($parser->parse($stream, 'gpt-4'));
+
+    expect(array_values(array_filter($chunks, fn ($chunk) => $chunk->isEnd())))->toHaveCount(1);
+
+    fclose($stream);
+});
+
 test('it parses finish_reason', function (): void {
     $events = "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\",\"index\":0}]}\n\n";
 
@@ -82,6 +96,21 @@ test('it parses tool calls', function (): void {
     fclose($stream);
 });
 
+test('it retains tool identity across fragmented argument deltas', function (): void {
+    $events = "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_123\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{\"}}]},\"index\":0}]}\n\n".
+        "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"}\"}}]},\"index\":0}]}\n\n";
+
+    $stream = createOpenAIStream($events);
+    $parser = new OpenAIStreamParser;
+    $chunks = array_values(iterator_to_array($parser->parse($stream, 'gpt-4')));
+
+    expect($chunks)->toHaveCount(2)
+        ->and($chunks[1]->getMetadata('tool_call_id'))->toBe('call_123')
+        ->and($chunks[1]->getMetadata('tool_name'))->toBe('lookup');
+
+    fclose($stream);
+});
+
 test('it includes usage information when available', function (): void {
     $events = "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"},\"index\":0}],\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":5,\"total_tokens\":15}}\n\n".
               "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\",\"index\":0}]}\n\n";
@@ -92,6 +121,26 @@ test('it includes usage information when available', function (): void {
 
     $endChunks = array_filter($chunks, fn ($c) => $c->isEnd());
     expect($endChunks)->not->toBeEmpty();
+
+    fclose($stream);
+});
+
+test('it captures OpenAI usage-only chunks before the terminal marker', function (): void {
+    $events = "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"},\"index\":0}]}\n\n".
+        "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\",\"index\":0}]}\n\n".
+        "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":3,\"completion_tokens\":1,\"total_tokens\":4}}\n\n".
+        "data: [DONE]\n\n";
+
+    $stream = createOpenAIStream($events);
+    $parser = new OpenAIStreamParser;
+    $chunks = iterator_to_array($parser->parse($stream, 'gpt-4'));
+    $endChunk = array_values(array_filter($chunks, fn ($chunk) => $chunk->isEnd()))[0];
+
+    expect($endChunk->getMetadata('usage'))->toBe([
+        'prompt_tokens' => 3,
+        'completion_tokens' => 1,
+        'total_tokens' => 4,
+    ])->and($endChunk->getMetadata('finish_reason'))->toBe('stop');
 
     fclose($stream);
 });
@@ -144,4 +193,19 @@ test('it handles DONE marker without errors', function (): void {
     expect($endChunks)->not->toBeEmpty();
 
     fclose($stream);
+});
+
+test('it parses transport chunks that split SSE records', function (): void {
+    $chunks = (function () {
+        yield 'data: {"choices":[{"delta":{"content":"Hel';
+        yield 'lo"},"index":0}]}';
+        yield "\n\n";
+        yield "data: [DONE]\n\n";
+    })();
+
+    $parser = new OpenAIStreamParser;
+    $parsed = iterator_to_array($parser->parse($chunks, 'gpt-4'));
+
+    expect($parsed[0]->content)->toBe('Hello')
+        ->and($parsed[1]->isEnd())->toBeTrue();
 });

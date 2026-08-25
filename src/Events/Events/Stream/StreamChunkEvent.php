@@ -8,7 +8,7 @@ use Pagent\Agent;
 use Pagent\Events\Event;
 
 /**
- * Fired for each chunk received during streaming.
+ * Fired for each policy-approved text chunk delivered during streaming.
  *
  * Allows listeners to:
  * - Process chunks in real-time

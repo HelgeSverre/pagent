@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace Pagent\Providers;
 
 use Generator;
-use Pagent\Contracts\Provider;
+use InvalidArgumentException;
+use Pagent\Contracts\IdentifiedProvider;
+use Pagent\Contracts\StreamingProvider;
+use Pagent\ProviderCapabilities;
 use Pagent\Streaming\StreamChunk;
 use Pagent\Streaming\StreamResponse;
 
 use function mb_strlen;
 use function str_split;
 
-final class Mock implements Provider
+final class Mock implements IdentifiedProvider, StreamingProvider
 {
     private array $responses = [];
 
@@ -21,7 +24,7 @@ final class Mock implements Provider
     public function __construct(array $config = [])
     {
         $this->responses = $config['responses'] ?? [];
-        $this->chunkSize = $config['chunk_size'] ?? 10;
+        $this->setChunkSize((int) ($config['chunk_size'] ?? 10));
     }
 
     public function prompt(string $message, array $options = []): object
@@ -54,6 +57,20 @@ final class Mock implements Provider
         return new StreamResponse($generator, 'mock', 'mock');
     }
 
+    public function providerId(): string
+    {
+        return 'mock';
+    }
+
+    public function capabilities(): ProviderCapabilities
+    {
+        return new ProviderCapabilities(
+            supportsStreaming: true,
+            protocol: 'mock',
+            toolProtocol: 'none',
+        );
+    }
+
     /**
      * @return Generator<StreamChunk>
      */
@@ -69,7 +86,7 @@ final class Mock implements Provider
         ]);
 
         // Yield text chunks (split response into chunks)
-        $chunks = str_split($response, $this->chunkSize);
+        $chunks = str_split($response, max(1, $this->chunkSize));
         foreach ($chunks as $chunk) {
             yield StreamChunk::text($chunk);
         }
@@ -92,6 +109,10 @@ final class Mock implements Provider
 
     public function setChunkSize(int $size): void
     {
+        if ($size < 1) {
+            throw new InvalidArgumentException('Mock stream chunk size must be at least 1.');
+        }
+
         $this->chunkSize = $size;
     }
 }

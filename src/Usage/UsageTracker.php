@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Pagent\Usage;
 
-use Pagent\Agent;
 use Pagent\Events\Event;
 use Pagent\Events\EventListener;
+use Pagent\Events\EventManager;
 use Pagent\Events\Events\LLM\AfterLLMResponseEvent;
 use Pagent\Events\Events\Stream\StreamCompletedEvent;
+use Pagent\Events\EventSubscription;
 use Pagent\Usage\Storage\InMemoryUsageStorage;
 use Pagent\Usage\Storage\UsageStorage;
 
@@ -24,6 +25,16 @@ final class UsageTracker implements EventListener
      * Global singleton instance.
      */
     private static ?self $globalInstance = null;
+
+    /**
+     * Registration for the global tracker, if one is active.
+     */
+    private static ?EventSubscription $globalSubscription = null;
+
+    /**
+     * EventManager generation that owns the current registration.
+     */
+    private static ?int $globalManagerGeneration = null;
 
     /**
      * Configuration for the tracker.
@@ -125,7 +136,7 @@ final class UsageTracker implements EventListener
             model: $event->model,
             usage: $usage,
             cost: $cost,
-            sessionId: $this->getSessionId($event->agent)
+            sessionId: $event->agent->getSessionId()
         );
 
         // Store usage data
@@ -161,35 +172,11 @@ final class UsageTracker implements EventListener
             model: $event->model,
             usage: $event->usage,
             cost: $cost,
-            sessionId: $this->getSessionId($event->agent)
+            sessionId: $event->agent->getSessionId()
         );
 
         // Store usage data
         $this->storage->save($usageData);
-    }
-
-    /**
-     * Get session ID from agent if available.
-     */
-    private function getSessionId(Agent $agent): ?string
-    {
-        // Use reflection to check if sessionId property exists and get its value
-        try {
-            $reflection = new \ReflectionClass($agent);
-
-            if ($reflection->hasProperty('sessionId')) {
-                $property = $reflection->getProperty('sessionId');
-                $property->setAccessible(true);
-
-                $value = $property->getValue($agent);
-
-                return is_string($value) ? $value : null;
-            }
-        } catch (\ReflectionException) {
-            // Property doesn't exist or can't be accessed
-        }
-
-        return null;
     }
 
     /**
@@ -269,14 +256,11 @@ final class UsageTracker implements EventListener
      */
     public static function global(array $config = []): self
     {
-        if (self::$globalInstance === null) {
-            self::$globalInstance = new self($config);
+        $instance = self::$globalInstance ??= new self($config);
 
-            // Auto-register with EventManager
-            \Pagent\Events\EventManager::instance()->listen(self::$globalInstance);
-        }
+        self::registerGlobalInstance($instance);
 
-        return self::$globalInstance;
+        return $instance;
     }
 
     /**
@@ -286,6 +270,28 @@ final class UsageTracker implements EventListener
      */
     public static function resetGlobal(): void
     {
+        self::$globalSubscription?->unsubscribe();
         self::$globalInstance = null;
+        self::$globalSubscription = null;
+        self::$globalManagerGeneration = null;
+    }
+
+    /**
+     * Bind the singleton to the current EventManager exactly once.
+     */
+    private static function registerGlobalInstance(self $instance): void
+    {
+        $generation = EventManager::generation();
+
+        if (
+            self::$globalSubscription?->isActive()
+            && self::$globalManagerGeneration === $generation
+        ) {
+            return;
+        }
+
+        self::$globalSubscription?->unsubscribe();
+        self::$globalSubscription = EventManager::instance()->subscribe($instance);
+        self::$globalManagerGeneration = $generation;
     }
 }

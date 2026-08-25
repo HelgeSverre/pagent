@@ -437,7 +437,10 @@ try {
 }
 ```
 
-The `PromptInjectionGuard` (in `src/Guards/`) scans both input and output for common injection patterns like "ignore previous instructions", "new system prompt", etc.
+The `PromptInjectionGuard` (in `src/Guards/`) scans user input before the
+provider is called for common injection patterns like "ignore previous
+instructions" and "new instructions". It does not inspect provider output;
+combine it with an `OutputGuard` when both boundaries need protection.
 
 ### Custom Safety Rules
 

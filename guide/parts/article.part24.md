@@ -20,7 +20,7 @@ Create a service provider:
 php artisan make:provider PagentServiceProvider
 ```
 
-Register the global Registry as a singleton:
+Bind an application-owned agent registry and point the helper facade at it:
 
 ```php
 <?php
@@ -28,17 +28,16 @@ Register the global Registry as a singleton:
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Pagent\Registry;
+use Pagent\AgentRegistry;
+use Pagent\Registry as PagentRegistry;
 
 class PagentServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Register the global Registry
-        $this->app->singleton(Registry::class, fn() => new Registry);
-
-        // Make the agent() helper available
-        require_once base_path('vendor/pagent/pagent/src/functions.php');
+        $registry = new AgentRegistry;
+        $this->app->instance(AgentRegistry::class, $registry);
+        PagentRegistry::use($registry);
     }
 
     public function boot(): void
@@ -55,7 +54,7 @@ class PagentServiceProvider extends ServiceProvider
             ->provider('anthropic', [
                 'api_key' => config('services.anthropic.key'),
             ])
-            ->model('claude-sonnet-4-20250514')
+            ->model('claude-sonnet-4-6')
             ->system('You are a helpful customer support assistant.')
             ->maxTokens(2048)
             ->build();
@@ -119,7 +118,7 @@ return [
     'agents' => [
         'support' => [
             'provider' => 'anthropic',
-            'model' => 'claude-sonnet-4-20250514',
+            'model' => 'claude-sonnet-4-6',
             'system' => 'You are a helpful customer support assistant.',
         ],
 
@@ -138,7 +137,7 @@ Load agents from configuration in your service provider:
 private function registerProductionAgents(): void
 {
     foreach (config('pagent.agents', []) as $name => $config) {
-        $builder = agent($name)
+        $agent = agent($name)
             ->provider($config['provider'], [
                 'api_key' => config("services.{$config['provider']}.key"),
             ])
@@ -146,14 +145,14 @@ private function registerProductionAgents(): void
             ->system($config['system']);
 
         if (isset($config['temperature'])) {
-            $builder->temperature($config['temperature']);
+            $agent->temperature($config['temperature']);
         }
 
         if (isset($config['max_tokens'])) {
-            $builder->maxTokens($config['max_tokens']);
+            $agent->maxTokens($config['max_tokens']);
         }
 
-        $builder->build();
+        // agent() registered the instance immediately; no build step is needed.
     }
 }
 ```
@@ -506,7 +505,7 @@ class AgentFactory
     {
         return agent('support')
             ->provider('anthropic', ['api_key' => $this->anthropicKey])
-            ->model('claude-sonnet-4-20250514')
+            ->model('claude-sonnet-4-6')
             ->system('You are a helpful customer support assistant.')
             ->build();
     }

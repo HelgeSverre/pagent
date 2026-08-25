@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pagent\Guards;
 
-use Pagent\Contracts\Guard;
+use Pagent\Contracts\InputGuard;
 
 use function preg_match;
 
-final class PromptInjectionGuard implements Guard
+final class PromptInjectionGuard implements InputGuard
 {
     private array $suspiciousPatterns = [
         '/ignore\s+(previous|above|all)/i',
@@ -21,6 +21,11 @@ final class PromptInjectionGuard implements Guard
     ];
 
     public function check(string $input, string $output): bool
+    {
+        return $this->checkInput($input);
+    }
+
+    public function checkInput(string $input): bool
     {
         foreach ($this->suspiciousPatterns as $pattern) {
             if (preg_match($pattern, $input)) {

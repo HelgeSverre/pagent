@@ -277,20 +277,20 @@ Classic support tier system:
 ```php
 agent('tier1-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a friendly tier 1 support agent.
         Handle basic questions. If the issue is complex,
         say you need to escalate to senior support.');
 
 agent('tier2-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a senior support specialist.
         Handle complex technical issues and billing problems.');
 
 agent('manager')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a support manager.
         Handle escalations, complaints, and special requests.');
 
@@ -480,11 +480,11 @@ This is useful for creating agent workflows where the first agent is just a rout
 Pagent doesn't prevent circular handoffs. You must handle this in your application logic:
 
 ```php
-// ❌ Infinite loop danger
+// Infinite loop danger
 $agent1->handoff('agent2');
 $agent2->handoff('agent1');  // Creates circular reference
 
-// ✅ Track handoff chain
+// Track handoff chain
 function handoffWithTracking(Agent $from, string $to, array &$chain = []): Agent
 {
     if (in_array($to, $chain)) {
@@ -665,7 +665,7 @@ use function Pagent\agent;
 // Define support tiers
 agent('tier1-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a friendly tier 1 support agent.
         Handle basic questions about password resets, login issues,
         and general product questions. If you encounter billing,
@@ -673,20 +673,20 @@ agent('tier1-support')
 
 agent('tier2-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a senior support agent.
         Handle complex issues including billing problems,
         account issues, and technical troubleshooting.');
 
 agent('technical-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a senior developer providing technical support.
         Help with API issues, integration problems, and bugs.');
 
 agent('billing-specialist')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a billing specialist.
         Handle payment issues, refunds, and invoice questions.');
 
@@ -781,10 +781,10 @@ This example demonstrates:
 Always explain why the handoff occurred:
 
 ```php
-// ❌ No context
+// No context
 $target = $source->handoff('expert');
 
-// ✅ Clear context
+// Clear context
 $target = $source->handoff('expert', 'Customer needs API integration help');
 ```
 
@@ -793,10 +793,10 @@ $target = $source->handoff('expert', 'Customer needs API integration help');
 Each agent should have a clear, focused role:
 
 ```php
-// ❌ One agent does everything
+// One agent does everything
 agent('support')->system('Handle all support, billing, legal, and technical questions');
 
-// ✅ Specialized agents
+// Specialized agents
 agent('general-support')->system('Handle basic questions, route to specialists');
 agent('billing')->system('Handle billing and payment questions');
 agent('technical')->system('Handle technical and API questions');

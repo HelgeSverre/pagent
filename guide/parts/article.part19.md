@@ -188,7 +188,7 @@ The `resolveAgent()` helper function looks up agent names in the Registry:
 
 ```php
 // From src/functions.php:111-114
-function resolveAgent(string|Agent $agent): Agent|AgentBuilder
+function resolveAgent(string|Agent $agent): Agent
 {
     return is_string($agent) ? \agent($agent) : $agent;
 }
@@ -575,11 +575,11 @@ This structured format makes it easy to:
 Give each agent clear expertise:
 
 ```php
-// ❌ Generic agents
+// Generic agents
 $manager = agent('manager')->provider(anthropic())->build();
 $worker = agent('worker')->provider(anthropic())->build();
 
-// ✅ Specialized agents
+// Specialized agents
 $manager = agent('security-lead')
     ->provider(anthropic())
     ->system('You are a security architect reviewing implementations for vulnerabilities.')
@@ -598,10 +598,10 @@ Specialized system prompts improve output quality and create clear separation of
 Be specific about what you want:
 
 ```php
-// ❌ Vague
+// Vague
 $result = $manager->delegate('Do something with authentication')->to('worker')->execute();
 
-// ✅ Specific
+// Specific
 $result = $manager->delegate(
     'Implement JWT-based authentication middleware that validates tokens, ' .
     'checks expiration, and extracts user claims. Include error handling for ' .
@@ -721,13 +721,13 @@ In **Chapter 20: Building Multi-Agent Systems**, we'll explore:
 
 **Key Takeaways:**
 
-✅ Delegation follows a manager-worker-supervisor model
-✅ Use `to()` to assign tasks to worker agents by name or instance
-✅ Supervisors can accept, reject, or provide feedback on work
-✅ Completion callbacks enable workflow orchestration
-✅ Results are structured objects with full delegation metadata
-✅ Specialized system prompts improve delegation quality
-✅ Supervision adds quality control at the cost of extra LLM calls
-✅ Delegation provides more structure than handoff or pipeline patterns
+- Delegation follows a manager-worker-supervisor model
+- Use `to()` to assign tasks to worker agents by name or instance
+- Supervisors can accept, reject, or provide feedback on work
+- Completion callbacks support workflow orchestration
+- Results are structured objects with delegation metadata
+- Specialized system prompts separate responsibilities
+- Supervision adds an additional model call
+- Delegation provides more structure than handoff or pipeline patterns
 
-Continue to [Chapter 20: Building Multi-Agent Systems](./article.part20.md) →
+Continue to [Chapter 20: Evaluation Framework](./article.part20.md) →

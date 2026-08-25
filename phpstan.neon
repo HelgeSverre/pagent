@@ -12,7 +12,7 @@ parameters:
         - archive
 
     # PHP version compatibility
-    phpVersion: 80300
+    phpVersion: 80401
 
     parallel:
         maximumNumberOfProcesses: 0

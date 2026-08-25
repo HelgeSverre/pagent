@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pagent\Contracts\Provider;
 use Pagent\Workflow\Chain;
 
 test('chain executes steps sequentially', function () {
@@ -32,6 +33,24 @@ test('chain tracks metadata for each step', function () {
     expect($result->meta->totalTokens)->toBeGreaterThanOrEqual(0);
     expect($result->meta->duration)->toBeGreaterThan(0);
     expect($result->meta->stepsExecuted)->toBe(2);
+});
+
+test('chain aggregates usage arrays returned by providers', function () {
+    $provider = new class implements Provider
+    {
+        public function prompt(string $message, array $options = []): object
+        {
+            return (object) [
+                'content' => 'done',
+                'usage' => ['total_tokens' => 17],
+            ];
+        }
+    };
+
+    $result = Chain::create()->add($provider)->run('input');
+
+    expect($result->meta->totalTokens)->toBe(17)
+        ->and($result->steps[0]->meta->tokens)->toBe(17);
 });
 
 test('chain step results contain input and output', function () {

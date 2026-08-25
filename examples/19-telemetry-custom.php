@@ -11,12 +11,12 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-echo "=== Telemetry: Custom OTLP Configuration ===\n\n";
+echo "\n[Telemetry: Custom OTLP Configuration]\n";
 echo "This example demonstrates different telemetry configurations\n";
 echo "for various deployment scenarios and observability backends.\n\n";
 
 // Example 1: Basic OTLP with default settings
-echo "=== Example 1: Default OTLP Configuration ===\n\n";
+echo "\n[Example 1: Default OTLP Configuration]\n";
 
 telemetry_otlp();
 
@@ -27,7 +27,7 @@ echo "  Service: pagent (default)\n\n";
 
 agent('default-agent')
     ->provider('anthropic')
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful assistant.')
     ->telemetry(true);
 
@@ -37,7 +37,7 @@ echo "Response: {$response1->content}\n\n";
 echo "Traces sent to default OTLP endpoint.\n\n";
 
 // Example 2: Custom OTLP endpoint
-echo "=== Example 2: Custom OTLP Endpoint ===\n\n";
+echo "\n[Example 2: Custom OTLP Endpoint]\n";
 
 telemetry_otlp(
     endpoint: 'http://otel-collector:4318/v1/traces',
@@ -51,7 +51,7 @@ echo "  Service: my-app\n\n";
 
 agent('custom-agent')
     ->provider('anthropic')
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful assistant.')
     ->telemetry(true);
 
@@ -61,7 +61,7 @@ echo "Response: {$response2->content}\n\n";
 echo "Traces sent to custom OTLP collector.\n\n";
 
 // Example 3: OTLP with authentication headers
-echo "=== Example 3: OTLP with Authentication ===\n\n";
+echo "\n[Example 3: OTLP with Authentication]\n";
 
 telemetry_otlp(
     endpoint: 'https://api.honeycomb.io/v1/traces',
@@ -81,7 +81,7 @@ echo "  Service: pagent-production\n\n";
 echo "Note: Replace 'your-api-key-here' with actual API key\n\n";
 
 // Example 4: Zipkin exporter
-echo "=== Example 4: Zipkin Exporter ===\n\n";
+echo "\n[Example 4: Zipkin Exporter]\n";
 
 telemetry_zipkin('http://localhost:9411/api/v2/spans', 'pagent-app');
 
@@ -95,7 +95,7 @@ echo "  docker run -d -p 9411:9411 openzipkin/zipkin\n\n";
 
 agent('zipkin-agent')
     ->provider('anthropic')
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful assistant.')
     ->telemetry(true);
 
@@ -105,7 +105,7 @@ echo "Response: {$response3->content}\n\n";
 echo "View traces at: http://localhost:9411\n\n";
 
 // Example 5: Advanced configuration with telemetry() function
-echo "=== Example 5: Advanced Configuration ===\n\n";
+echo "\n[Example 5: Advanced Configuration]\n";
 
 telemetry([
     'enabled' => true,
@@ -134,7 +134,7 @@ echo "  Custom headers: Authorization, X-Custom-Header\n\n";
 
 agent('advanced-agent')
     ->provider('anthropic')
-    ->model('claude-3-5-sonnet-20241022')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful assistant.')
     ->telemetry(true);
 
@@ -142,7 +142,7 @@ $response4 = agent('advanced-agent')->prompt('Explain observability');
 echo "Response: {$response4->content}\n\n";
 
 // Example 6: Multiple exporters (simulation)
-echo "=== Example 6: Multiple Exporters (Concept) ===\n\n";
+echo "\n[Example 6: Multiple Exporters (Concept)]\n";
 
 echo "For multiple exporters, configure your OTLP collector to fan out:\n\n";
 
@@ -175,7 +175,7 @@ echo "telemetry_otlp('http://otel-collector:4318/v1/traces');\n";
 echo "```\n\n";
 
 // Example 7: Environment-based configuration
-echo "=== Example 7: Environment-Based Configuration ===\n\n";
+echo "\n[Example 7: Environment-Based Configuration]\n";
 
 echo "Production configuration example:\n\n";
 
@@ -201,7 +201,7 @@ echo "};\n";
 echo "```\n\n";
 
 // Example 8: Sampling configuration
-echo "=== Example 8: Sampling Configuration ===\n\n";
+echo "\n[Example 8: Sampling Configuration]\n";
 
 echo "For high-traffic applications, use sampling:\n\n";
 
@@ -219,7 +219,6 @@ echo "```\n\n";
 
 echo "Sampling reduces costs while maintaining visibility.\n\n";
 
-echo "✅ Custom telemetry configuration examples completed!\n\n";
 echo "Key points:\n";
 echo "- telemetry_console() for local development\n";
 echo "- telemetry_jaeger() for Jaeger backend\n";
@@ -230,3 +229,5 @@ echo "- Use headers for authentication (Honeycomb, New Relic, etc.)\n";
 echo "- OTLP collector can fan out to multiple backends\n";
 echo "- Sampling reduces costs in high-traffic scenarios\n";
 echo "- Configure based on environment (local/dev/staging/prod)\n";
+
+echo "\nDone.\n";

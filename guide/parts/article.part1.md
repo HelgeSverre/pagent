@@ -8,7 +8,7 @@ Pagent is a lightweight, framework-agnostic PHP library for building LLM-powered
 
 - **Fluent and expressive** - Chain methods naturally like writing prose
 - **Provider agnostic** - Switch between Anthropic, OpenAI, Ollama, or mock providers seamlessly
-- **Type-safe** - Built on PHP 8.3+ with strict types throughout
+- **Type-safe** - Built on PHP 8.4+ with strict types throughout
 - **Testing-friendly** - Mock providers and in-memory state make testing trivial
 - **Production-ready** - Battle-tested patterns for error handling, retries, and observability
 
@@ -16,7 +16,7 @@ Think of Pagent as Laravel's Eloquent, but for AI agents - minimal boilerplate, 
 
 ## Installation
 
-Pagent requires **PHP 8.3 or higher**. Install via Composer:
+Pagent requires **PHP 8.4 or higher**. Install via Composer:
 
 ```bash
 composer require pagent/pagent
@@ -47,8 +47,7 @@ use function Pagent\agent;
 
 $agent = agent('hello-world')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
-    ->build();
+    ->model('claude-sonnet-4-6');
 
 $response = $agent->prompt('Hello! Who are you?');
 
@@ -61,43 +60,54 @@ Let's break down what's happening here.
 ### The `agent()` Helper Function
 
 ```php
-function agent(string $name): Agent|AgentBuilder
+function agent(string $name): Agent
 ```
 
-The `agent()` function is your entry point into Pagent. It returns an `AgentBuilder` instance when creating a new agent, or an existing `Agent` if you've previously registered one with that name.
+The `agent()` function is your entry point into Pagent. It creates or retrieves a
+named `Agent` and registers a newly created agent immediately. Configuration is
+fluent directly on that `Agent`; there is no implicit builder lifecycle.
 
-This dual behavior enables a powerful pattern - define an agent once, retrieve it anywhere:
+This makes it safe to configure an agent once and retrieve the same instance
+anywhere in the current registry:
 
 ```php
 // First call: creates and configures agent
 agent('chatbot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
-    ->system('You are a helpful chatbot')
-    ->build();
+    ->model('claude-sonnet-4-6')
+    ->system('You are a helpful chatbot');
 
 // Later, anywhere in your code: retrieves the same agent
 $chatbot = agent('chatbot');
 $chatbot->prompt('What can you help me with?');
 ```
 
-ℹ️ **Note:** The builder automatically registers agents in the global `Registry` when you call `build()` or when the builder is destructed. This happens through `AgentBuilder`'s `__destruct()` method.
+Use `getAgent('chatbot')` when a lookup must not create an agent. It returns
+`null` when no such name is registered.
 
-### The Builder Pattern
+### Explicit Builder Compatibility
 
-Pagent uses a fluent builder pattern for agent configuration:
+`defineAgent()` is available for code that deliberately wants a builder boundary.
+It wraps an already-registered `Agent`; call `register()` (or `build()`) to make
+that handoff explicit. `Agent::build()` is a compatibility no-op that returns the
+same agent, so it is harmless but unnecessary in new code.
 
 ```php
-agent('my-agent')
+use function Pagent\defineAgent;
+use function Pagent\getAgent;
+
+$agent = defineAgent('my-agent')
     ->provider('anthropic')      // Set LLM provider
-    ->model('claude-sonnet-4')   // Choose model
+    ->model('claude-sonnet-4-6') // Choose model
     ->temperature(0.7)            // Control randomness (0.0-2.0)
     ->maxTokens(1024)            // Limit response length
     ->system('You are X')        // Set system prompt
-    ->build();                   // Finalize and register
+    ->register();                // Explicit builder handoff
+
+assert(getAgent('my-agent') === $agent);
 ```
 
-Every method returns `$this`, enabling method chaining. The `build()` method returns the final `Agent` instance and registers it in the global registry.
+For ordinary configuration, prefer `agent('my-agent')->provider(...)->model(...)`.
 
 ### The Provider Interface
 
@@ -164,7 +174,7 @@ use function Pagent\agent;
 // Configure the agent
 agent('assistant')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful, concise assistant.')
     ->temperature(0.7)
     ->maxTokens(500)
@@ -218,7 +228,7 @@ $agent->prompt('How are you?');
 expect($agent->messages)->toHaveCount(4); // 2 user + 2 assistant
 ```
 
-⚠️ **Warning:** Conversation history is stored in-memory only. If you need persistence, you'll need to implement your own storage layer or use Pagent's memory adapters (covered in Chapter 8).
+**Warning:** Conversation history is stored in-memory only. If you need persistence, you'll need to implement your own storage layer or use Pagent's memory adapters (covered in Chapter 8).
 
 ## Configuration and Parameters
 
@@ -229,7 +239,7 @@ Pagent provides fluent methods for all common LLM parameters:
 ```php
 agent('writer')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->build();
 ```
 
@@ -339,7 +349,7 @@ it('greets users correctly', function () {
 });
 ```
 
-✅ **Best Practice:** Always use mock providers in unit tests. Reserve real API calls for integration tests with the `@group api` annotation.
+**Best Practice:** Always use mock providers in unit tests. Reserve real API calls for integration tests with the `@group api` annotation.
 
 ## Response Objects
 
@@ -366,7 +376,7 @@ return (object) [
 ];
 ```
 
-⚠️ **Warning:** Different providers may include additional fields (like `tool_calls`, `finish_reason`, etc). Always check the provider's documentation for the complete response structure.
+**Warning:** Different providers may include additional fields (like `tool_calls`, `finish_reason`, etc). Always check the provider's documentation for the complete response structure.
 
 ## Error Handling
 
@@ -447,7 +457,7 @@ $translator = agent('translator');
 $coder = agent('coder');
 ```
 
-💡 **Tip:** Call `clearAgents()` in your test setup to ensure a clean state between tests.
+**Tip:** Call `clearAgents()` in your test setup to ensure a clean state between tests.
 
 ## Complete Example: Multi-Agent System
 
@@ -466,21 +476,21 @@ use function Pagent\clearAgents;
 // Define specialist agents
 agent('technical-support')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a technical support specialist. Provide detailed troubleshooting steps.')
     ->temperature(0.3)
     ->build();
 
 agent('sales')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a friendly sales representative. Help customers find the right product.')
     ->temperature(0.7)
     ->build();
 
 agent('general')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a general support agent. Answer common questions briefly.')
     ->temperature(0.5)
     ->build();
@@ -539,11 +549,11 @@ In **Chapter 2: Working with Providers**, we'll dive deeper into:
 
 **Key Takeaways:**
 
-✅ Pagent uses a fluent API inspired by Pest
-✅ The `agent()` function creates or retrieves agents from a global registry
-✅ Provider abstraction enables seamless switching between LLM providers
-✅ Agents maintain in-memory conversation history automatically
-✅ Mock providers make testing trivial without API calls
-✅ All configuration is validated before reaching the provider layer
+- Pagent uses a fluent API inspired by Pest
+- The `agent()` function creates or retrieves agents from a global registry
+- Provider abstraction enables switching between LLM providers
+- Agents maintain in-memory conversation history automatically
+- Mock providers support tests without API calls
+- Configuration is validated before reaching the provider layer
 
 Continue to [Chapter 2: Working with Providers](./article.part2.md) →

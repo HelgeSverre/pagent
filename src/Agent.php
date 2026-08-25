@@ -5,14 +5,20 @@ declare(strict_types=1);
 namespace Pagent;
 
 use Closure;
+use Generator;
 use Pagent\Contracts\Guard;
+use Pagent\Contracts\IdentifiedProvider;
+use Pagent\Contracts\InputGuard;
 use Pagent\Contracts\Memory;
 use Pagent\Contracts\Middleware;
+use Pagent\Contracts\OutputGuard;
 use Pagent\Contracts\Provider;
-use Pagent\Contracts\ToolInterface;
+use Pagent\Contracts\StreamingProvider;
+use Pagent\Contracts\Tool as ToolContract;
 use Pagent\Events\Event;
 use Pagent\Events\EventDispatcher;
 use Pagent\Events\EventListener;
+use Pagent\Events\EventManager;
 use Pagent\Events\Events\Agent\AfterPromptEvent;
 use Pagent\Events\Events\Agent\BeforePromptEvent;
 use Pagent\Events\Events\Agent\ContextPrunedEvent;
@@ -26,18 +32,29 @@ use Pagent\Events\Events\Memory\MemoryLoadedEvent;
 use Pagent\Events\Events\Memory\MemoryLoadingEvent;
 use Pagent\Events\Events\Memory\MemorySavedEvent;
 use Pagent\Events\Events\Memory\MemorySavingEvent;
+use Pagent\Events\Events\Stream\StreamChunkEvent;
 use Pagent\Events\Events\Stream\StreamCompletedEvent;
 use Pagent\Events\Events\Stream\StreamStartedEvent;
 use Pagent\Events\Events\Tool\ToolErrorEvent;
 use Pagent\Events\Events\Tool\ToolExecutedEvent;
 use Pagent\Events\Events\Tool\ToolExecutingEvent;
 use Pagent\Exceptions\GuardException;
+use Pagent\Guards\LegacyGuardAdapter;
+use Pagent\Memory\Adapters\FileAdapter;
+use Pagent\Memory\Adapters\NullAdapter;
+use Pagent\Memory\Adapters\SqliteAdapter;
 use Pagent\Memory\ContextManager;
 use Pagent\Observability\NullSpan;
 use Pagent\Observability\Span;
 use Pagent\Observability\TelemetryManager;
+use Pagent\Streaming\StreamChunk;
 use Pagent\Streaming\StreamResponse;
 use Pagent\Tool\Tool;
+use Pagent\Tool\ToolCallArgumentNormalizer;
+use Pagent\Tool\ToolSchemaSerializer;
+use Pagent\Usage\Storage\UsageStorage;
+use Pagent\Usage\UsageData;
+use Pagent\Usage\UsageTracker;
 use RuntimeException;
 use Throwable;
 
@@ -50,7 +67,6 @@ use function asort;
 use function class_exists;
 use function count;
 use function date;
-use function get_class;
 use function implode;
 use function is_array;
 use function is_string;
@@ -58,8 +74,8 @@ use function json_decode;
 use function json_encode;
 use function levenshtein;
 use function sprintf;
-use function str_contains;
 use function strlen;
+use function strtolower;
 use function ucfirst;
 
 /**
@@ -84,7 +100,7 @@ final class Agent
 
     private ?Provider $provider = null;
 
-    /** @var ToolInterface[] */
+    /** @var ToolContract[] */
     private array $tools = [];
 
     /** @var Guard[] */
@@ -99,6 +115,10 @@ final class Agent
 
     private ?string $sessionId = null;
 
+    private bool $sessionLoaded = false;
+
+    private bool $turnInProgress = false;
+
     private ?ContextManager $contextManager = null;
 
     public bool $telemetryEnabled = false;
@@ -107,7 +127,7 @@ final class Agent
 
     private EventDispatcher $eventDispatcher;
 
-    private ?\Pagent\Usage\UsageTracker $usageTracker = null;
+    private ?UsageTracker $usageTracker = null;
 
     public function __construct(
         private readonly string $name,
@@ -115,10 +135,19 @@ final class Agent
         $this->eventDispatcher = new EventDispatcher;
     }
 
-    public function provider(Provider $provider): self
+    public function provider(string|Provider $provider, array $config = []): self
     {
-        $this->provider = $provider;
+        $this->provider = ProviderFactory::resolve($provider, $config);
+        $this->cachedToolSchemas = null;
 
+        return $this;
+    }
+
+    /**
+     * Compatibility terminal for code that previously received AgentBuilder.
+     */
+    public function build(): self
+    {
         return $this;
     }
 
@@ -173,27 +202,45 @@ final class Agent
     {
         if ($adapter instanceof Memory) {
             $this->memory = $adapter;
+            $this->sessionLoaded = false;
 
             return $this;
         }
 
-        // Resolve string to adapter class
-        $adapterClass = "Pagent\\Memory\\Adapters\\{$adapter}Adapter";
-
-        if (! class_exists($adapterClass)) {
-            throw new RuntimeException("Memory adapter class '{$adapterClass}' not found");
-        }
-
-        $this->memory = new $adapterClass($config);
+        $this->memory = match (strtolower($adapter)) {
+            'file' => new FileAdapter($config),
+            'sqlite' => new SqliteAdapter($config),
+            'null' => new NullAdapter($config),
+            default => throw new RuntimeException("Unknown memory adapter '{$adapter}'"),
+        };
+        $this->sessionLoaded = false;
 
         return $this;
     }
 
     public function sessionId(string $id): self
     {
+        if ($this->turnInProgress) {
+            throw new RuntimeException('Cannot switch sessions while a turn is in progress.');
+        }
+
+        if ($this->sessionId === $id) {
+            return $this;
+        }
+
         $this->sessionId = $id;
+        $this->messages = [];
+        $this->sessionLoaded = false;
 
         return $this;
+    }
+
+    /**
+     * Create an isolated conversation instance from this agent definition.
+     */
+    public function forSession(string $id): self
+    {
+        return $this->clone($this->name)->sessionId($id);
     }
 
     public function contextWindow(int $maxTokens, string $strategy = 'oldest'): self
@@ -219,20 +266,17 @@ final class Agent
      * Creates a dedicated UsageTracker for this agent that only tracks
      * operations from this specific agent.
      *
-     * @param  array{enabled?: bool, track_llm?: bool, track_streaming?: bool, storage?: \Pagent\Usage\Storage\UsageStorage, pricing?: array<string, array<string, array{input: float, output: float, cached_input?: float}>>}  $config  Tracker configuration
+     * @param  array{enabled?: bool, track_llm?: bool, track_streaming?: bool, storage?: UsageStorage, pricing?: array<string, array<string, array{input: float, output: float, cached_input?: float}>>}  $config  Tracker configuration
      */
     public function trackUsage(array $config = []): self
     {
-        $this->usageTracker = new \Pagent\Usage\UsageTracker($config);
+        $this->usageTracker = new UsageTracker($config);
 
-        // Register with this agent's EventDispatcher AND global EventManager
-        // Agent's dispatcher for events from this agent
+        // Dedicated trackers stay scoped to this agent definition. Global
+        // tracking is configured separately through usage_tracker().
         foreach ($this->usageTracker->listensTo() as $eventName) {
             $this->eventDispatcher->on($eventName, $this->usageTracker);
         }
-
-        // Global EventManager for events from other agents (if using global tracker)
-        \Pagent\Events\EventManager::instance()->listen($this->usageTracker);
 
         return $this;
     }
@@ -244,7 +288,7 @@ final class Agent
      * - The agent's dedicated tracker (if trackUsage() was called)
      * - The global tracker (if usage_tracker() was called globally)
      *
-     * @return array<int, \Pagent\Usage\UsageData>
+     * @return array<int, UsageData>
      */
     public function getUsage(): array
     {
@@ -255,10 +299,10 @@ final class Agent
 
         // Fall back to global tracker if available
         try {
-            $globalTracker = \Pagent\Usage\UsageTracker::global();
+            $globalTracker = UsageTracker::global();
 
             return $globalTracker->byAgent($this->name);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // No tracker available
             return [];
         }
@@ -318,41 +362,22 @@ final class Agent
             throw new RuntimeException("No provider set for agent '{$this->name}'");
         }
 
+        $this->beginTurn();
+
         // Start agent operation span
         $span = $this->startOperationSpan('prompt', [
             'agent.session_id' => $this->sessionId ?? 'none',
         ]);
+        $conversationSnapshot = null;
+        $turnCommitted = false;
 
         try {
-            // Auto-load from memory if configured and messages are empty
-            if ($this->memory && $this->sessionId && empty($this->messages)) {
-                $memorySpan = $this->telemetryEnabled
-                    ? TelemetryManager::instance()->startSpan('memory.load', [
-                        'session_id' => $this->sessionId,
-                    ])
-                    : new NullSpan;
+            $this->loadMemory();
 
-                try {
-                    $this->fireEvent(new MemoryLoadingEvent($this, $this->sessionId));
+            $conversationSnapshot = $this->messages;
 
-                    $loaded = $this->memory->load($this->sessionId);
-                    $this->messages = $loaded;
-
-                    $this->fireEvent(new MemoryLoadedEvent($this, $this->sessionId, $loaded));
-
-                    $memorySpan->setAttributes([
-                        'message_count' => count($loaded),
-                    ]);
-                    $memorySpan->setStatus('ok');
-                } catch (Throwable $e) {
-                    $memorySpan->recordException($e);
-                    $memorySpan->setStatus('error', $e->getMessage());
-
-                    throw $e;
-                } finally {
-                    $memorySpan->end();
-                }
-            }
+            // Input guards must run before the prompt reaches a provider or tool.
+            $this->runInputGuardsWithSpans($message);
 
             // Add to message history
             $this->messages[] = ['role' => 'user', 'content' => $message];
@@ -360,56 +385,9 @@ final class Agent
             // Fire before prompt event
             $this->fireEvent(new BeforePromptEvent($this, $message, $options));
 
-            // Merge agent config with prompt options
-            $mergedOptions = array_merge($this->config, $options);
+            $mergedOptions = $this->prepareProviderOptions($this->messages, $options, $span);
 
-            // Apply context pruning if configured
-            $messagesToSend = $this->messages;
-            if ($this->contextManager) {
-                $originalCount = count($this->messages);
-                $messagesToSend = $this->contextManager->prune($this->messages);
-                $prunedCount = count($messagesToSend);
-
-                if ($originalCount !== $prunedCount) {
-                    // Fire context pruned event
-                    $this->fireEvent(new ContextPrunedEvent(
-                        $this,
-                        $originalCount,
-                        $prunedCount,
-                        ($originalCount - $prunedCount) * 100 // Rough estimate: 100 tokens per message
-                    ));
-
-                    if ($span instanceof Span) {
-                        $span->addEvent('context.pruned', [
-                            'from' => $originalCount,
-                            'to' => $prunedCount,
-                        ]);
-                    }
-                }
-            }
-
-            // If we have message history, pass it along
-            if (! empty($messagesToSend)) {
-                $mergedOptions['messages'] = $messagesToSend;
-            }
-
-            // Add tool schemas if we have tools
-            if (! empty($this->tools)) {
-                $mergedOptions['tools'] = $this->getToolSchemas();
-            }
-
-            // Run before middleware
-            foreach ($this->middleware as $mw) {
-                $mergedOptions = $mw->before($message, $mergedOptions);
-            }
-
-            // Call provider with LLM span
-            $response = $this->callProviderWithSpan($message, $mergedOptions);
-
-            // Run after middleware
-            foreach ($this->middleware as $mw) {
-                $response = $mw->after($response);
-            }
+            $response = $this->callProviderRound($message, $mergedOptions);
 
             // Handle tool calls automatically
             $toolCallDepth = 0;
@@ -425,47 +403,18 @@ final class Agent
                     );
                 }
 
-                $response = $this->handleToolCalls($response);
+                $response = $this->handleToolCalls($response, $mergedOptions);
             }
 
-            // Run guards on the response
-            if (! empty($this->guards)) {
-                $this->runGuardsWithSpans($message, $response->content ?? '');
-            }
+            $content = $this->responseContent($response);
+            $this->runOutputGuardsWithSpans($message, $content);
 
             // Add final response to history
-            if (isset($response->content) && ! empty($response->content)) {
-                $this->messages[] = ['role' => 'assistant', 'content' => $response->content];
+            if ($content !== '') {
+                $this->messages[] = ['role' => 'assistant', 'content' => $content];
             }
 
-            // Auto-save to memory if configured
-            if ($this->memory && $this->sessionId) {
-                $memorySpan = $this->telemetryEnabled
-                    ? TelemetryManager::instance()->startSpan('memory.save', [
-                        'session_id' => $this->sessionId,
-                    ])
-                    : new NullSpan;
-
-                try {
-                    $this->fireEvent(new MemorySavingEvent($this, $this->sessionId, $this->messages));
-
-                    $this->memory->save($this->sessionId, $this->messages);
-
-                    $this->fireEvent(new MemorySavedEvent($this, $this->sessionId, $this->messages));
-
-                    $memorySpan->setAttributes([
-                        'message_count' => count($this->messages),
-                    ]);
-                    $memorySpan->setStatus('ok');
-                } catch (Throwable $e) {
-                    $memorySpan->recordException($e);
-                    $memorySpan->setStatus('error', $e->getMessage());
-
-                    throw $e;
-                } finally {
-                    $memorySpan->end();
-                }
-            }
+            $this->saveMemory($turnCommitted);
 
             // Set span status to ok
             if ($span instanceof Span) {
@@ -476,27 +425,43 @@ final class Agent
             $this->fireEvent(new AfterPromptEvent(
                 $this,
                 $message,
-                $response->content ?? '',
+                $content,
                 $options
             ));
 
             return $response;
         } catch (GuardException $e) {
+            if ($this->shouldBypassGuardFallback($e, $turnCommitted)) {
+                if ($span instanceof Span) {
+                    $span->recordException($e);
+                    $span->setStatus('error', $e->getMessage());
+                }
+
+                throw $e;
+            }
+
+            $this->messages = $conversationSnapshot;
+
             if ($span instanceof Span) {
                 $span->recordException($e);
                 $span->setStatus('error', $e->getMessage());
             }
 
             if ($this->fallback) {
-                // Fire guard fallback event
-                $this->fireEvent(new GuardFallbackEvent(
-                    $this,
-                    $e->guardName,
-                    1, // attemptNumber
-                    1  // maxAttempts (no retry logic currently)
-                ));
+                try {
+                    $fallbackContent = $this->commitGuardFallback(
+                        $e,
+                        $message,
+                        $options,
+                        $turnCommitted,
+                    );
+                } catch (Throwable $fallbackException) {
+                    if (! $turnCommitted) {
+                        $this->messages = $conversationSnapshot;
+                    }
 
-                $fallbackContent = ($this->fallback)($e);
+                    throw $fallbackException;
+                }
 
                 if ($span instanceof Span) {
                     $span->setStatus('ok', 'Fallback applied');
@@ -513,6 +478,10 @@ final class Agent
 
             throw $e;
         } catch (Throwable $e) {
+            if ($conversationSnapshot !== null && ! $turnCommitted) {
+                $this->messages = $conversationSnapshot;
+            }
+
             if ($span instanceof Span) {
                 $span->recordException($e);
                 $span->setStatus('error', $e->getMessage());
@@ -523,7 +492,7 @@ final class Agent
             if ($span instanceof Span) {
                 $span->end();
             }
-
+            $this->endTurn();
         }
     }
 
@@ -532,50 +501,103 @@ final class Agent
      */
     public function stream(string $message, array $options = []): StreamResponse
     {
-        if (! $this->provider) {
+        if (! $this->provider instanceof StreamingProvider) {
             throw new RuntimeException("No provider set for agent '{$this->name}'");
         }
 
-        // Check if provider supports streaming
-        if (! method_exists($this->provider, 'streamPrompt')) {
-            throw new RuntimeException(
-                'Provider '.get_class($this->provider).' does not support streaming. '.
-                'Use the prompt() method instead.'
+        $this->beginTurn();
+        $span = $this->startOperationSpan('stream', [
+            'agent.session_id' => $this->sessionId ?? 'none',
+        ]);
+        $startedAt = microtime(true);
+        $committed = false;
+
+        try {
+            $this->loadMemory();
+            $snapshot = $this->messages;
+            $this->runInputGuardsWithSpans($message);
+            $this->messages[] = ['role' => 'user', 'content' => $message];
+            $this->fireEvent(new BeforePromptEvent($this, $message, $options));
+            $mergedOptions = $this->prepareProviderOptions($this->messages, $options, $span);
+
+            foreach ($this->middleware as $middleware) {
+                $mergedOptions = $middleware->before($message, $mergedOptions);
+            }
+
+            $providerName = $this->getProviderName();
+            $model = $mergedOptions['model'] ?? $this->config['model'] ?? 'unknown';
+            $this->fireEvent(new StreamStartedEvent($this, $providerName, $model));
+
+            $providerResponse = $this->provider->streamPrompt($message, $mergedOptions);
+            $buffered = $this->requiresBufferedStreaming();
+            $stream = new StreamResponse(
+                stream: $this->streamWithPolicies($providerResponse, $message, $buffered),
+                provider: $providerResponse->getProvider(),
+                model: $providerResponse->getModel(),
+                canceller: static function () use ($providerResponse): void {
+                    $providerResponse->cancel();
+                },
             );
+
+            $stream->onComplete(function (StreamResponse $response) use ($message, $options, $snapshot, $span, $startedAt, &$committed): void {
+                try {
+                    $content = $response->getFullContent();
+                    if ($content !== '') {
+                        $this->messages[] = ['role' => 'assistant', 'content' => $content];
+                    }
+                    $this->saveMemory($committed);
+                    $this->fireEvent(new AfterPromptEvent($this, $message, $content, $options));
+                    $this->fireEvent(new StreamCompletedEvent(
+                        $this,
+                        $content,
+                        count($response->getChunks()),
+                        (microtime(true) - $startedAt) * 1000,
+                        $response->getProvider(),
+                        $response->getModel(),
+                        $response->getUsage() ?? []
+                    ));
+                    $span?->setStatus('ok');
+                } catch (Throwable $exception) {
+                    if (! $committed) {
+                        $this->messages = $snapshot;
+                    }
+                    $span?->recordException($exception);
+                    $span?->setStatus('error', $exception->getMessage());
+
+                    throw $exception;
+                } finally {
+                    $span?->end();
+                    $this->endTurn();
+                }
+            });
+
+            $stream->onError(function (Throwable $exception) use ($snapshot, $span, &$committed): void {
+                if (! $committed) {
+                    $this->messages = $snapshot;
+                }
+                $span?->recordException($exception);
+                $span?->setStatus('error', $exception->getMessage());
+                $span?->end();
+                $this->endTurn();
+            });
+            $stream->onCancel(function () use ($snapshot, $span): void {
+                $this->messages = $snapshot;
+                $span?->end();
+                $this->endTurn();
+            });
+
+            return $stream;
+        } catch (Throwable $exception) {
+            if (isset($snapshot)) {
+                $this->messages = $snapshot;
+            }
+            $span?->recordException($exception);
+            $span?->setStatus('error', $exception->getMessage());
+            $span?->end();
+            $this->endTurn();
+
+            throw $exception;
         }
-
-        // Add to message history
-        $this->messages[] = ['role' => 'user', 'content' => $message];
-
-        // Merge agent config with prompt options
-        $mergedOptions = array_merge($this->config, $options);
-
-        // If we have message history, pass it along
-        if (! empty($this->messages)) {
-            $mergedOptions['messages'] = $this->messages;
-        }
-
-        // Add tool schemas if we have tools
-        if (! empty($this->tools)) {
-            $mergedOptions['tools'] = $this->getToolSchemas();
-        }
-
-        // Run before middleware
-        foreach ($this->middleware as $mw) {
-            $mergedOptions = $mw->before($message, $mergedOptions);
-        }
-
-        // Get provider info for events
-        $providerName = $this->getProviderName();
-        $model = $mergedOptions['model'] ?? $this->config['model'] ?? 'unknown';
-
-        // Fire stream started event
-        $this->fireEvent(new StreamStartedEvent($this, $providerName, $model));
-
-        // Call provider's streaming method
-        $streamResponse = $this->provider->streamPrompt($message, $mergedOptions);
-
-        return $streamResponse;
     }
 
     /**
@@ -583,155 +605,67 @@ final class Agent
      */
     public function streamTo(string $message, callable $callback, array $options = []): string
     {
-        // Start agent operation span
-        $span = $this->startOperationSpan('stream', [
-            'agent.session_id' => $this->sessionId ?? 'none',
-        ]);
-
-        $startTime = microtime(true);
+        $callbackFailure = new class
+        {
+            public ?Throwable $exception = null;
+        };
 
         try {
-            // Auto-load from memory if configured and messages are empty
-            if ($this->memory && $this->sessionId && empty($this->messages)) {
-                $memorySpan = $this->telemetryEnabled
-                    ? TelemetryManager::instance()->startSpan('memory.load', [
-                        'session_id' => $this->sessionId,
-                    ])
-                    : new NullSpan;
-
+            $response = $this->stream($message, $options);
+            $response->streamTo(function (StreamChunk $chunk) use ($callback, $callbackFailure): void {
                 try {
-                    $this->fireEvent(new MemoryLoadingEvent($this, $this->sessionId));
+                    $callback($chunk);
+                } catch (Throwable $exception) {
+                    $callbackFailure->exception = $exception;
 
-                    $loaded = $this->memory->load($this->sessionId);
-                    $this->messages = $loaded;
-
-                    $this->fireEvent(new MemoryLoadedEvent($this, $this->sessionId, $loaded));
-
-                    $memorySpan->setAttributes([
-                        'message_count' => count($loaded),
-                    ]);
-                    $memorySpan->setStatus('ok');
-                } catch (Throwable $e) {
-                    $memorySpan->recordException($e);
-                    $memorySpan->setStatus('error', $e->getMessage());
-
-                    throw $e;
-                } finally {
-                    $memorySpan->end();
+                    throw $exception;
                 }
+            });
+
+            return $response->getFullContent();
+        } catch (GuardException $exception) {
+            if ($callbackFailure->exception === $exception) {
+                throw $exception;
             }
 
-            $streamResponse = $this->stream($message, $options);
-
-            // Stream to callback and collect full content
-            $streamResponse->streamTo($callback);
-
-            $fullContent = $streamResponse->getFullContent();
-
-            // Add assistant response to history
-            if (! empty($fullContent)) {
-                $this->messages[] = ['role' => 'assistant', 'content' => $fullContent];
+            if (! $exception->policyViolation || $this->fallback === null) {
+                throw $exception;
             }
 
-            // Run guards on the full response
-            if (! empty($this->guards)) {
-                $this->runGuardsWithSpans($message, $fullContent);
-            }
+            // stream() has already restored the conversation and released the
+            // failed turn. Commit the fallback as its own atomic terminal path.
+            $this->beginTurn();
+            $snapshot = $this->messages;
+            $committed = false;
 
-            // Auto-save to memory if configured
-            if ($this->memory && $this->sessionId) {
-                $memorySpan = $this->telemetryEnabled
-                    ? TelemetryManager::instance()->startSpan('memory.save', [
-                        'session_id' => $this->sessionId,
-                    ])
-                    : new NullSpan;
-
-                try {
-                    $this->fireEvent(new MemorySavingEvent($this, $this->sessionId, $this->messages));
-
-                    $this->memory->save($this->sessionId, $this->messages);
-
-                    $this->fireEvent(new MemorySavedEvent($this, $this->sessionId, $this->messages));
-
-                    $memorySpan->setAttributes([
-                        'message_count' => count($this->messages),
-                    ]);
-                    $memorySpan->setStatus('ok');
-                } catch (Throwable $e) {
-                    $memorySpan->recordException($e);
-                    $memorySpan->setStatus('error', $e->getMessage());
-
-                    throw $e;
-                } finally {
-                    $memorySpan->end();
-                }
-            }
-
-            // Calculate duration and fire stream completed event
-            $durationMs = (microtime(true) - $startTime) * 1000;
-
-            // Get total chunks from stream response
-            $totalChunks = count($streamResponse->getChunks());
-
-            $this->fireEvent(new StreamCompletedEvent(
-                $this,
-                $fullContent,
-                $totalChunks,
-                $durationMs,
-                $streamResponse->getProvider(),
-                $streamResponse->getModel(),
-                $streamResponse->getUsage() ?? []
-            ));
-
-            // Set span status to ok
-            if ($span instanceof Span) {
-                $span->setStatus('ok');
-            }
-
-            return $fullContent;
-        } catch (GuardException $e) {
-            if ($span instanceof Span) {
-                $span->recordException($e);
-                $span->setStatus('error', $e->getMessage());
-            }
-
-            if ($this->fallback) {
-                // Fire guard fallback event
-                $this->fireEvent(new GuardFallbackEvent(
-                    $this,
-                    $e->guardName,
-                    1, // attemptNumber
-                    1  // maxAttempts (no retry logic currently)
-                ));
-
-                $fallbackContent = ($this->fallback)($e);
-
-                if ($span instanceof Span) {
-                    $span->setStatus('ok', 'Fallback applied');
+            try {
+                return $this->commitGuardFallback(
+                    $exception,
+                    $message,
+                    $options,
+                    $committed,
+                );
+            } catch (Throwable $fallbackException) {
+                if (! $committed) {
+                    $this->messages = $snapshot;
                 }
 
-                return $fallbackContent;
+                throw $fallbackException;
+            } finally {
+                $this->endTurn();
             }
-
-            throw $e;
-        } catch (Throwable $e) {
-            if ($span instanceof Span) {
-                $span->recordException($e);
-                $span->setStatus('error', $e->getMessage());
-            }
-
-            throw $e;
-        } finally {
-            if ($span instanceof Span) {
-                $span->end();
-            }
-
         }
     }
 
     public function getName(): string
     {
         return $this->name;
+    }
+
+    /** Return the active persistence/session boundary, if configured. */
+    public function getSessionId(): ?string
+    {
+        return $this->sessionId;
     }
 
     public function getProvider(): ?Provider
@@ -742,7 +676,7 @@ final class Agent
     /**
      * Add multiple tools at once for convenience.
      *
-     * @param  ToolInterface[]  $tools  Array of tool instances
+     * @param  ToolContract[]  $tools  Array of tool instances
      */
     public function tools(array $tools): self
     {
@@ -753,9 +687,9 @@ final class Agent
         return $this;
     }
 
-    public function tool(string|ToolInterface $nameOrTool, ?string $description = null, ?Closure $callable = null): self
+    public function tool(string|ToolContract $nameOrTool, ?string $description = null, ?Closure $callable = null): self
     {
-        if ($nameOrTool instanceof ToolInterface) {
+        if ($nameOrTool instanceof ToolContract) {
             $this->tools[] = $nameOrTool;
             $this->cachedToolSchemas = null; // Invalidate cache
 
@@ -773,7 +707,7 @@ final class Agent
     }
 
     /**
-     * @return ToolInterface[]
+     * @return ToolContract[]
      */
     public function getTools(): array
     {
@@ -789,7 +723,7 @@ final class Agent
 
         try {
             foreach ($this->tools as $tool) {
-                if ($tool->name() === $name) {
+                if ($tool->getName() === $name) {
                     $result = $tool->execute($arguments);
 
                     // Calculate duration
@@ -809,7 +743,7 @@ final class Agent
             }
 
             // Better error message with suggestions
-            $available = array_map(fn ($t) => $t->name(), $this->tools);
+            $available = array_map(fn ($t) => $t->getName(), $this->tools);
             $suggestions = $this->findSimilarToolNames($name, $available);
 
             $message = "Tool '{$name}' not found";
@@ -841,36 +775,7 @@ final class Agent
 
         if ($check instanceof Closure) {
             $name = is_string($guard) ? $guard : 'closure';
-
-            $anonymousGuard = new class($name, $check) implements Guard
-            {
-                /**
-                 * @param  Closure(string, string): bool  $check
-                 */
-                public function __construct(
-                    private readonly string $name,
-                    private readonly Closure $check,
-                ) {}
-
-                public function check(string $input, string $output): bool
-                {
-                    $fn = $this->check;
-
-                    return (bool) $fn($input, $output);
-                }
-
-                public function getName(): string
-                {
-                    return $this->name;
-                }
-
-                public function getViolationMessage(): string
-                {
-                    return sprintf('Guard %s failed', $this->getName());
-                }
-            };
-
-            $this->guards[] = $anonymousGuard;
+            $this->guards[] = new LegacyGuardAdapter($name, $check);
 
             return $this;
         }
@@ -976,6 +881,10 @@ final class Agent
      */
     public function reset(): self
     {
+        if ($this->turnInProgress) {
+            throw new RuntimeException('Cannot reset an agent while a turn is in progress.');
+        }
+
         $this->messages = [];
         $this->tools = [];
         $this->guards = [];
@@ -983,6 +892,7 @@ final class Agent
         $this->fallback = null;
         $this->memory = null;
         $this->sessionId = null;
+        $this->sessionLoaded = false;
         $this->contextManager = null;
         $this->cachedToolSchemas = null; // Invalidate cache
 
@@ -1004,6 +914,10 @@ final class Agent
         $clone->memory = $this->memory;
         $clone->contextManager = $this->contextManager;
         $clone->telemetryEnabled = $this->telemetryEnabled;
+        // Event and usage configuration belong to the reusable definition;
+        // conversation state remains isolated on the cloned Agent.
+        $clone->eventDispatcher = $this->eventDispatcher;
+        $clone->usageTracker = $this->usageTracker;
         // Don't copy messages or sessionId - fresh conversation
 
         return $clone;
@@ -1117,7 +1031,7 @@ final class Agent
             if ($this->messages[$i]['role'] === 'assistant') {
                 $content = $this->messages[$i]['content'];
 
-                return is_string($content) ? $content : json_encode($content);
+                return is_string($content) ? $content : json_encode($content, JSON_THROW_ON_ERROR);
             }
         }
 
@@ -1133,44 +1047,35 @@ final class Agent
             if ($this->messages[$i]['role'] === 'user') {
                 $content = $this->messages[$i]['content'];
 
-                return is_string($content) ? $content : json_encode($content);
+                return is_string($content) ? $content : json_encode($content, JSON_THROW_ON_ERROR);
             }
         }
 
         return null;
     }
 
-    private function runGuards(string $input, string $output): void
+    private function runInputGuardsWithSpans(string $input): void
     {
         foreach ($this->guards as $guard) {
-            $guardName = get_class($guard);
+            if ($guard instanceof InputGuard) {
+                $this->checkGuardWithSpan($guard, $input, '', 'input');
+            }
+        }
+    }
 
-            // Fire guard checking event
-            $this->fireEvent(new GuardCheckingEvent($this, $guardName, $output));
+    private function runOutputGuardsWithSpans(string $input, string $output): void
+    {
+        foreach ($this->guards as $guard) {
+            if ($guard instanceof OutputGuard) {
+                $this->checkGuardWithSpan($guard, $input, $output, 'output');
 
-            try {
-                if (! $guard->check($input, $output)) {
-                    // Fire guard violated event
-                    $this->fireEvent(new GuardViolatedEvent(
-                        $this,
-                        $guardName,
-                        $output,
-                        $guard->getViolationMessage()
-                    ));
+                continue;
+            }
 
-                    throw new GuardException(
-                        $guard->getViolationMessage(),
-                        $guard->getName(),
-                        $input,
-                        $output,
-                    );
-                }
-
-                // Fire guard passed event
-                $this->fireEvent(new GuardPassedEvent($this, $guardName, $output));
-            } catch (GuardException $e) {
-                // Re-throw GuardException after firing event
-                throw $e;
+            // A legacy guard has no declared phase, so it remains an output
+            // policy for backwards compatibility. InputGuard is never rerun.
+            if (! $guard instanceof InputGuard) {
+                $this->checkGuardWithSpan($guard, $input, $output, 'legacy');
             }
         }
     }
@@ -1182,18 +1087,23 @@ final class Agent
             return $this->cachedToolSchemas;
         }
 
-        $providerName = $this->getProviderName();
+        $capabilities = $this->provider instanceof IdentifiedProvider
+            ? $this->provider->capabilities()
+            : null;
+        $protocol = $capabilities?->supportsTools === true
+            ? $capabilities->toolProtocol
+            : 'none';
 
-        $this->cachedToolSchemas = match ($providerName) {
-            'anthropic' => array_map(fn ($tool) => $tool->toAnthropicSchema(), $this->tools),
-            'openai', 'ollama' => array_map(fn ($tool) => $tool->toOpenAISchema(), $this->tools),
+        $this->cachedToolSchemas = match ($protocol) {
+            'anthropic' => array_map(ToolSchemaSerializer::anthropic(...), $this->tools),
+            'openai' => array_map(ToolSchemaSerializer::openAI(...), $this->tools),
             default => [],
         };
 
         return $this->cachedToolSchemas;
     }
 
-    private function handleToolCalls(object $response): object
+    private function handleToolCalls(object $response, array $turnOptions): object
     {
         // Add assistant message with tool calls to history
         $assistantMessage = ['role' => 'assistant', 'content' => $response->content ?? ''];
@@ -1202,7 +1112,7 @@ final class Agent
         if (isset($response->raw_content)) {
             $assistantMessage['content'] = $response->raw_content;
         } elseif (! empty($response->tool_calls)) {
-            $isOllama = $this->getProviderName() === 'ollama';
+            $isOllama = $this->getProviderProtocol() === 'ollama-chat';
 
             // For OpenAI and Ollama, add tool_calls
             $assistantMessage['tool_calls'] = array_map(fn ($call) => [
@@ -1211,7 +1121,7 @@ final class Agent
                 'function' => [
                     'name' => $call['name'],
                     // Ollama expects arguments as object/array, OpenAI expects JSON string
-                    'arguments' => $isOllama ? $call['arguments'] : json_encode($call['arguments']),
+                    'arguments' => $isOllama ? $call['arguments'] : json_encode($call['arguments'], JSON_THROW_ON_ERROR),
                 ],
             ], $response->tool_calls);
         }
@@ -1221,10 +1131,11 @@ final class Agent
         // Execute each tool call
         foreach ($response->tool_calls as $toolCall) {
             $arguments = $this->normalizeToolCallArguments($toolCall);
+            $this->runInputGuardsWithSpans(json_encode($arguments, JSON_THROW_ON_ERROR));
             $result = $this->executeToolWithSpan($toolCall['name'], $arguments);
 
             // Add tool result to messages
-            if ($this->getProviderName() === 'anthropic') {
+            if ($this->getProviderProtocol() === 'anthropic-messages') {
                 // Anthropic format
                 $this->messages[] = [
                     'role' => 'user',
@@ -1232,7 +1143,7 @@ final class Agent
                         [
                             'type' => 'tool_result',
                             'tool_use_id' => $toolCall['id'],
-                            'content' => is_string($result) ? $result : json_encode($result),
+                            'content' => $this->serializeToolResult($toolCall['name'], $result),
                         ],
                     ],
                 ];
@@ -1241,20 +1152,33 @@ final class Agent
                 $this->messages[] = [
                     'role' => 'tool',
                     'tool_call_id' => $toolCall['id'],
-                    'content' => is_string($result) ? $result : json_encode($result),
+                    'content' => $this->serializeToolResult($toolCall['name'], $result),
                 ];
             }
         }
 
-        // Make another API call with tool results
-        $options = $this->config;
-        $options['messages'] = $this->messages;
+        // Preserve every per-turn option and reapply the context window after
+        // appending tool messages. Otherwise a pruned initial request can grow
+        // back to the full conversation on its first follow-up round.
+        $options = $this->prepareProviderOptions($this->messages, $turnOptions);
 
-        if (! empty($this->tools)) {
-            $options['tools'] = $this->getToolSchemas();
+        return $this->callProviderRound('', $options);
+    }
+
+    private function serializeToolResult(string $toolName, mixed $result): string
+    {
+        if (is_string($result)) {
+            return $result;
         }
 
-        return $this->provider->prompt('', $options);
+        try {
+            return json_encode($result, JSON_THROW_ON_ERROR);
+        } catch (Throwable $exception) {
+            throw new RuntimeException(
+                "Tool '{$toolName}' returned a result that cannot be encoded as JSON: {$exception->getMessage()}",
+                previous: $exception,
+            );
+        }
     }
 
     /**
@@ -1274,29 +1198,9 @@ final class Agent
             $arguments = $toolCall['input'];
         }
 
-        // If still null, return empty array
-        if ($arguments === null) {
-            return [];
-        }
+        $toolName = is_string($toolCall['name'] ?? null) ? $toolCall['name'] : 'unknown';
 
-        // If it's a JSON string, decode it
-        if (is_string($arguments)) {
-            $decoded = json_decode($arguments, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                return $decoded;
-            }
-
-            // If JSON decode failed, return empty array (invalid JSON)
-            return [];
-        }
-
-        // If it's already an array, return it
-        if (is_array($arguments)) {
-            return $arguments;
-        }
-
-        // For any other type, return empty array
-        return [];
+        return ToolCallArgumentNormalizer::normalize($arguments, "Tool call '{$toolName}'");
     }
 
     /**
@@ -1339,6 +1243,305 @@ final class Agent
         }
 
         return TelemetryManager::instance()->startAgentSpan($operation, $this->name, $attributes);
+    }
+
+    private function beginTurn(): void
+    {
+        if ($this->turnInProgress) {
+            throw new RuntimeException(
+                "Agent '{$this->name}' already has a turn in progress; use a separate session agent for concurrent work."
+            );
+        }
+
+        $this->turnInProgress = true;
+    }
+
+    private function endTurn(): void
+    {
+        $this->turnInProgress = false;
+    }
+
+    /**
+     * Execute one provider round through the complete middleware/event/telemetry
+     * lifecycle. Initial prompts and every tool follow-up use this same path.
+     */
+    private function callProviderRound(string $message, array $options): object
+    {
+        foreach ($this->middleware as $middleware) {
+            $options = $middleware->before($message, $options);
+        }
+
+        $response = $this->callProviderWithSpan($message, $options);
+
+        foreach ($this->middleware as $middleware) {
+            $response = $middleware->after($response);
+        }
+
+        return $response;
+    }
+
+    /**
+     * Commit a guard fallback with the same history, persistence, and event
+     * semantics regardless of whether the failed turn was prompted or streamed.
+     *
+     * @param  array<string, mixed>  $options
+     */
+    private function commitGuardFallback(
+        GuardException $exception,
+        string $message,
+        array $options,
+        bool &$committed,
+    ): string {
+        $fallback = $this->fallback;
+        if ($fallback === null) {
+            throw $exception;
+        }
+
+        $this->fireEvent(new GuardFallbackEvent(
+            $this,
+            $exception->guardName,
+            1,
+            1,
+        ));
+
+        $fallbackContent = $fallback($exception);
+        if (! is_string($fallbackContent)) {
+            throw new RuntimeException(sprintf(
+                'Guard fallback must return a string, got %s',
+                get_debug_type($fallbackContent),
+            ));
+        }
+
+        // A blocked input must not be retained and replayed to the model on the
+        // next turn. Output/tool failures keep the accepted user input.
+        $this->messages[] = [
+            'role' => 'user',
+            'content' => $exception->phase === 'input'
+                ? sprintf('[Message blocked by guard: %s]', $exception->guardName)
+                : $message,
+        ];
+        if ($fallbackContent !== '') {
+            $this->messages[] = ['role' => 'assistant', 'content' => $fallbackContent];
+        }
+
+        $this->saveMemory($committed);
+        $this->fireEvent(new AfterPromptEvent(
+            $this,
+            $message,
+            $fallbackContent,
+            $options,
+        ));
+
+        return $fallbackContent;
+    }
+
+    private function shouldBypassGuardFallback(GuardException $exception, bool $committed): bool
+    {
+        return ! $exception->policyViolation || $committed;
+    }
+
+    private function saveMemory(bool &$committed): void
+    {
+        if (! $this->memory || ! $this->sessionId) {
+            $committed = true;
+
+            return;
+        }
+
+        $memorySpan = $this->telemetryEnabled
+            ? TelemetryManager::instance()->startSpan('memory.save', [
+                'session_id' => $this->sessionId,
+            ])
+            : new NullSpan;
+
+        try {
+            $this->fireEvent(new MemorySavingEvent($this, $this->sessionId, $this->messages));
+            $this->memory->save($this->sessionId, $this->messages);
+            $committed = true;
+            $this->fireEvent(new MemorySavedEvent($this, $this->sessionId, $this->messages));
+            $memorySpan->setAttributes(['message_count' => count($this->messages)]);
+            $memorySpan->setStatus('ok');
+        } catch (Throwable $exception) {
+            $memorySpan->recordException($exception);
+            $memorySpan->setStatus('error', $exception->getMessage());
+
+            throw $exception;
+        } finally {
+            $memorySpan->end();
+        }
+    }
+
+    private function loadMemory(): void
+    {
+        if (! $this->memory || ! $this->sessionId || $this->sessionLoaded) {
+            return;
+        }
+
+        $memorySpan = $this->telemetryEnabled
+            ? TelemetryManager::instance()->startSpan('memory.load', [
+                'session_id' => $this->sessionId,
+            ])
+            : new NullSpan;
+
+        try {
+            $this->fireEvent(new MemoryLoadingEvent($this, $this->sessionId));
+            $loaded = $this->memory->load($this->sessionId);
+            $this->messages = $loaded;
+            $this->sessionLoaded = true;
+            $this->fireEvent(new MemoryLoadedEvent($this, $this->sessionId, $loaded));
+            $memorySpan->setAttributes(['message_count' => count($loaded)]);
+            $memorySpan->setStatus('ok');
+        } catch (Throwable $exception) {
+            $memorySpan->recordException($exception);
+            $memorySpan->setStatus('error', $exception->getMessage());
+
+            throw $exception;
+        } finally {
+            $memorySpan->end();
+        }
+    }
+
+    private function prepareProviderOptions(array $messages, array $options, Span|NullSpan|null $span = null): array
+    {
+        $mergedOptions = array_merge($this->config, $options);
+        $messagesToSend = $messages;
+
+        if ($this->contextManager) {
+            $originalCount = count($messages);
+            $messagesToSend = $this->contextManager->prune($messages);
+            $prunedCount = count($messagesToSend);
+
+            if ($originalCount !== $prunedCount) {
+                $this->fireEvent(new ContextPrunedEvent(
+                    $this,
+                    $originalCount,
+                    $prunedCount,
+                    ($originalCount - $prunedCount) * 100
+                ));
+                $span?->addEvent('context.pruned', [
+                    'from' => $originalCount,
+                    'to' => $prunedCount,
+                ]);
+            }
+        }
+
+        if ($messagesToSend !== []) {
+            $mergedOptions['messages'] = $messagesToSend;
+        }
+
+        if ($this->tools !== []) {
+            $schemas = $this->getToolSchemas();
+            if ($schemas !== []) {
+                $mergedOptions['tools'] = $schemas;
+            }
+        }
+
+        return $mergedOptions;
+    }
+
+    private function requiresBufferedStreaming(): bool
+    {
+        if ($this->middleware !== []) {
+            return true;
+        }
+
+        foreach ($this->guards as $guard) {
+            if ($guard instanceof OutputGuard) {
+                if (! $guard->supportsIncrementalInspection()) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (! $guard instanceof InputGuard) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @return Generator<StreamChunk> */
+    private function streamWithPolicies(StreamResponse $providerResponse, string $input, bool $buffered): Generator
+    {
+        $chunkNumber = 0;
+
+        if ($buffered) {
+            $chunks = [];
+            foreach ($providerResponse->getStream() as $chunk) {
+                $chunks[] = $chunk;
+            }
+
+            $rawContent = $providerResponse->getFullContent();
+            $processed = (object) [
+                'content' => $rawContent,
+                'provider' => $providerResponse->getProvider(),
+                'model' => $providerResponse->getModel(),
+                'usage' => $providerResponse->getUsage(),
+            ];
+
+            foreach ($this->middleware as $middleware) {
+                $processed = $middleware->after($processed);
+            }
+
+            $processedData = (array) $processed;
+            $processedContent = is_string($processedData['content'] ?? null)
+                ? $processedData['content']
+                : $rawContent;
+            $this->runOutputGuardsWithSpans($input, $processedContent);
+
+            if ($processedContent === $rawContent) {
+                foreach ($chunks as $chunk) {
+                    if ($chunk->isText()) {
+                        $this->fireEvent(new StreamChunkEvent($this, $chunk->content, ++$chunkNumber));
+                    }
+
+                    yield $chunk;
+                }
+
+                return;
+            }
+
+            yield StreamChunk::start([
+                'provider' => $providerResponse->getProvider(),
+                'model' => $providerResponse->getModel(),
+            ]);
+            if ($processedContent !== '') {
+                $this->fireEvent(new StreamChunkEvent($this, $processedContent, ++$chunkNumber));
+                yield StreamChunk::text($processedContent);
+            }
+            yield StreamChunk::end([
+                'usage' => $providerResponse->getUsage(),
+                'stop_reason' => $providerResponse->getStopReason(),
+            ]);
+
+            return;
+        }
+
+        $accumulated = '';
+        foreach ($providerResponse->getStream() as $chunk) {
+            if ($chunk->isText()) {
+                $accumulated .= $chunk->content;
+                foreach ($this->guards as $guard) {
+                    if ($guard instanceof OutputGuard && $guard->supportsIncrementalInspection()) {
+                        $this->checkGuardWithSpan($guard, $input, $accumulated, 'output');
+                    }
+                }
+
+                $this->fireEvent(new StreamChunkEvent($this, $chunk->content, ++$chunkNumber));
+            }
+
+            yield $chunk;
+        }
+
+        if ($accumulated === '') {
+            foreach ($this->guards as $guard) {
+                if ($guard instanceof OutputGuard && $guard->supportsIncrementalInspection()) {
+                    $this->checkGuardWithSpan($guard, $input, '', 'output');
+                }
+            }
+        }
     }
 
     private function callProviderWithSpan(string $message, array $options): object
@@ -1466,56 +1669,66 @@ final class Agent
         }
     }
 
-    private function runGuardsWithSpans(string $input, string $output): void
+    private function checkGuardWithSpan(Guard $guard, string $input, string $output, string $phase): void
     {
-        if (! $this->telemetryEnabled) {
-            $this->runGuards($input, $output);
+        $subject = $phase === 'input' ? $input : $output;
+        $guardName = $guard->getName();
+        $guardSpan = $this->telemetryEnabled
+            ? TelemetryManager::instance()->startSpan('guard.check', [
+                'guard.name' => $guardName,
+                'guard.phase' => $phase,
+            ])
+            : new NullSpan;
 
-            return;
-        }
+        $this->fireEvent(new GuardCheckingEvent($this, $guardName, $subject));
 
-        foreach ($this->guards as $guard) {
-            $guardSpan = TelemetryManager::instance()->startSpan('guard.check', [
-                'guard.name' => $guard->getName(),
-            ]);
+        try {
+            $passed = match ($phase) {
+                'input' => $guard instanceof InputGuard && $guard->checkInput($input),
+                'output' => $guard instanceof OutputGuard && $guard->checkOutput($output),
+                default => $guard->check($input, $output),
+            };
 
-            try {
-                $passed = $guard->check($input, $output);
-
-                if ($guardSpan instanceof Span) {
-                    $guardSpan->setAttribute('guard.passed', $passed);
-                    $guardSpan->setStatus('ok');
-                }
-
-                if (! $passed) {
-                    $exception = new GuardException(
-                        $guard->getViolationMessage(),
-                        $guard->getName(),
-                        $input,
-                        $output,
-                    );
-
-                    if ($guardSpan instanceof Span) {
-                        $guardSpan->recordException($exception);
-                        $guardSpan->setStatus('error', 'Guard failed');
-                    }
-
-                    throw $exception;
-                }
-            } catch (GuardException $e) {
-                throw $e;
-            } catch (Throwable $e) {
-                if ($guardSpan instanceof Span) {
-                    $guardSpan->recordException($e);
-                    $guardSpan->setStatus('error', $e->getMessage());
-                }
-
-                throw $e;
-            } finally {
-                if ($guardSpan instanceof Span) {
-                    $guardSpan->end();
-                }
+            if ($guardSpan instanceof Span) {
+                $guardSpan->setAttribute('guard.passed', $passed);
             }
+
+            if (! $passed) {
+                $this->fireEvent(new GuardViolatedEvent(
+                    $this,
+                    $guardName,
+                    $subject,
+                    $guard->getViolationMessage()
+                ));
+
+                $exception = new GuardException(
+                    $guard->getViolationMessage(),
+                    $guardName,
+                    $input,
+                    $output,
+                    $phase,
+                    true,
+                );
+
+                if ($guardSpan instanceof Span) {
+                    $guardSpan->recordException($exception);
+                    $guardSpan->setStatus('error', 'Guard failed');
+                }
+
+                throw $exception;
+            }
+
+            $this->fireEvent(new GuardPassedEvent($this, $guardName, $subject));
+            $guardSpan->setStatus('ok');
+        } catch (Throwable $exception) {
+            if ($guardSpan instanceof Span && ! $exception instanceof GuardException) {
+                $guardSpan->recordException($exception);
+                $guardSpan->setStatus('error', $exception->getMessage());
+            }
+
+            throw $exception;
+        } finally {
+            $guardSpan->end();
         }
     }
 
@@ -1558,7 +1771,7 @@ final class Agent
      */
     private function fireEvent(Event $event): void
     {
-        $this->eventDispatcher->dispatch($event);
+        EventManager::publish($event, $this->eventDispatcher);
     }
 
     /**
@@ -1569,16 +1782,25 @@ final class Agent
     private function getProviderName(): string
     {
         if ($this->provider === null) {
-            return 'mock';
+            return 'unknown';
         }
 
-        $providerClass = get_class($this->provider);
+        return $this->provider instanceof IdentifiedProvider
+            ? $this->provider->providerId()
+            : 'custom';
+    }
 
-        return match (true) {
-            str_contains($providerClass, 'Anthropic') => 'anthropic',
-            str_contains($providerClass, 'OpenAI') => 'openai',
-            str_contains($providerClass, 'Ollama') => 'ollama',
-            default => 'mock',
-        };
+    private function responseContent(object $response): string
+    {
+        $data = (array) $response;
+
+        return is_string($data['content'] ?? null) ? $data['content'] : '';
+    }
+
+    private function getProviderProtocol(): string
+    {
+        return $this->provider instanceof IdentifiedProvider
+            ? $this->provider->capabilities()->protocol
+            : 'unknown';
     }
 }

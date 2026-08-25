@@ -64,6 +64,7 @@ $transport = new StdioTransport(
 ```
 
 **Use cases:**
+
 - Filesystem operations
 - Local database access
 - CLI tool wrappers
@@ -86,6 +87,7 @@ $transport = new HttpSseTransport(
 ```
 
 **Use cases:**
+
 - Cloud-hosted MCP servers
 - API integrations
 - Multi-tenant tool services
@@ -177,7 +179,10 @@ $client->disconnect();
 
 ### Using McpToolAdapter
 
-The `McpToolAdapter` converts MCP tools into Pagent-compatible tools:
+The `McpToolAdapter` converts MCP tools into Pagent's canonical, provider-neutral
+`Pagent\Contracts\Tool` contract. The resulting adapters attach directly through
+`Agent::tools()`; provider-specific JSON schema formatting happens only at the
+provider boundary.
 
 ```php
 use Pagent\Mcp\McpToolAdapter;
@@ -217,33 +222,33 @@ use Pagent\Events\Events\Mcp\McpToolCalledEvent;
 use Pagent\Events\Events\Mcp\McpToolErrorEvent;
 
 // On the client instance
-$client->on(McpConnectionEstablishedEvent::class, function($event) {
+$client->on('mcp_connection_established', function($event) {
     echo "Connected! Server caps: " . json_encode($event->serverCapabilities);
 });
 
-$client->on(McpToolCalledEvent::class, function($event) {
+$client->on('mcp_tool_called', function($event) {
     echo "Tool {$event->toolName} completed in {$event->durationMs}ms";
 });
 
-$client->on(McpToolErrorEvent::class, function($event) {
+$client->on('mcp_tool_error', function($event) {
     log_error("MCP tool error: " . $event->error->getMessage());
 });
 ```
 
 ### Available Events
 
-| Event | When |
-|-------|------|
-| `McpConnectionInitiatingEvent` | Before connection starts |
-| `McpConnectionEstablishedEvent` | Connection successful |
-| `McpConnectionFailedEvent` | Connection failed |
-| `McpDisconnectingEvent` | Before disconnect |
-| `McpDisconnectedEvent` | After disconnect |
-| `McpToolsDiscoveringEvent` | Before tool discovery |
-| `McpToolsDiscoveredEvent` | Tools discovered |
-| `McpToolCallingEvent` | Before tool execution |
-| `McpToolCalledEvent` | Tool executed successfully |
-| `McpToolErrorEvent` | Tool execution failed |
+| Event                           | When                       |
+| ------------------------------- | -------------------------- |
+| `McpConnectionInitiatingEvent`  | Before connection starts   |
+| `McpConnectionEstablishedEvent` | Connection successful      |
+| `McpConnectionFailedEvent`      | Connection failed          |
+| `McpDisconnectingEvent`         | Before disconnect          |
+| `McpDisconnectedEvent`          | After disconnect           |
+| `McpToolsDiscoveringEvent`      | Before tool discovery      |
+| `McpToolsDiscoveredEvent`       | Tools discovered           |
+| `McpToolCallingEvent`           | Before tool execution      |
+| `McpToolCalledEvent`            | Tool executed successfully |
+| `McpToolErrorEvent`             | Tool execution failed      |
 
 ## Error Handling
 
@@ -377,7 +382,7 @@ $transport = new StdioTransport(
 $client = new McpClient($transport, 'my-app', '1.0.0');
 
 // Add logging
-$client->on(McpToolCalledEvent::class, function($event) {
+$client->on('mcp_tool_called', function($event) {
     error_log("MCP: {$event->toolName} took {$event->durationMs}ms");
 });
 

@@ -109,10 +109,10 @@ final class SearchTool extends Tool
 
     public function execute(array $params): mixed
     {
-        $query = $params['query'] ?? throw new RuntimeException('Query parameter is required');
-        $limit = $params['limit'] ?? $this->maxResults;
-        $fuzzy = $params['fuzzy'] ?? $this->fuzzy;
-        $withContent = $params['with_content'] ?? $this->returnContent;
+        $query = $this->requiredString($params, 'query');
+        $limit = $this->optionalInt($params, 'limit', $this->maxResults);
+        $fuzzy = $this->optionalBool($params, 'fuzzy', $this->fuzzy);
+        $withContent = $this->optionalBool($params, 'with_content', $this->returnContent);
 
         // Validate limit
         if ($limit < 1 || $limit > 100) {
@@ -127,12 +127,12 @@ final class SearchTool extends Tool
         // Configure fuzzy search
         $tnt = $this->getTnt();
         if ($fuzzy) {
-            $tnt->fuzziness = true;
-            $tnt->fuzzy_distance = $this->fuzziness;
-            $tnt->fuzzy_prefix_length = 2;
-            $tnt->fuzzy_max_expansions = 50;
+            $tnt->fuzziness(true);
+            $tnt->setFuzzyDistance($this->fuzziness);
+            $tnt->setFuzzyPrefixLength(2);
+            $tnt->setFuzzyMaxExpansions(50);
         } else {
-            $tnt->fuzziness = false;
+            $tnt->fuzziness(false);
         }
 
         // Perform search

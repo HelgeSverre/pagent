@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use Pagent\Tools\FileRead;
 
 /**
  * Ollama Tool Calling Integration Tests.
@@ -139,7 +140,7 @@ describe('Tool Calling with Ollama', function (): void {
             ->provider('ollama')
             ->model('qwen3:8b')
             ->system('You are a helpful assistant. Use the tools provided.')
-            ->tool(new \Pagent\Tools\FileRead);
+            ->tool(new FileRead);
 
         $response = agent('ollama-file-reader')->prompt("Read the file at {$testFile} and tell me what it says");
 
@@ -156,7 +157,7 @@ describe('Tool Calling with Ollama', function (): void {
             ->system('You are a helpful assistant. Use the tools provided.')
             ->tool('divide', 'Divide two numbers', function (int $a, int $b): float {
                 if ($b === 0) {
-                    throw new \RuntimeException('Division by zero');
+                    throw new RuntimeException('Division by zero');
                 }
 
                 return $a / $b;

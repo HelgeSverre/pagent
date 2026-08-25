@@ -65,10 +65,10 @@ while (! feof($stdin)) {
         if ($method === 'initialize') {
             $initialized = true;
         }
-    } catch (\JsonException $e) {
+    } catch (JsonException $e) {
         // Invalid JSON, skip
         fwrite($stderr, "JSON error: {$e->getMessage()}\n");
-    } catch (\Throwable $e) {
+    } catch (Throwable $e) {
         fwrite($stderr, "Error: {$e->getMessage()}\n");
     }
 }

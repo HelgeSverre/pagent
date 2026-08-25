@@ -59,8 +59,8 @@ public function tool(
     Closure $callable
 ): self
 
-// Form 2: ToolInterface instance (for class-based tools)
-public function tool(ToolInterface $tool): self
+// Form 2: provider-neutral Tool instance (for class-based tools)
+public function tool(Tool $tool): self
 ```
 
 **Parameters:**
@@ -335,7 +335,7 @@ foreach ($tools as $tool) {
 }
 ```
 
-This returns an array of `ToolInterface` instances, each with:
+This returns an array of provider-neutral `Tool` instances, each with:
 
 - `name`: The tool's name
 - `description`: The tool's description
@@ -388,61 +388,40 @@ The `clearTools()` method:
 
 ## Class-Based Tools
 
-While inline closures are convenient for simple tools, Pagent also supports class-based tools by implementing the `ToolInterface`:
+While inline closures are convenient for simple tools, Pagent also supports
+class-based tools through the canonical `Pagent\Contracts\Tool` contract:
 
 ```php
-use Pagent\Contracts\ToolInterface;
+use Pagent\Contracts\Tool;
 
-class DatabaseQuery implements ToolInterface
+class DatabaseQuery implements Tool
 {
-    public function name(): string
+    public function getName(): string
     {
         return 'query_database';
     }
 
-    public function description(): string
+    public function getDescription(): string
     {
         return 'Execute a SQL query against the database';
+    }
+
+    public function getInputSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'query' => ['type' => 'string', 'description' => 'SQL query to execute'],
+            ],
+            'required' => ['query'],
+        ];
     }
 
     public function execute(array $params): mixed
     {
         $query = $params['query'] ?? throw new RuntimeException('Query required');
-        // Execute query logic here
+        // Execute query logic here.
         return $results;
-    }
-
-    public function toAnthropicSchema(): array
-    {
-        return [
-            'name' => $this->name(),
-            'description' => $this->description(),
-            'input_schema' => [
-                'type' => 'object',
-                'properties' => [
-                    'query' => ['type' => 'string', 'description' => 'SQL query to execute']
-                ],
-                'required' => ['query']
-            ]
-        ];
-    }
-
-    public function toOpenAISchema(): array
-    {
-        return [
-            'type' => 'function',
-            'function' => [
-                'name' => $this->name(),
-                'description' => $this->description(),
-                'parameters' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'query' => ['type' => 'string', 'description' => 'SQL query to execute']
-                    ],
-                    'required' => ['query']
-                ]
-            ]
-        ];
     }
 }
 
@@ -481,7 +460,7 @@ function fetchWeatherData(string $city): array
 
 $agent = agent('weather-assistant')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful weather assistant. Provide clear and concise weather information.')
     ->tool(
         'get_weather',
@@ -535,7 +514,7 @@ In this chapter, you learned:
 7. **Manual Execution**: Use `executeTool()` for testing and debugging
 8. **Tool Inspection**: Use `getTools()` to inspect registered tools
 9. **Error Handling**: Pagent provides helpful error messages with suggestions
-10. **Class-Based Tools**: Implement `ToolInterface` for reusable tool classes
+10. **Class-Based Tools**: Implement `Tool` for reusable tool classes
 
 Tool calling transforms your agents from conversational systems into action-taking systems. With tools, your agents can query databases, read files, call APIs, perform calculations, and interact with external systems—all while maintaining natural language interaction.
 

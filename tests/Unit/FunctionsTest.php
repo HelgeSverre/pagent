@@ -4,24 +4,32 @@ declare(strict_types=1);
 
 use Pagent\Agent;
 use Pagent\AgentBuilder;
+use Pagent\AgentRegistry;
 use Pagent\Observability\TelemetryManager;
+use Pagent\Providers\Anthropic;
+use Pagent\Providers\Mock;
+use Pagent\Providers\OpenAI;
+use Pagent\Providers\OpenCode;
+use Pagent\Registry;
 
 beforeEach(function (): void {
     TelemetryManager::reset();
+    clearAgents();
 });
 
 afterEach(function (): void {
     TelemetryManager::reset();
 });
 
-it('creates agent builders with agent() function', function (): void {
+it('creates and immediately registers agents with agent() function', function (): void {
     $result = \agent('new-agent');
 
-    expect($result)->toBeInstanceOf(AgentBuilder::class);
+    expect($result)->toBeInstanceOf(Agent::class)
+        ->and(getAgent('new-agent'))->toBe($result);
 });
 
 it('retrieves existing agents with agent() function', function (): void {
-    // First create an agent
+    // First create and configure an agent
     \agent('existing')
         ->provider('mock')
         ->system('Test agent');
@@ -31,6 +39,58 @@ it('retrieves existing agents with agent() function', function (): void {
 
     expect($agent)->toBeInstanceOf(Agent::class);
     expect($agent->getName())->toBe('existing');
+});
+
+it('returns the same named agent deterministically', function (): void {
+    $first = \agent('same-agent');
+    $second = \agent('same-agent');
+
+    expect($first)->toBe($second)
+        ->and(agents())->toHaveCount(1);
+});
+
+it('defines a fluent builder around an immediately registered agent', function (): void {
+    $builder = defineAgent('defined-agent')->provider('mock');
+
+    expect($builder)->toBeInstanceOf(AgentBuilder::class)
+        ->and(getAgent('defined-agent'))->toBeInstanceOf(Agent::class)
+        ->and($builder->build())->toBe(getAgent('defined-agent'));
+});
+
+it('does not create an agent when resolving a missing name', function (): void {
+    expect(getAgent('missing-agent'))->toBeNull();
+    expect(resolveAgent('missing-agent'))->toBeNull();
+    expect(getAgent('missing-agent'))->toBeNull();
+});
+
+it('isolates agent definitions in a scoped registry', function (): void {
+    $default = \agent('default-agent');
+    $scoped = new AgentRegistry;
+
+    Registry::scoped($scoped, function (): void {
+        $isolated = \agent('isolated-agent');
+
+        expect($isolated)->toBe(getAgent('isolated-agent'))
+            ->and(getAgent('default-agent'))->toBeNull();
+    });
+
+    expect(getAgent('default-agent'))->toBe($default)
+        ->and(getAgent('isolated-agent'))->toBeNull();
+});
+
+it('can replace and restore the registry used by helper functions', function (): void {
+    $isolated = new AgentRegistry;
+    $previous = useAgentRegistry($isolated);
+
+    try {
+        $agent = \agent('injected-agent');
+
+        expect($isolated->get('injected-agent'))->toBe($agent);
+    } finally {
+        useAgentRegistry($previous);
+    }
+
+    expect(getAgent('injected-agent'))->toBeNull();
 });
 
 it('returns all agents with agents() function', function (): void {
@@ -62,69 +122,69 @@ it('clears agents with clearAgents() function', function (): void {
 it('creates anthropic provider with helper function', function (): void {
     $provider = anthropic(['api_key' => 'test-key']);
 
-    expect($provider)->toBeInstanceOf(Pagent\Providers\Anthropic::class);
+    expect($provider)->toBeInstanceOf(Anthropic::class);
 });
 
 it('creates openai provider with helper function', function (): void {
     $provider = openai(['api_key' => 'test-key']);
 
-    expect($provider)->toBeInstanceOf(Pagent\Providers\OpenAI::class);
+    expect($provider)->toBeInstanceOf(OpenAI::class);
 });
 
 it('creates opencode provider with helper function', function (): void {
     $provider = opencode(['api_key' => 'test-key', 'gateway' => 'go']);
 
-    expect($provider)->toBeInstanceOf(Pagent\Providers\OpenCode::class);
+    expect($provider)->toBeInstanceOf(OpenCode::class);
 });
 
 it('creates mock provider with helper function', function (): void {
     $provider = mock(['test' => 'response']);
 
-    expect($provider)->toBeInstanceOf(Pagent\Providers\Mock::class);
+    expect($provider)->toBeInstanceOf(Mock::class);
 
     $response = $provider->prompt('test');
     expect($response->content)->toBe('response');
 });
 
 it('telemetry_console function initializes console exporter', function (): void {
-    Pagent\Observability\TelemetryManager::instance()->clearContext();
+    TelemetryManager::instance()->clearContext();
 
     telemetry_console(verbose: true);
 
-    expect(Pagent\Observability\TelemetryManager::instance()->isEnabled())->toBeTrue();
+    expect(TelemetryManager::instance()->isEnabled())->toBeTrue();
 });
 
 it('telemetry_jaeger function initializes jaeger exporter', function (): void {
-    Pagent\Observability\TelemetryManager::instance()->clearContext();
+    TelemetryManager::instance()->clearContext();
 
     telemetry_jaeger('http://custom:4318/v1/traces', 'test-service');
 
-    expect(Pagent\Observability\TelemetryManager::instance()->isEnabled())->toBeTrue();
+    expect(TelemetryManager::instance()->isEnabled())->toBeTrue();
 });
 
 it('telemetry_otlp function initializes otlp exporter', function (): void {
-    Pagent\Observability\TelemetryManager::instance()->clearContext();
+    TelemetryManager::instance()->clearContext();
 
     telemetry_otlp('http://custom:4318/v1/traces', ['key' => 'value']);
 
-    expect(Pagent\Observability\TelemetryManager::instance()->isEnabled())->toBeTrue();
+    expect(TelemetryManager::instance()->isEnabled())->toBeTrue();
 });
 
 it('telemetry_zipkin function initializes zipkin exporter', function (): void {
-    Pagent\Observability\TelemetryManager::instance()->clearContext();
+    TelemetryManager::instance()->clearContext();
 
     telemetry_zipkin('http://custom:9411/api/v2/spans', 'test-service');
 
-    expect(Pagent\Observability\TelemetryManager::instance()->isEnabled())->toBeTrue();
+    expect(TelemetryManager::instance()->isEnabled())->toBeTrue();
 });
 
 it('telemetry function accepts custom config', function (): void {
-    Pagent\Observability\TelemetryManager::instance()->clearContext();
+    TelemetryManager::instance()->clearContext();
 
     telemetry([
         'enabled' => true,
         'exporter' => 'console',
     ]);
 
-    expect(Pagent\Observability\TelemetryManager::instance()->isEnabled())->toBeTrue();
+    expect(TelemetryManager::instance()->isEnabled())->toBeTrue();
 });

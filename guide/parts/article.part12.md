@@ -65,7 +65,7 @@ use function Pagent\agent;
 
 $agent = agent('support-bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory('Sqlite', ['path' => 'storage/sessions.db'])
     ->sessionId('user-12345')
     ->system('You are a helpful support agent.');
@@ -80,7 +80,7 @@ $agent->prompt('Order number is #4829');
 // Later - same user, new script execution
 $agent = agent('support-bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory('Sqlite', ['path' => 'storage/sessions.db'])
     ->sessionId('user-12345')
     ->system('You are a helpful support agent.');
@@ -156,10 +156,13 @@ JSON files, one per session. Great for development or low-volume applications:
 
 ```php
 $agent->memory('File', [
-    'directory' => 'storage/sessions',  // Default location
+    'path' => 'storage/sessions',       // Canonical directory option
     'permissions' => 0755,              // Directory permissions
 ]);
 ```
+
+`path` is the canonical FileAdapter option. `directory` remains a supported
+legacy alias; when both are supplied, `directory` wins for compatibility.
 
 **Features:**
 
@@ -217,7 +220,7 @@ Memory loads automatically on the **first prompt** for a session:
 ```php
 $agent = agent('bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory('Sqlite')
     ->sessionId('session-123');
 
@@ -325,6 +328,24 @@ expect($pruned)->toHaveCount(50);
 
 ## Session Management Patterns
 
+### Switching Sessions Safely
+
+Calling `sessionId()` with a new value clears the agent's in-memory messages and
+marks the new session as not yet loaded. The next prompt loads that new session
+from the configured memory adapter. It does not merge histories, so switch only
+at a conversation boundary:
+
+```php
+$agent->sessionId('customer-1')->prompt('First customer message');
+
+// Starts a separate in-memory conversation; customer-1 remains persisted.
+$agent->sessionId('customer-2')->prompt('Second customer message');
+```
+
+Each prompt and stream also keeps a pre-turn snapshot. A provider, tool, guard,
+or streaming failure rolls the in-memory conversation back to that snapshot,
+preventing partial user or assistant messages from leaking into the next turn.
+
 ### Per-User Sessions
 
 Track conversations by user ID:
@@ -338,7 +359,7 @@ class ChatController
 
         $agent = agent('chatbot')
             ->provider('anthropic')
-            ->model('claude-sonnet-4-20250514')
+            ->model('claude-sonnet-4-6')
             ->memory('Sqlite')
             ->sessionId("user-{$userId}")
             ->system('You are a helpful assistant.');
@@ -364,8 +385,8 @@ $tempId = 'temp-'.uniqid();
 
 $agent = agent('wizard')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
-    ->memory('File', ['directory' => 'storage/temp'])
+    ->model('claude-sonnet-4-6')
+    ->memory('File', ['path' => 'storage/temp'])
     ->sessionId($tempId);
 
 // Use for multi-step workflow
@@ -373,7 +394,7 @@ $agent->prompt('Start analysis...');
 $agent->prompt('Continue with step 2...');
 
 // Clean up when done
-$memory = new FileAdapter(['directory' => 'storage/temp']);
+$memory = new FileAdapter(['path' => 'storage/temp']);
 $memory->delete($tempId);
 ```
 
@@ -387,7 +408,7 @@ $memory = new SqliteAdapter(['path' => 'storage/workflows.db']);
 // Analyst agent - own session
 $analyst = agent('analyst')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory($memory)
     ->sessionId('workflow-123-analyst')
     ->system('You analyze data and provide insights.');
@@ -395,7 +416,7 @@ $analyst = agent('analyst')
 // Writer agent - own session
 $writer = agent('writer')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory($memory)
     ->sessionId('workflow-123-writer')
     ->system('You write reports based on analysis.');
@@ -458,7 +479,7 @@ it('maintains conversation context', function (): void {
                 'What is my name?' => 'Your name is Alice.',
             ],
         ]))
-        ->memory('File', ['directory' => $tempDir])
+        ->memory('File', ['path' => $tempDir])
         ->sessionId('test-session');
 
     // First exchange
@@ -470,7 +491,7 @@ it('maintains conversation context', function (): void {
     expect($r2->content)->toBe('Your name is Alice.');
 
     // Verify persistence
-    $memory = new FileAdapter(['directory' => $tempDir]);
+    $memory = new FileAdapter(['path' => $tempDir]);
     $messages = $memory->load('test-session');
     expect($messages)->toHaveCount(4);
 });
@@ -575,7 +596,7 @@ use App\Memory\RedisAdapter;
 
 $agent = agent('bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->memory(new RedisAdapter([
         'host' => 'redis.example.com',
         'prefix' => 'chatbot:',

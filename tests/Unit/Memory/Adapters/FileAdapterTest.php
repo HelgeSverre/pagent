@@ -21,6 +21,30 @@ it('auto-creates directory on construction', function (): void {
     expect(is_dir($this->tmpDir))->toBeTrue();
 });
 
+it('accepts path as the documented directory option', function (): void {
+    new FileAdapter(['path' => $this->tmpDir]);
+
+    expect(is_dir($this->tmpDir))->toBeTrue();
+});
+
+it('gives the canonical path option precedence over the legacy alias', function (): void {
+    $legacyDirectory = $this->tmpDir.'-legacy';
+
+    try {
+        new FileAdapter([
+            'path' => $this->tmpDir,
+            'directory' => $legacyDirectory,
+        ]);
+
+        expect(is_dir($this->tmpDir))->toBeTrue()
+            ->and(is_dir($legacyDirectory))->toBeFalse();
+    } finally {
+        if (is_dir($legacyDirectory)) {
+            rmdir($legacyDirectory);
+        }
+    }
+});
+
 it('throws when directory is not writable', function (): void {
     mkdir($this->tmpDir, 0444);
 
@@ -126,7 +150,7 @@ it('encodes messages as pretty JSON', function (): void {
     $messages = [['role' => 'user', 'content' => 'test']];
     $adapter->save('test-session', $messages);
 
-    $filepath = $this->tmpDir.'/test-session.json';
+    $filepath = $this->tmpDir.'/'.hash('sha256', 'test-session').'.json';
     $content = file_get_contents($filepath);
 
     expect($content)->toContain('    "session_id"');
@@ -147,7 +171,7 @@ it('throws when JSON encoding fails', function (): void {
 it('throws when JSON decoding fails', function (): void {
     $adapter = new FileAdapter(['directory' => $this->tmpDir]);
 
-    $filepath = $this->tmpDir.'/test-session.json';
+    $filepath = $this->tmpDir.'/'.hash('sha256', 'test-session').'.json';
     file_put_contents($filepath, '{invalid json}');
 
     expect(fn () => $adapter->load('test-session'))
@@ -161,7 +185,7 @@ it('uses LOCK_EX when writing files', function (): void {
     $adapter->save('test-session', $messages);
 
     // File should exist and be readable
-    $filepath = $this->tmpDir.'/test-session.json';
+    $filepath = $this->tmpDir.'/'.hash('sha256', 'test-session').'.json';
     expect(file_exists($filepath))->toBeTrue();
     expect(is_readable($filepath))->toBeTrue();
 });
@@ -175,3 +199,32 @@ it('uses custom permissions for directory', function (): void {
     $perms = fileperms($this->tmpDir) & 0777;
     expect($perms)->toBe(0750);
 })->skip(PHP_OS_FAMILY === 'Windows', 'Permission test not reliable on Windows');
+
+it('uses opaque filenames so session IDs cannot traverse directories', function (): void {
+    $adapter = new FileAdapter(['path' => $this->tmpDir]);
+
+    $adapter->save('../outside-session', [['role' => 'user', 'content' => 'safe']]);
+
+    expect($adapter->load('../outside-session'))->toBe([['role' => 'user', 'content' => 'safe']])
+        ->and(file_exists(dirname($this->tmpDir).'/outside-session.json'))->toBeFalse()
+        ->and(glob($this->tmpDir.'/*.json'))->toHaveCount(1);
+});
+
+it('reads legacy safe filenames and migrates them on the next save', function (): void {
+    mkdir($this->tmpDir);
+    $legacy = $this->tmpDir.'/legacy-session.json';
+    file_put_contents($legacy, json_encode([
+        'session_id' => 'legacy-session',
+        'messages' => [['role' => 'user', 'content' => 'old']],
+        'updated_at' => date('c'),
+    ]));
+
+    $adapter = new FileAdapter(['directory' => $this->tmpDir]);
+
+    expect($adapter->load('legacy-session'))->toBe([['role' => 'user', 'content' => 'old']]);
+
+    $adapter->save('legacy-session', [['role' => 'assistant', 'content' => 'new']]);
+
+    expect(file_exists($legacy))->toBeFalse()
+        ->and($adapter->load('legacy-session'))->toBe([['role' => 'assistant', 'content' => 'new']]);
+});

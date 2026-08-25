@@ -29,10 +29,11 @@ afterEach(function (): void {
 });
 
 it('persists conversation with File adapter', function (): void {
+    $adapter = new FileAdapter(['path' => $this->tempDir]);
     $agent = new Agent('test-agent');
     $agent
         ->provider(new Mock(['responses' => ['hello' => 'Hi there!', 'how are you' => 'I am good']]))
-        ->memory('File', ['directory' => $this->tempDir])
+        ->memory($adapter)
         ->sessionId('session-001');
 
     // First interaction
@@ -44,15 +45,14 @@ it('persists conversation with File adapter', function (): void {
     expect($response->content)->toBe('I am good');
 
     // Verify conversation is persisted
-    $sessionFile = $this->tempDir.'/session-001.json';
-    expect(file_exists($sessionFile))->toBeTrue();
+    expect($adapter->exists('session-001'))->toBeTrue();
 
-    $data = json_decode(file_get_contents($sessionFile), true);
-    expect($data['messages'])->toHaveCount(4);
-    expect($data['messages'][0])->toBe(['role' => 'user', 'content' => 'hello']);
-    expect($data['messages'][1])->toBe(['role' => 'assistant', 'content' => 'Hi there!']);
-    expect($data['messages'][2])->toBe(['role' => 'user', 'content' => 'how are you']);
-    expect($data['messages'][3])->toBe(['role' => 'assistant', 'content' => 'I am good']);
+    $messages = $adapter->load('session-001');
+    expect($messages)->toHaveCount(4);
+    expect($messages[0])->toBe(['role' => 'user', 'content' => 'hello']);
+    expect($messages[1])->toBe(['role' => 'assistant', 'content' => 'Hi there!']);
+    expect($messages[2])->toBe(['role' => 'user', 'content' => 'how are you']);
+    expect($messages[3])->toBe(['role' => 'assistant', 'content' => 'I am good']);
 });
 
 it('persists conversation with SQLite adapter', function (): void {
@@ -132,12 +132,10 @@ it('keeps multiple sessions isolated correctly', function (): void {
         ->sessionId('session-b');
     $agent2->prompt('msg');
 
-    // Verify both session files exist
-    expect(file_exists($this->tempDir.'/session-a.json'))->toBeTrue();
-    expect(file_exists($this->tempDir.'/session-b.json'))->toBeTrue();
-
-    // Load and verify sessions are different
+    // Load and verify both sessions through the memory contract.
     $adapter = new FileAdapter(['directory' => $this->tempDir]);
+    expect($adapter->exists('session-a'))->toBeTrue();
+    expect($adapter->exists('session-b'))->toBeTrue();
     $messagesA = $adapter->load('session-a');
     $messagesB = $adapter->load('session-b');
 
@@ -170,24 +168,22 @@ it('context window pruning works with persistence', function (): void {
 });
 
 it('session delete clears data', function (): void {
+    $adapter = new FileAdapter(['path' => $this->tempDir]);
     $agent = new Agent('test-agent');
     $agent
         ->provider(new Mock(['responses' => ['hello' => 'Hi!']]))
-        ->memory('File', ['directory' => $this->tempDir])
+        ->memory($adapter)
         ->sessionId('session-delete');
 
     $agent->prompt('hello');
 
     // Verify session exists
-    $sessionFile = $this->tempDir.'/session-delete.json';
-    expect(file_exists($sessionFile))->toBeTrue();
+    expect($adapter->exists('session-delete'))->toBeTrue();
 
     // Delete session
-    $adapter = new FileAdapter(['directory' => $this->tempDir]);
     $adapter->delete('session-delete');
 
     // Verify session is deleted
-    expect(file_exists($sessionFile))->toBeFalse();
     expect($adapter->exists('session-delete'))->toBeFalse();
 });
 
@@ -331,18 +327,19 @@ it('memory adapter handles concurrent sessions', function (): void {
 });
 
 it('empty messages do not create session file prematurely', function (): void {
+    $adapter = new FileAdapter(['path' => $this->tempDir]);
     $agent = new Agent('test-agent');
     $agent
         ->provider(new Mock(['responses' => ['hello' => 'Hi!']]))
-        ->memory('File', ['directory' => $this->tempDir])
+        ->memory($adapter)
         ->sessionId('session-lazy');
 
     // Session file should not exist yet
-    expect(file_exists($this->tempDir.'/session-lazy.json'))->toBeFalse();
+    expect($adapter->exists('session-lazy'))->toBeFalse();
 
     // After prompt it should exist
     $agent->prompt('hello');
-    expect(file_exists($this->tempDir.'/session-lazy.json'))->toBeTrue();
+    expect($adapter->exists('session-lazy'))->toBeTrue();
 });
 
 it('memory prune method keeps recent messages', function (): void {

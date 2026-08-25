@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use OpenTelemetry\API\Trace\StatusCode;
 use Pagent\Agent;
+use Pagent\Contracts\Memory;
+use Pagent\Contracts\Provider;
 use Pagent\Observability\Exporters\InMemoryExporter;
 use Pagent\Observability\TelemetryManager;
 use Pagent\Providers\Mock;
@@ -90,7 +93,7 @@ describe('Agent Telemetry Integration', function () {
 
     it('creates tool execution spans', function () {
         // Create mock provider that returns tool calls
-        $mockProvider = new class implements \Pagent\Contracts\Provider
+        $mockProvider = new class implements Provider
         {
             private int $callCount = 0;
 
@@ -152,7 +155,7 @@ describe('Agent Telemetry Integration', function () {
 
     it('tracks memory operations', function () {
         // Create a simple memory adapter
-        $memory = new class implements \Pagent\Contracts\Memory
+        $memory = new class implements Memory
         {
             private array $storage = [];
 
@@ -209,7 +212,7 @@ describe('Agent Telemetry Integration', function () {
     });
 
     it('records exceptions in spans', function () {
-        $mockProvider = new class implements \Pagent\Contracts\Provider
+        $mockProvider = new class implements Provider
         {
             public function prompt(string $message, array $options = []): object
             {
@@ -237,7 +240,7 @@ describe('Agent Telemetry Integration', function () {
         // Check that at least one span has error status
         $hasErrorSpan = false;
         foreach ($spans as $span) {
-            if ($span->getStatus()->getCode() === \OpenTelemetry\API\Trace\StatusCode::STATUS_ERROR) {
+            if ($span->getStatus()->getCode() === StatusCode::STATUS_ERROR) {
                 $hasErrorSpan = true;
                 break;
             }

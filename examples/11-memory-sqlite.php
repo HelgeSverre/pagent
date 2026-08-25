@@ -18,7 +18,7 @@ if (file_exists(__DIR__.'/../.env')) {
  * This example demonstrates how to persist conversation history using SQLite.
  * Messages are automatically saved and loaded based on the session ID.
  */
-echo "=== Example 1: Basic SQLite Persistence ===\n\n";
+echo "\n[Example 1: Basic SQLite Persistence]\n";
 
 // Configure agent with SQLite memory adapter
 agent('persistent-bot')
@@ -61,7 +61,7 @@ echo 'Messages after turn 3: '.count($bot->messages)."\n\n";
  * When we create a new agent instance with the same session ID,
  * the previous conversation is automatically loaded.
  */
-echo "=== Example 2: Simulating Script Restart ===\n\n";
+echo "\n[Example 2: Simulating Script Restart]\n";
 
 echo "Simulating script restart (creating new agent instance)...\n\n";
 
@@ -91,7 +91,7 @@ echo 'Messages after turn 4: '.count($reloadedBot->messages)."\n\n";
  *
  * Let's examine what was actually persisted in the database.
  */
-echo "=== Example 3: Inspecting Message History ===\n\n";
+echo "\n[Example 3: Inspecting Message History]\n";
 
 echo "Complete conversation history:\n";
 echo str_repeat('-', 70)."\n";
@@ -118,7 +118,7 @@ echo 'Total messages persisted: '.count($reloadedBot->messages)."\n\n";
  *
  * Using a different session ID creates an independent conversation.
  */
-echo "=== Example 4: Starting Fresh Session ===\n\n";
+echo "\n[Example 4: Starting Fresh Session]\n";
 
 agent('fresh-bot')
     ->provider('mock')
@@ -142,7 +142,7 @@ echo "(Bot doesn't know - different session!)\n\n";
  *
  * Verify that the original session still has its context intact.
  */
-echo "=== Example 5: Context Preservation ===\n\n";
+echo "\n[Example 5: Context Preservation]\n";
 
 agent('verify-bot')
     ->provider('mock')
@@ -162,5 +162,6 @@ echo "Bot: {$r6->content}\n\n";
 
 echo 'Context is preserved! All '.(count($verifyBot->messages) - 1)." previous messages are available.\n\n";
 
-echo "✅ All SQLite persistence examples completed!\n";
 echo "\nNote: Conversation data persisted in storage/examples.db\n";
+
+echo "\nDone.\n";

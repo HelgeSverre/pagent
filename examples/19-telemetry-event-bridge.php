@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use Pagent\Observability\TelemetryEventBridge;
 
 require __DIR__.'/../vendor/autoload.php';
 
@@ -27,8 +28,7 @@ telemetry_console(verbose: true);
 // 2. Register the telemetry bridge (automatic span creation from events)
 $bridge = telemetry_bridge();
 
-echo "TelemetryEventBridge Example\n";
-echo "===========================\n\n";
+echo "[Pagent: Telemetry Event Bridge]\n";
 
 // 3. Create an agent with a mock provider (no API key needed)
 $agent = agent('demo-bot')
@@ -36,7 +36,7 @@ $agent = agent('demo-bot')
         (object) [
             'content' => 'Hello! I am an AI assistant powered by automatic telemetry.',
             'tokens' => 25,
-            'model' => 'claude-3-opus',
+            'model' => 'claude-sonnet-4-6',
             'usage' => [
                 'input_tokens' => 10,
                 'output_tokens' => 15,
@@ -71,7 +71,7 @@ echo "      'trace_streams' => true,   // Trace streaming (default: true)\n";
 echo "  ]);\n\n";
 
 // Example: LLM-only tracing
-$llmOnlyBridge = new \Pagent\Observability\TelemetryEventBridge([
+$llmOnlyBridge = new TelemetryEventBridge([
     'trace_llm' => true,
     'trace_tools' => false,
     'trace_memory' => false,
@@ -81,12 +81,13 @@ $llmOnlyBridge = new \Pagent\Observability\TelemetryEventBridge([
 
 echo 'LLM-only bridge listens to: '.implode(', ', $llmOnlyBridge->listensTo())."\n\n";
 
-echo "✅ TelemetryEventBridge automatically created spans for:\n";
+echo "TelemetryEventBridge automatically created spans for:\n";
 echo "  - LLM request/response\n";
 echo "  - Tool execution (when tools are used)\n";
 echo "  - Guard checks (when guards are configured)\n";
 echo "  - Memory operations (when memory is used)\n";
 echo "  - Stream operations (when streaming is enabled)\n";
-echo "  - All event data captured without manual span creation!\n\n";
+echo "  - Event data captured without manual span creation\n\n";
 
 echo "Check the console output above to see the spans that were created.\n";
+echo "\nDone.\n";

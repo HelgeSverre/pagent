@@ -9,17 +9,16 @@ use Pagent\Providers\Anthropic;
 use function Pagent\agent;
 
 // Example 1: Simple streaming with callback
-echo "Example 1: Simple Streaming\n";
-echo str_repeat('=', 50)."\n\n";
+echo "\n[Example 1: Simple Streaming]\n";
 
 $agent = agent('streamer')
     ->provider(new Anthropic(['api_key' => $_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY')]))
     ->system('You are a helpful assistant. Be concise.')
-    ->model('claude-3-haiku-20240307')
+    ->model('claude-sonnet-4-6')
     ->maxTokens(100);
 
-echo "Question: Tell me a short joke about programming\n";
-echo 'Response: ';
+echo "Input: Tell me a short joke about programming\n";
+echo 'Output: ';
 
 $agent->streamTo('Tell me a short joke about programming', function ($chunk) {
     if ($chunk->isText()) {
@@ -31,16 +30,15 @@ $agent->streamTo('Tell me a short joke about programming', function ($chunk) {
 echo "\n\n";
 
 // Example 2: Manual streaming with more control
-echo "Example 2: Manual Stream Control\n";
-echo str_repeat('=', 50)."\n\n";
+echo "\n[Example 2: Manual Stream Control]\n";
 
 $agent2 = agent('manual-streamer')
     ->provider(new Anthropic(['api_key' => $_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY')]))
-    ->model('claude-3-haiku-20240307')
+    ->model('claude-sonnet-4-6')
     ->maxTokens(150);
 
-echo "Question: What is PHP?\n";
-echo 'Response: ';
+echo "Input: What is PHP?\n";
+echo 'Output: ';
 
 $streamResponse = $agent2->stream('What is PHP in one sentence?');
 
@@ -51,7 +49,7 @@ foreach ($streamResponse->getStream() as $chunk) {
     $chunkCount++;
 
     if ($chunk->isStart()) {
-        echo "[Stream Started]\n";
+        echo "Status: Stream started\n";
     }
 
     if ($chunk->isText()) {
@@ -61,7 +59,7 @@ foreach ($streamResponse->getStream() as $chunk) {
     }
 
     if ($chunk->isEnd()) {
-        echo "\n[Stream Ended]\n";
+        echo "\nStatus: Stream ended\n";
         echo "Chunks received: {$chunkCount}\n";
         echo "Text chunks: {$textChunks}\n";
 
@@ -75,18 +73,17 @@ foreach ($streamResponse->getStream() as $chunk) {
 echo "\n\n";
 
 // Example 3: Collecting full response
-echo "Example 3: Collect Full Response\n";
-echo str_repeat('=', 50)."\n\n";
+echo "\n[Example 3: Collect Full Response]\n";
 
 $agent3 = agent('collector')
     ->provider(new Anthropic(['api_key' => $_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY')]))
-    ->model('claude-3-haiku-20240307')
+    ->model('claude-sonnet-4-6')
     ->maxTokens(50);
 
 $streamResponse = $agent3->stream('Say hello');
 $fullContent = $streamResponse->collect();
 
-echo "Full response: {$fullContent}\n";
+echo "Output: {$fullContent}\n";
 echo 'Provider: '.$streamResponse->getProvider()."\n";
 echo 'Model: '.$streamResponse->getModel()."\n";
 
@@ -96,4 +93,4 @@ if ($streamResponse->getUsage()) {
     echo 'Output tokens: '.($usage['output_tokens'] ?? 0)."\n";
 }
 
-echo "\n";
+echo "\nDone.\n";

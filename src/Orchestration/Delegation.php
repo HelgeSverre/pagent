@@ -8,7 +8,6 @@ use Closure;
 use Pagent\Agent;
 use RuntimeException;
 
-use function is_string;
 use function resolveAgent;
 
 final class Delegation
@@ -31,13 +30,15 @@ final class Delegation
 
     public function to(string|Agent $worker): self
     {
-        $this->worker = resolveAgent($worker);
+        $resolved = resolveAgent($worker);
 
-        if (! $this->worker instanceof Agent) {
-            $name = is_string($worker) ? $worker : 'unknown';
+        if ($resolved === null) {
+            $workerName = $worker instanceof Agent ? $worker->getName() : $worker;
 
-            throw new RuntimeException("Worker agent '{$name}' not found");
+            throw new RuntimeException("Worker agent '{$workerName}' not found");
         }
+
+        $this->worker = $resolved;
 
         return $this;
     }

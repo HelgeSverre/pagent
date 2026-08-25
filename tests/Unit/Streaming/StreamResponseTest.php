@@ -126,3 +126,135 @@ test('StreamResponse ignores non-text chunks in content accumulation', function 
 
     expect($fullContent)->toBe('Hello World');
 });
+
+test('StreamResponse runs completion handlers exactly once after natural completion', function () {
+    $calls = 0;
+    $response = new StreamResponse((function () {
+        yield StreamChunk::text('done');
+        yield StreamChunk::end();
+    })(), 'mock', 'mock');
+
+    $response->onComplete(function (StreamResponse $completed) use (&$calls): void {
+        $calls++;
+        expect($completed->getFullContent())->toBe('done');
+    });
+
+    expect($response->collect())->toBe('done')
+        ->and($calls)->toBe(1)
+        ->and($response->isComplete())->toBeTrue();
+});
+
+test('StreamResponse lets a policy inspect chunks before delivery', function () {
+    $seenByPolicy = [];
+    $delivered = [];
+    $response = new StreamResponse((function () {
+        yield StreamChunk::text('first');
+        yield StreamChunk::text('second');
+        yield StreamChunk::end();
+    })(), 'mock', 'mock');
+
+    $response->consume(
+        beforeDelivery: function (StreamChunk $chunk) use (&$seenByPolicy): void {
+            $seenByPolicy[] = $chunk->content;
+        },
+        onChunk: function (StreamChunk $chunk) use (&$delivered): void {
+            $delivered[] = $chunk->content;
+        },
+    );
+
+    expect($seenByPolicy)->toBe(['first', 'second', ''])
+        ->and($delivered)->toBe(['first', 'second', '']);
+});
+
+test('StreamResponse reports parser failures without treating them as cancellation', function () {
+    $reported = null;
+    $response = new StreamResponse((function () {
+        yield StreamChunk::text('partial');
+        throw new RuntimeException('broken stream');
+    })(), 'mock', 'mock');
+
+    $response->onError(function (Throwable $error) use (&$reported): void {
+        $reported = $error->getMessage();
+    });
+
+    expect(fn () => $response->collect())->toThrow(RuntimeException::class, 'broken stream')
+        ->and($reported)->toBe('broken stream')
+        ->and($response->isComplete())->toBeFalse()
+        ->and($response->isCancelled())->toBeFalse();
+});
+
+test('StreamResponse treats provider error chunks as failed streams', function () {
+    $reported = null;
+    $response = new StreamResponse((function () {
+        yield StreamChunk::text('partial');
+        yield StreamChunk::error('rate limited');
+    })(), 'mock', 'mock');
+
+    $response->onError(function (Throwable $error) use (&$reported): void {
+        $reported = $error->getMessage();
+    });
+
+    expect(fn () => $response->collect())->toThrow(RuntimeException::class, 'Provider stream failed: rate limited')
+        ->and($reported)->toBe('Provider stream failed: rate limited')
+        ->and($response->isComplete())->toBeFalse();
+});
+
+test('StreamResponse does not complete a truncated provider stream', function () {
+    $response = new StreamResponse((function () {
+        yield StreamChunk::text('partial');
+    })(), 'mock', 'mock');
+
+    expect(fn () => $response->collect())
+        ->toThrow(RuntimeException::class, 'ended without a terminal chunk')
+        ->and($response->isComplete())->toBeFalse();
+});
+
+test('StreamResponse reports completion hook failures as stream failures', function () {
+    $failed = false;
+    $response = new StreamResponse((function () {
+        yield StreamChunk::end();
+    })(), 'mock', 'mock');
+
+    $response->onComplete(function (): void {
+        throw new RuntimeException('persistence failed');
+    })->onError(function () use (&$failed): void {
+        $failed = true;
+    });
+
+    expect(fn () => $response->collect())->toThrow(RuntimeException::class, 'persistence failed')
+        ->and($failed)->toBeTrue()
+        ->and($response->isComplete())->toBeFalse();
+});
+
+test('StreamResponse cancellation releases the underlying stream exactly once', function () {
+    $cancelled = 0;
+    $response = new StreamResponse((function () {
+        yield StreamChunk::text('partial');
+        yield StreamChunk::text('never consumed');
+    })(), 'mock', 'mock', function () use (&$cancelled): void {
+        $cancelled++;
+    });
+
+    $response->cancel();
+    $response->cancel();
+
+    expect($cancelled)->toBe(1)
+        ->and($response->isCancelled())->toBeTrue();
+});
+
+test('StreamResponse cancellation always releases the transport after observer failures', function () {
+    $transportClosed = false;
+    $response = new StreamResponse((function () {
+        yield StreamChunk::text('partial');
+    })(), 'mock', 'mock', function () use (&$transportClosed): void {
+        $transportClosed = true;
+    });
+
+    $response->onCancel(function (): void {
+        throw new RuntimeException('rollback observer failed');
+    });
+
+    $response->cancel();
+
+    expect($transportClosed)->toBeTrue();
+});

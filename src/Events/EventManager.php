@@ -29,6 +29,12 @@ final class EventManager
     private static ?self $instance = null;
 
     /**
+     * Monotonically increasing generation used by singleton listeners to
+     * detect EventManager resets in tests and long-lived workers.
+     */
+    private static int $generation = 0;
+
+    /**
      * Event dispatcher instance.
      */
     private EventDispatcher $dispatcher;
@@ -51,6 +57,14 @@ final class EventManager
         }
 
         return self::$instance;
+    }
+
+    /**
+     * Current singleton generation.
+     */
+    public static function generation(): int
+    {
+        return self::$generation;
     }
 
     /**
@@ -101,6 +115,22 @@ final class EventManager
     }
 
     /**
+     * Publish an event to global listeners and then to one scoped dispatcher.
+     *
+     * This is the canonical publication path for components that expose local
+     * listeners. EventDispatcher guarantees that one listener instance only
+     * receives a logical event once, even when it is registered in both scopes.
+     */
+    public static function publish(Event $event, ?EventDispatcher $scopedDispatcher = null): void
+    {
+        self::instance()->dispatch($event);
+
+        if (! $event->isPropagationStopped()) {
+            $scopedDispatcher?->dispatch($event);
+        }
+    }
+
+    /**
      * Register a class-based listener for multiple events.
      *
      * @param  EventListener  $listener  The listener instance
@@ -112,10 +142,19 @@ final class EventManager
     }
 
     /**
+     * Register a global listener with an explicit lifecycle.
+     */
+    public function subscribe(EventListener $listener, int $priority = 0): EventSubscription
+    {
+        return $this->dispatcher->subscribe($listener, $priority);
+    }
+
+    /**
      * Reset the singleton (for testing).
      */
     public static function reset(): void
     {
         self::$instance = null;
+        self::$generation++;
     }
 }

@@ -32,13 +32,12 @@ interface Provider {
     public function prompt(string $message, array $options = []): object;
 }
 
-// 2. ToolInterface - Agent capabilities
-interface ToolInterface {
-    public function name(): string;
-    public function description(): string;
-    public function execute(array $params): mixed;
-    public function toAnthropicSchema(): array;
-    public function toOpenAISchema(): array;
+// 2. Tool - provider-neutral agent capabilities
+interface Tool {
+    public function getName(): string;
+    public function getDescription(): string;
+    public function getInputSchema(): array;
+    public function execute(array $arguments): mixed;
 }
 
 // 3. Guard - Safety and validation
@@ -86,7 +85,7 @@ namespace App\Extensions\Support;
 
 use Pagent\Agent;
 use Pagent\Contracts\Guard;
-use Pagent\Contracts\ToolInterface;
+use Pagent\Contracts\Tool;
 use Pagent\Contracts\Middleware;
 
 /**
@@ -119,19 +118,19 @@ final class SupportExtensions
         $agent->middleware($this->createCachingMiddleware());
     }
 
-    private function createTicketTool(): ToolInterface
+    private function createTicketTool(): Tool
     {
-        return new class($this->db) implements ToolInterface {
+        return new class($this->db) implements Tool {
             public function __construct(
                 private readonly DatabaseConnection $db
             ) {}
 
-            public function name(): string
+            public function getName(): string
             {
                 return 'create_ticket';
             }
 
-            public function description(): string
+            public function getDescription(): string
             {
                 return 'Create a support ticket in the system';
             }
@@ -152,53 +151,16 @@ final class SupportExtensions
                 ];
             }
 
-            public function toAnthropicSchema(): array
+            public function getInputSchema(): array
             {
                 return [
-                    'name' => $this->name(),
-                    'description' => $this->description(),
-                    'input_schema' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'title' => [
-                                'type' => 'string',
-                                'description' => 'Short ticket title',
-                            ],
-                            'description' => [
-                                'type' => 'string',
-                                'description' => 'Detailed issue description',
-                            ],
-                            'priority' => [
-                                'type' => 'string',
-                                'enum' => ['low', 'medium', 'high', 'urgent'],
-                                'description' => 'Ticket priority level',
-                            ],
-                        ],
-                        'required' => ['title', 'description'],
+                    'type' => 'object',
+                    'properties' => [
+                        'title' => ['type' => 'string', 'description' => 'Short ticket title'],
+                        'description' => ['type' => 'string', 'description' => 'Detailed issue description'],
+                        'priority' => ['type' => 'string', 'enum' => ['low', 'medium', 'high', 'urgent']],
                     ],
-                ];
-            }
-
-            public function toOpenAISchema(): array
-            {
-                return [
-                    'type' => 'function',
-                    'function' => [
-                        'name' => $this->name(),
-                        'description' => $this->description(),
-                        'parameters' => [
-                            'type' => 'object',
-                            'properties' => [
-                                'title' => ['type' => 'string'],
-                                'description' => ['type' => 'string'],
-                                'priority' => [
-                                    'type' => 'string',
-                                    'enum' => ['low', 'medium', 'high', 'urgent'],
-                                ],
-                            ],
-                            'required' => ['title', 'description'],
-                        ],
-                    ],
+                    'required' => ['title', 'description'],
                 ];
             }
         };
@@ -264,13 +226,13 @@ final class SupportExtensions
         };
     }
 
-    private function createKnowledgeBaseTool(): ToolInterface
+    private function createKnowledgeBaseTool(): Tool
     {
         // Implementation similar to createTicketTool()...
         return new KnowledgeBaseTool($this->db);
     }
 
-    private function createEscalationTool(): ToolInterface
+    private function createEscalationTool(): Tool
     {
         // Implementation for escalating to human agents...
         return new EscalationTool($this->db);
@@ -297,7 +259,7 @@ use function Pagent\agent;
 
 $agent = agent('support-agent')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful customer support agent')
     ->build();
 

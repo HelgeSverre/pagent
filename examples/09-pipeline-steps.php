@@ -49,7 +49,7 @@ $result = Pipeline::create()
     ->run('Invoice #INV-2025-001 for $2,500 due on 2025-02-15');
 
 // Display results
-echo "=== Pipeline: Invoice Processing ===\n\n";
+echo "\n[Pipeline: Invoice Processing]\n";
 
 echo "Final Output:\n";
 echo $result->final."\n\n";

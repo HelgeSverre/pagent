@@ -19,7 +19,7 @@ Thank you for considering contributing to Pagent! This document outlines the dev
 
 ### System Requirements
 
-- PHP 8.3 or higher
+- PHP 8.4.1 or higher
 - Composer 2.x
 - Git
 
@@ -32,8 +32,8 @@ Thank you for considering contributing to Pagent! This document outlines the dev
 just setup              # Install dependencies and git hooks
 
 # Testing
-just test               # Run all tests
-just coverage           # Run tests with coverage
+just test               # Run deterministic tests
+just coverage           # Run deterministic tests with coverage
 
 # Code Quality
 just format             # Fix code style (PHP + Markdown)
@@ -54,8 +54,8 @@ Run `just --list` to see all available commands.
 **Main Commands:**
 
 - `just setup` - Install dependencies and setup git hooks
-- `just test` - Run all tests
-- `just coverage` - Run tests with coverage report
+- `just test` - Run deterministic tests
+- `just coverage` - Run deterministic tests with coverage report
 - `just format` - Fix code style (PHP + Markdown)
 - `just analyse` - Run PHPStan static analysis
 - `just pr` - Prepare for PR (fix code, analyse, and test)
@@ -64,10 +64,13 @@ Run `just --list` to see all available commands.
 
 #### Composer Commands
 
-- `composer test` - Run all tests
-- `composer test:coverage` - Run tests with coverage
+- `composer test` - Run deterministic tests (excludes live providers and external services)
+- `composer test:coverage` - Run deterministic tests with coverage
 - `composer test:unit` - Run unit tests only
 - `composer test:integration` - Run integration tests only
+- `composer test:live` - Run opt-in live-provider tests (credentials required)
+- `composer test:external` - Run all opt-in external-service tests
+- `composer test:observability` - Run opt-in external observability tests
 - `composer analyse` - Run PHPStan analysis
 - `composer analyse:baseline` - Generate PHPStan baseline
 - `composer analyse:clear` - Clear PHPStan cache
@@ -94,7 +97,7 @@ Key rules:
 - Single space around binary operators
 - Alphabetically sorted imports
 - Strict comparisons
-- PHP 8.3 modern features
+- PHP 8.4 modern features
 
 **Auto-fix code style:**
 
@@ -116,7 +119,7 @@ Key checks:
 - Unused code detection
 - Dead code detection
 - Strict parameter and return types
-- PHP 8.3 compatibility checks
+- PHP 8.4 compatibility checks
 
 **Run analysis:**
 
@@ -136,6 +139,15 @@ Pagent uses [Pest](https://pestphp.com/) for testing.
 just test
 # or
 composer test
+```
+
+The default suite deliberately excludes `live` and `external` groups. Run those
+only when their credentials and services are available:
+
+```bash
+composer test:live
+composer test:external
+composer test:observability
 ```
 
 **Run with coverage:**
@@ -206,9 +218,11 @@ The CI pipeline runs:
 
 1. Code style checks (Pint)
 2. Static analysis (PHPStan level 9)
-3. Unit tests
-4. Integration tests
-5. Coverage report
+3. Deterministic unit and integration tests
+4. Coverage report
+
+Live-provider and external-service suites are opt-in and should be run by the
+appropriate credentialed environment, not assumed by every contributor.
 
 Local equivalent:
 
@@ -245,7 +259,7 @@ just setup
 
 1. **Write tests first** - TDD helps design better APIs
 2. **Keep methods small** - Single responsibility principle
-3. **Use type hints** - PHP 8.3 union types, intersection types
+3. **Use type hints** - PHP 8.4 union types, intersection types
 4. **Document complex logic** - PHPDoc for arrays, generics
 5. **Run `just test` frequently** - Catch issues early
 6. **Never commit without tests passing** - Quality first

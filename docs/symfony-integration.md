@@ -68,7 +68,7 @@ OPENAI_API_KEY=your-key-here
 
 # Agent Configuration
 AGENT_DEFAULT_PROVIDER=anthropic
-AGENT_DEFAULT_MODEL=claude-3-haiku-20240307
+AGENT_DEFAULT_MODEL=claude-sonnet-4-6
 AGENT_TIMEOUT=30
 ```
 
@@ -87,7 +87,7 @@ pagent:
   agents:
     support:
       provider: anthropic
-      model: claude-3-haiku-20240307
+      model: claude-sonnet-4-6
       system: "You are a helpful customer support agent for our e-commerce platform. Be concise, professional, and helpful."
       temperature: 0.3
       tools:
@@ -103,7 +103,7 @@ pagent:
 
     code_reviewer:
       provider: anthropic
-      model: claude-3-opus-20240229
+      model: claude-sonnet-4-6
       system: "You are a senior code reviewer. Provide constructive feedback on code quality, security, and best practices."
       temperature: 0.2
 
@@ -145,7 +145,7 @@ class Configuration implements ConfigurationInterface
         $treeBuilder->getRootNode()
             ->children()
                 ->scalarNode('default_provider')->defaultValue('anthropic')->end()
-                ->scalarNode('default_model')->defaultValue('claude-3-haiku-20240307')->end()
+                ->scalarNode('default_model')->defaultValue('claude-sonnet-4-6')->end()
                 ->integerNode('timeout')->defaultValue(30)->end()
                 ->arrayNode('agents')
                     ->useAttributeAsKey('name')
@@ -913,13 +913,13 @@ $response = $this->cache->get(
 pagent:
   agents:
     support:
-      model: claude-3-haiku-20240307  # Cheaper model for dev
+      model: claude-sonnet-4-6 # Cheaper model for dev
 
 # config/packages/prod/pagent.yaml
 pagent:
   agents:
     support:
-      model: claude-3-opus-20240229  # Better model for prod
+      model: claude-sonnet-4-6 # Better model for prod
 ```
 
 ---
@@ -928,13 +928,14 @@ pagent:
 
 This Symfony integration provides:
 
-- ✅ **Bundle Architecture** - Clean, reusable bundle pattern
-- ✅ **Service Container** - Full DI support
-- ✅ **Configuration System** - YAML-based agent config
-- ✅ **Console Commands** - CLI testing and management
-- ✅ **Messenger Integration** - Async processing
-- ✅ **Event System** - Track and log interactions
-- ✅ **Validation** - Built-in input validation
-- ✅ **Symfony Conventions** - Follows Symfony best practices
+- **Bundle Architecture** - Clean, reusable bundle pattern
+- **Service Container** - Full DI support
+- **Configuration System** - YAML-based agent config
+- **Console Commands** - CLI testing and management
+- **Messenger Integration** - Async processing
+- **Event System** - Track and log interactions
+- **Validation** - Built-in input validation
+- **Symfony Conventions** - Follows Symfony best practices
 
-Your Symfony app now has AI superpowers! 🚀
+Use these patterns as a starting point and adapt service configuration, Messenger
+policy, and error handling to the requirements of your application.

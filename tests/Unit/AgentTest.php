@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Pagent\Agent;
+use Pagent\Contracts\Provider;
 use Pagent\Providers\Mock;
 
 it('creates an agent with a name', function (): void {
@@ -98,7 +99,7 @@ it('returns the same agent instance for fluent calls', function (): void {
 test('it prevents infinite tool call loops', function (): void {
     // Create a mock provider that always returns tool_calls (infinite loop scenario)
     $callCount = 0;
-    $mock = new class($callCount) implements \Pagent\Contracts\Provider
+    $mock = new class($callCount) implements Provider
     {
         private int $callCount = 0;
 
@@ -133,7 +134,7 @@ test('it prevents infinite tool call loops', function (): void {
 
 test('it handles tool removal during execution gracefully', function (): void {
     $callCount = 0;
-    $mock = new class($callCount) implements \Pagent\Contracts\Provider
+    $mock = new class($callCount) implements Provider
     {
         private int $callCount = 0;
 
@@ -176,7 +177,7 @@ test('it handles tool removal during execution gracefully', function (): void {
 
 test('it detects circular tool call chains', function (): void {
     $calls = [];
-    $mock = new class($calls) implements \Pagent\Contracts\Provider
+    $mock = new class($calls) implements Provider
     {
         private int $callCount = 0;
 
@@ -261,12 +262,22 @@ test('clone does not copy messages or sessionId', function (): void {
     expect($agent->messages)->toHaveCount(4);
 });
 
+test('agent exposes its active session boundary', function (): void {
+    $agent = new Agent('session-agent');
+
+    expect($agent->getSessionId())->toBeNull();
+
+    $agent->sessionId('session-123');
+
+    expect($agent->getSessionId())->toBe('session-123');
+});
+
 // ========================================
 // TOOL EXECUTION ERROR HANDLING
 // ========================================
 
 test('it handles tool execution exceptions gracefully', function (): void {
-    $mockProvider = new class implements \Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         private int $callCount = 0;
 
@@ -290,7 +301,7 @@ test('it handles tool execution exceptions gracefully', function (): void {
         }
     };
 
-    $agent = new \Pagent\Agent('test-agent');
+    $agent = new Agent('test-agent');
     $agent->provider($mockProvider);
     $agent->tool('calculate', 'Calculate', function (int $a, int $b) {
         if ($b === 0) {
@@ -328,8 +339,39 @@ test('it throws when tool returns non-serializable data', function (): void {
     expect($result)->toBeCallable();
 });
 
+test('it rejects a non-serializable tool result before a provider follow-up', function (): void {
+    $provider = new class implements Provider
+    {
+        public int $calls = 0;
+
+        public function prompt(string $message, array $options = []): object
+        {
+            $this->calls++;
+
+            return (object) [
+                'content' => '',
+                'tool_calls' => [[
+                    'id' => 'call_bad_result',
+                    'name' => 'bad_tool',
+                    'arguments' => [],
+                ]],
+            ];
+        }
+    };
+
+    $agent = (new Agent('bad-tool-result'))
+        ->provider($provider)
+        ->tool('bad_tool', 'Returns a non-finite number', fn () => NAN);
+
+    expect(fn () => $agent->prompt('run it'))
+        ->toThrow(RuntimeException::class, "Tool 'bad_tool' returned a result that cannot be encoded as JSON");
+
+    expect($provider->calls)->toBe(1)
+        ->and($agent->messages)->toBe([]);
+});
+
 test('it handles tool with incorrect argument count', function (): void {
-    $mockProvider = new class implements \Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         public function prompt(string $message, array $options = []): object
         {
@@ -345,7 +387,7 @@ test('it handles tool with incorrect argument count', function (): void {
         }
     };
 
-    $agent = new \Pagent\Agent('test-agent');
+    $agent = new Agent('test-agent');
     $agent->provider($mockProvider);
     $agent->tool('add', 'Add two numbers', fn (int $a, int $b) => $a + $b);
 
@@ -364,7 +406,7 @@ test('it handles tool with wrong argument types', function (): void {
 });
 
 test('it handles provider returning malformed response', function (): void {
-    $mockProvider = new class implements \Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         public function prompt(string $message, array $options = []): object
         {
@@ -377,7 +419,7 @@ test('it handles provider returning malformed response', function (): void {
         }
     };
 
-    $agent = new \Pagent\Agent('test-agent');
+    $agent = new Agent('test-agent');
     $agent->provider($mockProvider);
 
     // Agent should handle missing content gracefully
@@ -388,7 +430,7 @@ test('it handles provider returning malformed response', function (): void {
 });
 
 test('it handles provider returning non-object response', function (): void {
-    $mockProvider = new class implements \Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         public function prompt(string $message, array $options = []): object
         {
@@ -396,7 +438,7 @@ test('it handles provider returning non-object response', function (): void {
         }
     };
 
-    $agent = new \Pagent\Agent('test-agent');
+    $agent = new Agent('test-agent');
     $agent->provider($mockProvider);
 
     $response = $agent->prompt('test');
@@ -406,7 +448,7 @@ test('it handles provider returning non-object response', function (): void {
 });
 
 test('it handles multiple concurrent tool calls', function (): void {
-    $mockProvider = new class implements \Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         private int $callCount = 0;
 
@@ -432,7 +474,7 @@ test('it handles multiple concurrent tool calls', function (): void {
         }
     };
 
-    $agent = new \Pagent\Agent('test-agent');
+    $agent = new Agent('test-agent');
     $agent->provider($mockProvider);
     $agent->tool('add', 'Add', fn (int $a, int $b) => $a + $b);
     $agent->tool('multiply', 'Multiply', fn (int $a, int $b) => $a * $b);
@@ -443,7 +485,7 @@ test('it handles multiple concurrent tool calls', function (): void {
 });
 
 test('it handles tool calls with duplicate ids', function (): void {
-    $mockProvider = new class implements \Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         private int $callCount = 0;
 
@@ -468,7 +510,7 @@ test('it handles tool calls with duplicate ids', function (): void {
         }
     };
 
-    $agent = new \Pagent\Agent('test-agent');
+    $agent = new Agent('test-agent');
     $agent->provider($mockProvider);
     $agent->tool('add', 'Add', fn (int $a, int $b) => $a + $b);
 
@@ -479,7 +521,7 @@ test('it handles tool calls with duplicate ids', function (): void {
 });
 
 test('it handles tool returning null', function (): void {
-    $mockProvider = new class implements \Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         private int $callCount = 0;
 
@@ -503,7 +545,7 @@ test('it handles tool returning null', function (): void {
         }
     };
 
-    $agent = new \Pagent\Agent('test-agent');
+    $agent = new Agent('test-agent');
     $agent->provider($mockProvider);
     $agent->tool('null_tool', 'Returns null', fn () => null);
 

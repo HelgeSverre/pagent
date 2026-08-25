@@ -17,7 +17,7 @@ $response = $agent->prompt('What is the capital of France?');
 
 // Response object structure
 echo $response->content;   // "The capital of France is Paris."
-echo $response->model;     // "claude-sonnet-4-20250514"
+echo $response->model;     // "claude-sonnet-4-6"
 echo $response->tokens;    // 45 (total tokens used)
 echo $response->provider;  // "anthropic"
 

@@ -21,22 +21,24 @@ final class OpenAIStreamParser
 
     private array $usage = [];
 
+    /** @var array<int, array<string, mixed>> */
+    private array $toolCalls = [];
+
     /**
      * Parse SSE stream from OpenAI API
      *
-     * @param  resource  $stream  cURL stream resource
+     * @param  resource|iterable<string>  $stream  cURL stream or incremental byte chunks
      * @return Generator<StreamChunk>
      */
     public function parse($stream, string $model): Generator
     {
-        $buffer = '';
+        $this->accumulatedText = '';
+        $this->usage = [];
+        $this->toolCalls = [];
+        $finishReason = null;
+        $sawDone = false;
 
-        while (! feof($stream)) {
-            $line = fgets($stream);
-            if ($line === false) {
-                break;
-            }
-
+        foreach (LineIterator::from($stream) as $line) {
             $line = trim($line);
 
             if (empty($line)) {
@@ -49,21 +51,42 @@ final class OpenAIStreamParser
 
                 // Check for [DONE] marker
                 if ($data === '[DONE]') {
+                    $sawDone = true;
                     yield StreamChunk::end([
                         'full_content' => $this->accumulatedText,
                         'usage' => $this->usage,
                         'model' => $model,
+                        'finish_reason' => $finishReason,
                     ]);
                     break;
                 }
 
                 $chunk = json_decode($data, true);
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    throw new RuntimeException('Failed to parse SSE data: '.json_last_error_msg());
+                if (json_last_error() !== JSON_ERROR_NONE || ! is_array($chunk)) {
+                    $reason = json_last_error() === JSON_ERROR_NONE
+                        ? 'expected a JSON object'
+                        : json_last_error_msg();
+                    throw new RuntimeException('Failed to parse SSE data: '.$reason);
                 }
 
-                yield from $this->handleChunk($chunk, $model);
+                $reportedFinishReason = $chunk['choices'][0]['finish_reason'] ?? null;
+                if (is_string($reportedFinishReason)) {
+                    $finishReason = $reportedFinishReason;
+                }
+
+                foreach ($this->handleChunk($chunk, $model) as $streamChunk) {
+                    yield $streamChunk;
+                }
             }
+        }
+
+        if (! $sawDone && $finishReason !== null) {
+            yield StreamChunk::end([
+                'full_content' => $this->accumulatedText,
+                'usage' => $this->usage,
+                'model' => $model,
+                'finish_reason' => $finishReason,
+            ]);
         }
     }
 
@@ -74,6 +97,10 @@ final class OpenAIStreamParser
      */
     private function handleChunk(array $chunk, string $model): Generator
     {
+        if (isset($chunk['usage']) && is_array($chunk['usage'])) {
+            $this->usage = $chunk['usage'];
+        }
+
         $choices = $chunk['choices'] ?? [];
         if (empty($choices)) {
             return;
@@ -81,7 +108,6 @@ final class OpenAIStreamParser
 
         $choice = $choices[0];
         $delta = $choice['delta'] ?? [];
-        $finishReason = $choice['finish_reason'] ?? null;
 
         // Check if this is the first chunk (has role)
         if (isset($delta['role'])) {
@@ -104,32 +130,28 @@ final class OpenAIStreamParser
         // Tool calls delta
         if (isset($delta['tool_calls'])) {
             foreach ($delta['tool_calls'] as $toolCall) {
+                $index = is_int($toolCall['index'] ?? null) ? $toolCall['index'] : 0;
+                $knownToolCall = $this->toolCalls[$index] ?? [];
+                if (is_string($toolCall['id'] ?? null)) {
+                    $knownToolCall['id'] = $toolCall['id'];
+                }
+                if (is_string($toolCall['function']['name'] ?? null)) {
+                    $knownToolCall['name'] = $toolCall['function']['name'];
+                }
+                $this->toolCalls[$index] = $knownToolCall;
+
                 yield new StreamChunk(
                     type: 'tool_call',
                     content: $toolCall['function']['arguments'] ?? '',
                     delta: $toolCall,
                     metadata: [
-                        'tool_call_id' => $toolCall['id'] ?? null,
-                        'tool_name' => $toolCall['function']['name'] ?? null,
-                        'index' => $toolCall['index'] ?? 0,
+                        'tool_call_id' => $knownToolCall['id'] ?? null,
+                        'tool_name' => $knownToolCall['name'] ?? null,
+                        'index' => $index,
                     ],
                 );
             }
         }
 
-        // Usage information (if available)
-        if (isset($chunk['usage'])) {
-            $this->usage = $chunk['usage'];
-        }
-
-        // Check for completion
-        if ($finishReason !== null) {
-            yield StreamChunk::end([
-                'finish_reason' => $finishReason,
-                'usage' => $this->usage,
-                'full_content' => $this->accumulatedText,
-                'model' => $model,
-            ]);
-        }
     }
 }

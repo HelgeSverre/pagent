@@ -2,15 +2,15 @@
 
 ## Introduction
 
-When your LLM agent processes user input and generates responses, you need to ensure those outputs are safe, compliant, and appropriate for your use case. Pagent's **guard system** provides a powerful, flexible way to validate agent responses before they reach users.
+When your LLM agent processes user input and generates responses, you need to ensure those outputs are safe, compliant, and appropriate for your use case. Pagent's **guard system** provides phase-aware policies for validating input before it leaves the process and output before it reaches users.
 
-Guards act as safety checkpoints that inspect both the user's input and the LLM's output. If a guard detects a violation - such as personally identifiable information (PII), inappropriate content, or a prompt injection attempt - it can block the response and trigger fallback behavior.
+Guards act as safety checkpoints. Input guards reject untrusted prompts and tool arguments before a provider or tool sees them; output guards reject provider responses. If a guard detects a violation - such as personally identifiable information (PII), inappropriate content, or a prompt injection attempt - it can block the response and trigger fallback behavior.
 
 This chapter explores Pagent's guard system from basic usage to advanced patterns, showing you how to build production-ready agents that handle sensitive data safely.
 
 ## The Guard Interface
 
-At its core, a guard is incredibly simple - just three methods:
+`Guard` remains the common compatibility contract. New policies should implement one of its phase-specific extensions:
 
 ```php
 interface Guard
@@ -21,7 +21,20 @@ interface Guard
 }
 ```
 
-The `check()` method receives both the user's input and the LLM's output. Return `true` to allow the response, or `false` to block it. The guard system calls guards **after** the LLM generates a response but **before** adding it to conversation history.
+```php
+interface InputGuard extends Guard
+{
+    public function checkInput(string $input): bool;
+}
+
+interface OutputGuard extends Guard
+{
+    public function checkOutput(string $output): bool;
+    public function supportsIncrementalInspection(): bool;
+}
+```
+
+An input guard runs before a provider request and before tool execution. An output guard runs after provider output is available and before it is committed to history. `supportsIncrementalInspection()` tells streaming whether it is safe to inspect accumulated output while forwarding chunks.
 
 When a guard returns `false`, Pagent throws a `GuardException` containing:
 
@@ -45,7 +58,7 @@ use function Pagent\agent;
 
 $agent = agent('safe-assistant')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('pii')              // PIIGuard
     ->guard('contentFilter')    // ContentFilterGuard
     ->guard('promptInjection')  // PromptInjectionGuard
@@ -64,7 +77,7 @@ use Pagent\Guards\ContentFilterGuard;
 
 $agent = agent('custom-safety')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard(new PIIGuard(
         enabledChecks: ['ssn', 'credit_card', 'email']
     ))
@@ -84,7 +97,7 @@ For custom validation logic, use a closure:
 ```php
 $agent = agent('no-swearing')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('profanity_check', function (string $input, string $output): bool {
         $profanity = ['badword1', 'badword2'];
         foreach ($profanity as $word) {
@@ -97,7 +110,7 @@ $agent = agent('no-swearing')
     ->build();
 ```
 
-Closure guards receive the input and output as parameters. Return `true` to pass, `false` to block. Pagent automatically wraps your closure in an anonymous class that implements the `Guard` interface.
+Closure guards receive the input and output as parameters. They are legacy guards, evaluated after provider output for backward compatibility. Prefer an `InputGuard` or `OutputGuard` class whenever the phase matters.
 
 ## Built-in Guards
 
@@ -132,7 +145,7 @@ Example:
 ```php
 $agent = agent('gdpr-compliant')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('pii')
     ->build();
 
@@ -183,7 +196,7 @@ Example - content moderation bot:
 ```php
 $moderator = agent('content-moderator')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard(new ContentFilterGuard(
         customPatterns: ['/\b(spam|scam|phishing)\b/i']
     ))
@@ -208,7 +221,7 @@ The `PromptInjectionGuard` detects attempts to manipulate your agent through mal
 ```php
 $agent = agent('secure-assistant')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('promptInjection')
     ->build();
 
@@ -249,7 +262,7 @@ Guards execute **sequentially** in the order you add them:
 ```php
 $agent = agent('multi-guard')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('promptInjection')  // Runs first
     ->guard('pii')              // Runs second
     ->guard('contentFilter')    // Runs third
@@ -262,20 +275,21 @@ $agent = agent('multi-guard')
 
 Guards execute at a specific point in the prompt lifecycle:
 
-1. User calls `$agent->prompt($message)`
-2. Message is sent to LLM provider
-3. LLM generates response
-4. **Guards check input and output** ⬅ You are here
-5. If all guards pass, response is added to conversation history
-6. Response is returned to caller
+1. User calls `$agent->prompt($message)`.
+2. Input guards check the prompt; they also check tool arguments before execution.
+3. The message is sent to the provider and requested tools execute.
+4. Output guards, then legacy guards, check the completed output.
+5. If all policies pass, the response is added to conversation history.
+6. Response is returned to caller.
 
 If any guard fails, execution stops at step 4, the response is **not** added to history, and a `GuardException` is thrown (or the fallback is triggered).
 
 This means:
 
-- Guards only run for **user prompts**, not tool calls or streaming chunks
-- Failed responses never pollute conversation history
-- You can retry with a different prompt without side effects
+- Input guards protect tool arguments as well as user prompts.
+- A failed turn rolls its in-memory conversation back to the pre-turn snapshot.
+- Input guard failures are never retained; a configured fallback can supply a
+  safe response without replaying blocked input to a provider.
 
 ## Handling Guard Violations
 
@@ -290,7 +304,7 @@ use Pagent\Exceptions\GuardException;
 
 $agent = agent('safe-bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('pii')
     ->build();
 
@@ -320,7 +334,7 @@ For cleaner code, register a fallback handler:
 ```php
 $agent = agent('safe-bot')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard('pii')
     ->fallback(function (GuardException $e): string {
         // Log violation
@@ -356,7 +370,7 @@ use Pagent\Guards\PromptInjectionGuard;
 
 $agent = agent('production-assistant')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful customer service assistant.')
 
     // Layer 1: Block prompt injection attacks
@@ -410,18 +424,23 @@ This four-layer defense strategy ensures:
 
 ## Custom Guards
 
-Building custom guards is straightforward - implement the three-method interface:
+Build a phase-specific policy by implementing `OutputGuard` (or `InputGuard` for prompt validation):
 
 ```php
-use Pagent\Contracts\Guard;
+use Pagent\Contracts\OutputGuard;
 
-class ComplianceGuard implements Guard
+class ComplianceGuard implements OutputGuard
 {
     public function __construct(
         private readonly array $requiredDisclosures = [],
     ) {}
 
     public function check(string $input, string $output): bool
+    {
+        return $this->checkOutput($output);
+    }
+
+    public function checkOutput(string $output): bool
     {
         // Ensure certain disclosures appear in output
         foreach ($this->requiredDisclosures as $disclosure) {
@@ -441,12 +460,17 @@ class ComplianceGuard implements Guard
     {
         return 'Response missing required compliance disclosures.';
     }
+
+    public function supportsIncrementalInspection(): bool
+    {
+        return false;
+    }
 }
 
 // Use it
 $agent = agent('financial-advisor')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->guard(new ComplianceGuard(
         requiredDisclosures: [
             'Not financial advice',
@@ -472,7 +496,7 @@ Enable guards based on runtime conditions:
 ```php
 $agent = agent('conditional-safety')
     ->provider('anthropic')
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->build();
 
 // Add guards dynamically based on user tier

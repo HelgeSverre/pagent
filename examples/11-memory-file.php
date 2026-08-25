@@ -19,13 +19,13 @@ if (file_exists(__DIR__.'/../.env')) {
  * combined with a context window to limit memory usage.
  * Useful for long conversations where you want to keep only recent context.
  */
-echo "=== Example 1: File Adapter with Context Window ===\n\n";
+echo "\n[Example 1: File Adapter with Context Window]\n";
 
 // Configure agent with File memory adapter and context window
 agent('windowed-bot')
     ->provider('mock')
     ->system('You are a helpful assistant.')
-    ->memory('file', ['directory' => 'storage/sessions'])
+    ->memory('file', ['path' => 'storage/sessions'])
     ->sessionId('conversation-1')
     ->contextWindow(200, 'sliding');
 
@@ -43,7 +43,7 @@ echo "- Session ID: conversation-1\n\n";
  * We'll have a conversation that exceeds the token limit.
  * The context window automatically prunes old messages to stay within limits.
  */
-echo "=== Example 2: Context Window in Action ===\n\n";
+echo "\n[Example 2: Context Window in Action]\n";
 
 // Helper function to display message count
 $displayStats = function () use ($bot) {
@@ -106,7 +106,7 @@ echo "\n";
  *
  * Ask about earlier information - it may have been pruned.
  */
-echo "=== Example 3: Observing Pruning Effects ===\n\n";
+echo "\n[Example 3: Observing Pruning Effects]\n";
 
 echo "Asking about information from early turns...\n\n";
 
@@ -123,7 +123,7 @@ echo "\n";
  *
  * Let's see what messages are currently in the context window.
  */
-echo "=== Example 4: Current Context Window ===\n\n";
+echo "\n[Example 4: Current Context Window]\n";
 
 echo "Messages currently in memory:\n";
 echo str_repeat('-', 70)."\n";
@@ -151,9 +151,9 @@ echo "(Older messages were pruned to stay within 200 token limit)\n\n";
  *
  * Verify that messages are saved to disk.
  */
-echo "=== Example 5: File Persistence ===\n\n";
+echo "\n[Example 5: File Persistence]\n";
 
-$sessionFile = 'storage/sessions/conversation-1.json';
+$sessionFile = 'storage/sessions/'.hash('sha256', 'conversation-1').'.json';
 echo "Session file: {$sessionFile}\n";
 
 if (file_exists($sessionFile)) {
@@ -165,7 +165,7 @@ if (file_exists($sessionFile)) {
     agent('reload-test')
         ->provider('mock')
         ->system('You are a helpful assistant.')
-        ->memory('file', ['directory' => 'storage/sessions'])
+        ->memory('file', ['path' => 'storage/sessions'])
         ->sessionId('conversation-1')
         ->contextWindow(200, 'sliding');
 
@@ -184,12 +184,12 @@ if (file_exists($sessionFile)) {
  *
  * Demonstrate the 'oldest' strategy which removes oldest messages first.
  */
-echo "=== Example 6: Alternative Pruning Strategy ===\n\n";
+echo "\n[Example 6: Alternative Pruning Strategy]\n";
 
 agent('oldest-strategy-bot')
     ->provider('mock')
     ->system('You are a test assistant.')
-    ->memory('file', ['directory' => 'storage/sessions'])
+    ->memory('file', ['path' => 'storage/sessions'])
     ->sessionId('conversation-2')
     ->contextWindow(150, 'oldest');
 
@@ -210,5 +210,6 @@ echo 'Messages: '.count($strategyBot->messages)."\n\n";
 
 echo "Oldest messages (after system) are removed first to stay under limit.\n\n";
 
-echo "✅ All File adapter and context window examples completed!\n";
 echo "\nNote: Session files stored in storage/sessions/\n";
+
+echo "\nDone.\n";

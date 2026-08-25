@@ -27,19 +27,17 @@ final class AnthropicStreamParser
     /**
      * Parse SSE stream from Anthropic API
      *
-     * @param  resource  $stream  cURL stream resource
+     * @param  resource|iterable<string>  $stream  cURL stream or incremental byte chunks
      * @return Generator<StreamChunk>
      */
     public function parse($stream, string $model): Generator
     {
+        $this->currentMessage = [];
+        $this->contentBlocks = [];
+        $this->accumulatedText = '';
         $buffer = '';
 
-        while (! feof($stream)) {
-            $line = fgets($stream);
-            if ($line === false) {
-                break;
-            }
-
+        foreach (LineIterator::from($stream) as $line) {
             $buffer .= $line;
 
             // SSE events are separated by double newlines
@@ -48,7 +46,18 @@ final class AnthropicStreamParser
                 $buffer = '';
 
                 if ($event !== null) {
-                    yield from $this->handleEvent($event, $model);
+                    foreach ($this->handleEvent($event, $model) as $chunk) {
+                        yield $chunk;
+                    }
+                }
+            }
+        }
+
+        if (trim($buffer) !== '') {
+            $event = $this->parseEvent($buffer);
+            if ($event !== null) {
+                foreach ($this->handleEvent($event, $model) as $chunk) {
+                    yield $chunk;
                 }
             }
         }
@@ -123,11 +132,16 @@ final class AnthropicStreamParser
                     ]);
                 } elseif (isset($delta['partial_json'])) {
                     // Tool input delta
+                    $contentBlock = $this->contentBlocks[$index] ?? [];
                     yield new StreamChunk(
                         type: 'input_json_delta',
                         content: $delta['partial_json'],
                         delta: $delta,
-                        metadata: ['index' => $index],
+                        metadata: [
+                            'index' => $index,
+                            'tool_call_id' => $contentBlock['id'] ?? null,
+                            'tool_name' => $contentBlock['name'] ?? null,
+                        ],
                     );
                 } elseif (isset($delta['thinking'])) {
                     // Thinking delta (extended thinking feature)

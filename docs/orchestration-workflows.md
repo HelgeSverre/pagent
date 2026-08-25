@@ -1,10 +1,14 @@
 # Agent Orchestration & Workflows
 
-This guide covers Pagent's powerful orchestration features for building complex multi-agent systems. Learn how to chain agents together, delegate tasks, transfer conversations, and build sophisticated AI workflows.
+This guide explains Pagent's orchestration features for multi-agent systems. It
+covers chains, delegation, conversation transfers, and composed workflows.
 
 ## Overview
 
-Pagent provides four main orchestration patterns:
+Pagent provides four main orchestration patterns. `Chain`, `Workflow\Pipeline`,
+and the `pipeline()` compatibility facade all execute through the same workflow
+engine, so step metadata, token accounting, telemetry, and failure handling have
+one implementation.
 
 1. **Pipeline** - Sequential agent execution with transforms and error handling
 2. **Chain** - Simple sequential agent execution
@@ -15,24 +19,24 @@ Pagent provides four main orchestration patterns:
 
 ```mermaid
 graph TB
-    subgraph Pipeline["🔗 Pipeline"]
+    subgraph Pipeline["Pipeline"]
         P1[Agent 1] --> P2[Agent 2] --> P3[Agent 3]
         P1 -.->|"Output becomes input"| P2
         P2 -.->|"Output becomes input"| P3
     end
 
-    subgraph Chain["⛓️ Chain"]
+    subgraph Chain["Chain"]
         C1[Agent 1] --> C2[Agent 2] --> C3[Agent 3]
         C1 -.->|"+ Metadata"| C2
         C2 -.->|"+ Metadata"| C3
     end
 
-    subgraph Handoff["🤝 Handoff"]
+    subgraph Handoff["Handoff"]
         H1[Agent A] -->|"Transfer conversation"| H2[Agent B]
         H1 -.->|"Context + History"| H2
     end
 
-    subgraph Delegation["👔 Delegation"]
+    subgraph Delegation["Delegation"]
         D1[Manager] -->|"Assigns task"| D2[Worker]
         D2 -->|"Returns work"| D3[Supervisor]
         D3 -->|"Approves/Rejects"| D1
@@ -48,9 +52,9 @@ graph TB
 
 ## Table of Contents
 
-- [Pipeline Workflows (Orchestration)](#pipeline-workflows)
-- [Chain Workflows (Workflow Namespace)](#chain-workflows)
-  - [Workflow Pipeline (Advanced)](#workflow-pipeline-advanced)
+- [Pipeline Workflows](#pipeline-workflows)
+- [Chain Workflows](#chain-workflows)
+  - [Named Workflow Pipeline](#workflow-pipeline-advanced)
 - [Agent Handoffs](#agent-handoffs)
 - [Task Delegation](#task-delegation)
 - [Real-World Use Cases](#real-world-use-cases)
@@ -63,12 +67,10 @@ graph TB
 
 Pipelines enable sequential agent execution where the output of one agent becomes the input to the next. Perfect for multi-stage processing tasks.
 
-> **Note**: Pagent provides two pipeline implementations:
->
-> - **Orchestration Pipeline** (`pipeline()` function) - Simple, string-based pipelines with error handling
-> - **Workflow Pipeline** (`Pipeline::create()`) - Rich metadata tracking with named steps
->
-> This section covers the **Orchestration Pipeline**. See [Chain Workflows](#chain-workflows) for the Workflow namespace alternative.
+> **API choice:** Use `pipeline()` when you prefer named registered agents and its
+> string-result/error-handler facade. Use `Pagent\Workflow\Pipeline` for named
+> steps and transforms, or `Chain` for anonymous sequential steps. They share the
+> same execution engine; the difference is DSL and result shape, not semantics.
 
 ### Pipeline Flow Diagram
 
@@ -76,20 +78,20 @@ Pipelines enable sequential agent execution where the output of one agent become
 flowchart LR
     Input[("Input Data")]
 
-    Input --> Agent1["🤖 Agent 1<br/>Extractor"]
+    Input --> Agent1["Agent 1<br/>Extractor"]
     Agent1 --> T1{Transform?}
-    T1 -->|Yes| TF1["⚙️ Transform<br/>Function"]
+    T1 -->|Yes| TF1["Transform<br/>Function"]
     T1 -->|No| Agent2
-    TF1 --> Agent2["🤖 Agent 2<br/>Validator"]
+    TF1 --> Agent2["Agent 2<br/>Validator"]
 
     Agent2 --> T2{Transform?}
-    T2 -->|Yes| TF2["⚙️ Transform<br/>Function"]
+    T2 -->|Yes| TF2["Transform<br/>Function"]
     T2 -->|No| Agent3
-    TF2 --> Agent3["🤖 Agent 3<br/>Formatter"]
+    TF2 --> Agent3["Agent 3<br/>Formatter"]
 
     Agent3 --> Output[("Final Result")]
 
-    Agent1 -.->|Error| EH["❌ Error Handler"]
+    Agent1 -.->|Error| EH["Error Handler"]
     Agent2 -.->|Error| EH
     Agent3 -.->|Error| EH
     EH -.-> Output
@@ -192,28 +194,28 @@ foreach ($results as $stage) {
 
 ## Chain Workflows
 
-Chains provide a simpler sequential execution model using the Workflow namespace. They automatically pass outputs between agents and track detailed metadata.
-
-> **Note**: The `Chain` class is part of the `Pagent\Workflow` namespace, which provides rich result objects with metadata tracking. Unlike the simple `pipeline()` function, Chain returns a `WorkflowResult` object with step-by-step details.
+Chains are the smallest workflow DSL. They automatically pass outputs between
+agents and return a `WorkflowResult` with per-step metadata. They use the same
+engine as named workflow pipelines and the `pipeline()` facade.
 
 ### Chain Flow Diagram
 
 ```mermaid
 flowchart TD
-    Start[("Input")] --> Agent1["🤖 Agent 1<br/>Analyzer"]
+    Start[("Input")] --> Agent1["Agent 1<br/>Analyzer"]
 
-    Agent1 --> Meta1["📊 Capture Metadata<br/>• Tokens<br/>• Duration<br/>• Timestamp"]
+    Agent1 --> Meta1["Capture Metadata<br/>• Tokens<br/>• Duration<br/>• Timestamp"]
     Meta1 --> Store1[("Store Step Result")]
 
-    Store1 --> Agent2["🤖 Agent 2<br/>Scorer"]
-    Agent2 --> Meta2["📊 Capture Metadata<br/>• Tokens<br/>• Duration<br/>• Timestamp"]
+    Store1 --> Agent2["Agent 2<br/>Scorer"]
+    Agent2 --> Meta2["Capture Metadata<br/>• Tokens<br/>• Duration<br/>• Timestamp"]
     Meta2 --> Store2[("Store Step Result")]
 
-    Store2 --> Agent3["🤖 Agent 3<br/>Reporter"]
-    Agent3 --> Meta3["📊 Capture Metadata<br/>• Tokens<br/>• Duration<br/>• Timestamp"]
+    Store2 --> Agent3["Agent 3<br/>Reporter"]
+    Agent3 --> Meta3["Capture Metadata<br/>• Tokens<br/>• Duration<br/>• Timestamp"]
     Meta3 --> Store3[("Store Step Result")]
 
-    Store3 --> Result["📦 WorkflowResult<br/>• final output<br/>• all steps[]<br/>• metadata"]
+    Store3 --> Result["WorkflowResult<br/>• final output<br/>• all steps[]<br/>• metadata"]
 
     style Start fill:#e3f2fd
     style Result fill:#c8e6c9
@@ -234,7 +236,7 @@ use function agent;
 // Create agents
 $analyzer = agent('analyzer')
     ->provider('anthropic')
-    ->model('claude-3-haiku-20240307')
+    ->model('claude-sonnet-4-6')
     ->system('Analyze the sentiment of text.');
 
 $scorer = agent('scorer')
@@ -327,11 +329,11 @@ echo "Final: {$result->final}\n";
 | Access by name | No                        | Yes (`->step('name')`)        |
 | Complexity     | Simpler                   | More flexible                 |
 
-#### Visual Comparison: Orchestration vs Workflow Pipelines
+#### DSL comparison
 
 ```mermaid
 graph TB
-    subgraph Orchestration["Orchestration Pipeline (pipeline())"]
+    subgraph Orchestration["pipeline() facade"]
         direction LR
         O1["Input"] --> OA1["agent('a1')"]
         OA1 --> OA2["agent('a2')"]
@@ -344,14 +346,14 @@ graph TB
         OE["onError()"] -.-> O2
     end
 
-    subgraph Workflow["Workflow Pipeline (Pipeline::create())"]
+    subgraph Workflow["Named workflow DSL (Pipeline::create())"]
         direction LR
         W1["Input"] --> WA1["step('name', agent)"]
         WA1 --> WT1["transform('name', fn)"]
         WT1 --> WA2["step('name', agent)"]
         WA2 --> W2["WorkflowResult<br/>+ metadata<br/>+ steps[]"]
 
-        WM["Metadata tracked<br/>at each step"] -.-> W2
+        WM["Same workflow engine<br/>and step metadata"] -.-> W2
     end
 
     style Orchestration fill:#e3f2fd
@@ -390,9 +392,9 @@ Handoffs allow you to transfer conversations from one agent to another, preservi
 ```mermaid
 sequenceDiagram
     participant User
-    participant AgentA as 🤖 Agent A<br/>(Support)
-    participant Context as 📋 Context Transfer
-    participant AgentB as 🤖 Agent B<br/>(Technical)
+    participant AgentA as  Agent A<br/>(Support)
+    participant Context as  Context Transfer
+    participant AgentB as  Agent B<br/>(Technical)
 
     User->>AgentA: "My API isn't working"
     AgentA->>AgentA: Process request
@@ -485,32 +487,32 @@ Delegation implements a manager-worker pattern where a manager agent delegates t
 
 ```mermaid
 flowchart TD
-    Start[("Task Created")] --> Manager["👔 Manager Agent<br/>Assigns Task"]
+    Start[("Task Created")] --> Manager["Manager Agent<br/>Assigns Task"]
 
-    Manager --> Worker["👨‍💻 Worker Agent<br/>Executes Task"]
+    Manager --> Worker[" Worker Agent<br/>Executes Task"]
 
     Worker --> HasSupervision{Supervisor<br/>Configured?}
 
-    HasSupervision -->|Yes| Supervisor["🔍 Supervisor Function<br/>Reviews Output"]
+    HasSupervision -->|Yes| Supervisor["Supervisor Function<br/>Reviews Output"]
     HasSupervision -->|No| ManagerReview
 
     Supervisor --> SupervisorDecision{Review<br/>Result?}
-    SupervisorDecision -->|❌ Reject| Fail["Task Rejected"]
-    SupervisorDecision -->|📝 Feedback| Revise["Worker Revises<br/>with Feedback"]
-    SupervisorDecision -->|✅ Approve| ManagerReview
+    SupervisorDecision -->| Reject| Fail["Task Rejected"]
+    SupervisorDecision -->| Feedback| Revise["Worker Revises<br/>with Feedback"]
+    SupervisorDecision -->| Approve| ManagerReview
 
     Revise --> ManagerReview
 
-    ManagerReview["👔 Manager Reviews<br/>Creates Summary"]
+    ManagerReview["Manager Reviews<br/>Creates Summary"]
 
     ManagerReview --> Callback{onComplete<br/>Callback?}
 
     Callback -->|Yes| Execute["Execute Callback"]
     Callback -->|No| Result
 
-    Execute --> Result["📦 Delegation Result<br/>• task<br/>• worker<br/>• worker_output<br/>• manager_review<br/>• supervised"]
+    Execute --> Result["Delegation Result<br/>• task<br/>• worker<br/>• worker_output<br/>• manager_review<br/>• supervised"]
 
-    Fail --> ErrorResult["⚠️ RuntimeException"]
+    Fail --> ErrorResult["RuntimeException"]
 
     style Start fill:#e3f2fd
     style Result fill:#c8e6c9
@@ -633,15 +635,15 @@ $securityResult = $manager->delegate(
 
 ```mermaid
 flowchart LR
-    Topic[("Topic:<br/>AI in Healthcare")] --> Research["🔬 Researcher<br/>Claude Opus<br/>Facts & Sources"]
+    Topic[("Topic:<br/>AI in Healthcare")] --> Research["Researcher<br/>Claude Opus<br/>Facts & Sources"]
 
-    Research --> Writer["✍️ Writer<br/>GPT-4<br/>1000-word Article"]
+    Research --> Writer["Writer<br/>GPT-4<br/>1000-word Article"]
 
-    Writer --> Editor["📝 Editor<br/>Claude<br/>Grammar & Style"]
+    Writer --> Editor["Editor<br/>Claude<br/>Grammar & Style"]
 
-    Editor --> SEO["🎯 SEO Optimizer<br/>GPT-4<br/>Keywords & Meta"]
+    Editor --> SEO["SEO Optimizer<br/>GPT-4<br/>Keywords & Meta"]
 
-    SEO --> Article[("📄 Published<br/>Article")]
+    SEO --> Article[(" Published<br/>Article")]
 
     style Topic fill:#e3f2fd
     style Article fill:#c8e6c9
@@ -655,7 +657,7 @@ flowchart LR
 // Define content production agents
 agent('researcher')
     ->provider('anthropic')
-    ->model('claude-3-opus-20240229')
+    ->model('claude-sonnet-4-6')
     ->system('Research topics thoroughly and provide key facts.');
 
 agent('writer')
@@ -687,13 +689,13 @@ file_put_contents('article.md', $article);
 
 ```mermaid
 flowchart TD
-    Customer["👤 Customer<br/>Issue Reported"] --> Router["🎯 Router Agent<br/>Classifies Issue"]
+    Customer["Customer<br/>Issue Reported"] --> Router["Router Agent<br/>Classifies Issue"]
 
     Router --> Decision{Issue Type?}
 
-    Decision -->|"💰 Billing"| Billing["💳 Billing Support<br/>Tools:<br/>• get_invoice<br/>• process_refund"]
-    Decision -->|"🔧 Technical"| Technical["⚙️ Technical Support<br/>Tools:<br/>• check_logs<br/>• reset_password"]
-    Decision -->|"📦 Other"| General["📞 General Support"]
+    Decision -->|"Billing"| Billing["Billing Support<br/>Tools:<br/>• get_invoice<br/>• process_refund"]
+    Decision -->|"Technical"| Technical["Technical Support<br/>Tools:<br/>• check_logs<br/>• reset_password"]
+    Decision -->|"Other"| General["General Support"]
 
     Billing --> BillingResponse["Response to Customer"]
     Technical --> TechnicalResponse["Response to Customer"]
@@ -742,28 +744,28 @@ $response = $specialist->prompt('How can I help resolve this?');
 
 ```mermaid
 flowchart TD
-    Task["📋 Task:<br/>Add Rate Limiting"] --> TechLead["👔 Tech Lead<br/>Delegates Task"]
+    Task["Task:<br/>Add Rate Limiting"] --> TechLead["Tech Lead<br/>Delegates Task"]
 
-    TechLead --> Developer["👨‍💻 Developer<br/>Writes Code"]
+    TechLead --> Developer[" Developer<br/>Writes Code"]
 
-    Developer --> Supervisor["🔍 Supervisor<br/>(Code Reviewer)"]
+    Developer --> Supervisor["Supervisor<br/>(Code Reviewer)"]
 
-    Supervisor --> Review["🤖 Code Reviewer<br/>Analyzes Code"]
+    Supervisor --> Review["Code Reviewer<br/>Analyzes Code"]
 
     Review --> ReviewDecision{Review<br/>Result?}
 
-    ReviewDecision -->|"✅ LGTM"| Approved["Approved"]
-    ReviewDecision -->|"📝 Feedback"| Developer
+    ReviewDecision -->|"LGTM"| Approved["Approved"]
+    ReviewDecision -->|"Feedback"| Developer
 
-    Approved --> TechLeadReview["👔 Tech Lead<br/>Final Review"]
+    Approved --> TechLeadReview["Tech Lead<br/>Final Review"]
 
-    TechLeadReview --> Callback["✅ onComplete<br/>Triggered"]
+    TechLeadReview --> Callback["onComplete<br/>Triggered"]
 
-    Callback --> DevOps["🚀 DevOps Agent<br/>Deploys to Staging"]
+    Callback --> DevOps["DevOps Agent<br/>Deploys to Staging"]
 
     DevOps --> Tools["Tools:<br/>• deploy()<br/>• rollback()"]
 
-    Tools --> Complete["✨ Deployment<br/>Complete"]
+    Tools --> Complete["Deployment<br/>Complete"]
 
     style Task fill:#e3f2fd
     style Complete fill:#c8e6c9
@@ -782,7 +784,7 @@ agent('developer')
 
 agent('code-reviewer')
     ->provider('anthropic')
-    ->model('claude-3-opus-20240229')
+    ->model('claude-sonnet-4-6')
     ->system('Review code for bugs, security issues, and best practices.');
 
 agent('devops')
@@ -839,7 +841,7 @@ agent('data-enricher')
 
 agent('data-analyzer')
     ->provider('anthropic')
-    ->model('claude-3-opus-20240229')
+    ->model('claude-sonnet-4-6')
     ->system('Analyze data and generate insights.');
 
 // Process customer data
@@ -876,7 +878,7 @@ file_put_contents('processed-data.json', json_encode($output, JSON_PRETTY_PRINT)
 ```php
 agent('document-parser')
     ->provider('anthropic')
-    ->model('claude-3-opus-20240229')
+    ->model('claude-sonnet-4-6')
     ->system('Extract key information from legal documents.');
 
 agent('clause-analyzer')
@@ -890,7 +892,7 @@ agent('summarizer')
 
 agent('legal-reviewer')
     ->provider('anthropic')
-    ->model('claude-3-opus-20240229')
+    ->model('claude-sonnet-4-6')
     ->system('Senior legal counsel who reviews contracts.');
 
 // Process contract
@@ -1190,11 +1192,11 @@ function humanReviewWorkflow(string $input): string
 Create focused agents for specific tasks:
 
 ```php
-// ❌ Bad: Generic agent doing everything
+// Bad: Generic agent doing everything
 agent('do-everything')
     ->system('Do any task the user asks');
 
-// ✅ Good: Specialized agents
+// Good: Specialized agents
 agent('data-extractor')
     ->system('Extract structured data from text. Output JSON only.');
 
@@ -1210,10 +1212,10 @@ agent('data-formatter')
 Be explicit about agent roles and output formats:
 
 ```php
-// ❌ Bad: Vague system prompt
+// Bad: Vague system prompt
 agent('analyzer')->system('Analyze stuff');
 
-// ✅ Good: Clear expectations
+// Good: Clear expectations
 agent('sentiment-analyzer')
     ->system(
         'You are a sentiment analyzer. ' .
@@ -1228,7 +1230,7 @@ agent('sentiment-analyzer')
 Always handle potential failures:
 
 ```php
-// ✅ Good: Comprehensive error handling
+// Good: Comprehensive error handling
 try {
     $result = pipeline('processing')
         ->agent('step1')
@@ -1379,14 +1381,14 @@ function monitoredWorkflow(string $input): string
 Combine steps when possible:
 
 ```php
-// ❌ Inefficient: 3 separate agents for similar tasks
+// Inefficient: 3 separate agents for similar tasks
 pipeline('inefficient')
     ->agent('extract-name')
     ->agent('extract-email')
     ->agent('extract-phone')
     ->run($text);
 
-// ✅ Efficient: 1 agent extracts all data
+// Efficient: 1 agent extracts all data
 agent('data-extractor')
     ->system('Extract name, email, and phone as JSON.')
     ->prompt($text);
@@ -1450,12 +1452,13 @@ class ProcessWorkflowJob
 
 Pagent's orchestration features enable building sophisticated multi-agent systems:
 
-- ✅ **Pipelines** - Sequential processing with transforms and error handling
-- ✅ **Chains** - Simple sequential execution with detailed metadata
-- ✅ **Handoffs** - Context-aware conversation transfers
-- ✅ **Delegation** - Manager-worker patterns with supervision
-- ✅ **Flexible** - Combine patterns for complex workflows
-- ✅ **Observable** - Track tokens, duration, and step details
-- ✅ **Robust** - Built-in error handling and recovery
+- **Pipelines** - Sequential processing with transforms and error handling
+- **Chains** - Simple sequential execution with detailed metadata
+- **Handoffs** - Context-aware conversation transfers
+- **Delegation** - Manager-worker patterns with supervision
+- **Flexible** - Combine patterns for complex workflows
+- **Observable** - Track tokens, duration, and step details
+- **Robust** - Built-in error handling and recovery
 
-Build complex AI workflows that scale! 🚀
+Choose the smallest orchestration primitive that fits the task, and add explicit
+error handling and observability before deploying a multi-agent workflow.

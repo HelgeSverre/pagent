@@ -2,7 +2,7 @@
 
 **Learning Objectives:**
 
-- Configure Anthropic, OpenAI, and Ollama providers
+- Configure Anthropic, OpenAI, OpenCode, and Ollama providers
 - Understand provider-specific features and limitations
 - Switch between providers dynamically
 - Handle provider errors gracefully
@@ -12,7 +12,7 @@
 
 ## Understanding Provider Abstraction
 
-At the heart of Pagent's flexibility is the **Provider** interface. Every LLM integration in Pagent—whether Anthropic's Claude, OpenAI's GPT models, or a local Ollama instance—implements a simple contract:
+At the heart of Pagent's flexibility is the **Provider** interface. Every LLM integration in Pagent—whether Anthropic's Claude, OpenAI's GPT models, OpenCode, or a local Ollama instance—implements a simple contract:
 
 ```php
 interface Provider {
@@ -26,8 +26,9 @@ The framework includes four built-in providers:
 
 1. **Anthropic** - Claude models via API
 2. **OpenAI** - GPT models via API
-3. **Ollama** - Local models via Ollama server
-4. **Mock** - Deterministic responses for testing
+3. **OpenCode** - Zen and Go gateway models
+4. **Ollama** - Local models via Ollama server
+5. **Mock** - Deterministic responses for testing
 
 Each provider returns a consistent response object with these fields:
 
@@ -61,9 +62,9 @@ $provider = anthropic([
 ]);
 
 // Use with an agent
-agent('claude-assistant')
+agent('anthropic-assistant')
     ->provider($provider)
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a helpful assistant.');
 ```
 
@@ -73,7 +74,7 @@ The Anthropic provider automatically reads from `$_ENV['ANTHROPIC_API_KEY']` or 
 
 The Anthropic provider implements several Claude-specific behaviors:
 
-**Default Model**: If you don't specify a model, it defaults to `claude-sonnet-4-20250514`.
+**Default Model**: If you don't specify a model, it defaults to `claude-sonnet-4-6`.
 
 **System Messages**: Anthropic handles system prompts as a separate field in the API request, not as a message in the conversation history:
 
@@ -228,6 +229,38 @@ echo $response->tokens;                       // Sum of both
 
 **No API Key**: Unlike cloud providers, Ollama doesn't require authentication (by default). This makes it ideal for local testing.
 
+## Configuring the OpenCode Provider
+
+OpenCode exposes Zen and Go gateway models. Set `OPENCODE_API_KEY` or pass an
+`api_key`; Zen is the default gateway and Go is selected with `gateway => 'go'`.
+OpenCode supports three wire protocols: `chat-completions` (default),
+`responses`, and `messages`. Choose one globally, per model with
+`model_protocols`, or per request with the `protocol` option.
+
+```php
+use function Pagent\opencode;
+
+$provider = opencode([
+    'gateway' => 'zen',
+    'protocol' => 'chat-completions',
+    'model_protocols' => [
+        'anthropic-model' => 'messages',
+        'responses-model' => 'responses',
+    ],
+]);
+
+$agent = agent('gateway-assistant')
+    ->provider($provider)
+    ->model('x-preview-f-free');
+
+// One request can override the configured protocol.
+$response = $agent->prompt('Hello', ['protocol' => 'responses']);
+```
+
+The provider normalizes these protocols to Pagent's standard response and
+streaming interfaces. Gateway protocol selection affects the HTTP payload and
+endpoint, not the agent API.
+
 ## Dynamic Provider Switching
 
 Pagent's fluent API makes provider switching trivial. This enables powerful patterns like fallback chains or environment-based configuration:
@@ -246,7 +279,7 @@ if (getenv('APP_ENV') === 'development') {
 // Production: use Anthropic
 else {
     $provider = anthropic();
-    $model = 'claude-sonnet-4-20250514';
+    $model = 'claude-sonnet-4-6';
 }
 
 agent('assistant')
@@ -261,7 +294,7 @@ use function Pagent\agent;
 
 agent('weather-bot')
     ->provider('anthropic')  // String shorthand
-    ->model('claude-sonnet-4-20250514');
+    ->model('claude-sonnet-4-6');
 
 // Later, switch the same agent to OpenAI
 agent('weather-bot')
@@ -269,7 +302,7 @@ agent('weather-bot')
     ->model('gpt-4o');
 ```
 
-The `AgentBuilder` resolves string provider names to instances automatically.
+`Agent` resolves string provider names to provider instances automatically.
 
 ### Provider Fallback Pattern
 
@@ -384,16 +417,14 @@ The `clearAgents()` function removes all registered agents from the global regis
 
 Different providers have different strengths. Here's a practical comparison:
 
-| Feature                 | Anthropic                | OpenAI        | Ollama        | Mock    |
-| ----------------------- | ------------------------ | ------------- | ------------- | ------- |
-| **API Key Required**    | Yes                      | Yes           | No            | No      |
-| **Default Model**       | claude-sonnet-4-20250514 | gpt-3.5-turbo | qwen3:8b      | mock    |
-| **System Messages**     | Separate field           | First message | First message | N/A     |
-| **Streaming Support**   | Yes                      | Yes           | Yes           | No      |
-| **Tool Calling**        | Yes                      | Yes           | Yes           | No      |
-| **Token Usage Details** | Detailed                 | Detailed      | Detailed      | Simple  |
-| **Cost**                | Paid                     | Paid          | Free (local)  | Free    |
-| **Latency**             | Network                  | Network       | Local         | Instant |
+| Feature               | Anthropic         | OpenAI        | OpenCode                   | Ollama       | Mock    |
+| --------------------- | ----------------- | ------------- | -------------------------- | ------------ | ------- |
+| **API key required**  | Yes               | Yes           | Yes                        | No           | No      |
+| **Default model**     | claude-sonnet-4-6 | gpt-3.5-turbo | Gateway-specific           | qwen3:8b     | mock    |
+| **Wire protocol**     | Messages          | Chat API      | Chat completions, Responses, or Messages | Chat API | N/A |
+| **Streaming support** | Yes               | Yes           | Yes                        | Yes          | No      |
+| **Tool calling**      | Yes               | Yes           | Protocol-dependent         | Yes          | No      |
+| **Cost**              | Paid              | Paid          | Gateway-dependent          | Free (local) | Free    |
 
 ### When to Use Each Provider
 
@@ -465,16 +496,16 @@ function validateProviders(): void
 {
     try {
         anthropic();  // Will throw if ANTHROPIC_API_KEY is missing
-        echo "✓ Anthropic configured\n";
+        echo "Status: Anthropic configured\n";
     } catch (\RuntimeException $e) {
-        echo "✗ Anthropic not configured: {$e->getMessage()}\n";
+        echo "Error: Anthropic not configured: {$e->getMessage()}\n";
     }
 
     try {
         openai();
-        echo "✓ OpenAI configured\n";
+        echo "Status: OpenAI configured\n";
     } catch (\RuntimeException $e) {
-        echo "✗ OpenAI not configured: {$e->getMessage()}\n";
+        echo "Error: OpenAI not configured: {$e->getMessage()}\n";
     }
 }
 ```

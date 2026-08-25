@@ -8,10 +8,10 @@ use Pagent\Agent;
 use Pagent\Contracts\Metric;
 use RuntimeException;
 
-use function agent;
 use function is_callable;
 use function is_string;
 use function pathinfo;
+use function resolveAgent;
 
 final class Evaluator
 {
@@ -78,11 +78,13 @@ final class Evaluator
 
     public function run(): EvaluationResult
     {
-        $this->agent = agent($this->agentName);
+        $agent = resolveAgent($this->agentName);
 
-        if (! $this->agent instanceof Agent) {
+        if ($agent === null) {
             throw new RuntimeException("Agent '{$this->agentName}' not found");
         }
+
+        $this->agent = $agent;
 
         if (! isset($this->dataset)) {
             throw new RuntimeException('No dataset provided');

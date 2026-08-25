@@ -104,7 +104,7 @@ Let the LLM decide which tools to use and in what order. This is Pagent's defaul
 ```php
 $agent = agent('etl-pipeline')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a data processing assistant. Follow these steps:
         1. Fetch data from the source
         2. Validate the data structure
@@ -372,12 +372,12 @@ Each tool execution loop requires an LLM API call. Minimize calls by:
 **1. Batching-friendly tool descriptions:**
 
 ```php
-// ❌ Forces multiple LLM calls
+// Forces multiple LLM calls
 $agent->tool('get_user', 'Get user by ID', ...);
 $agent->tool('get_user_orders', 'Get orders for user', ...);
 $agent->tool('get_user_preferences', 'Get user preferences', ...);
 
-// ✅ Single tool, single call
+// Single tool, single call
 $agent->tool('get_user_profile',
     'Get complete user profile including orders and preferences',
     fn (string $userId) => [
@@ -391,10 +391,10 @@ $agent->tool('get_user_profile',
 **2. Manual execution for known sequences:**
 
 ```php
-// ❌ LLM overhead for simple sequence
+// LLM overhead for simple sequence
 $agent->prompt('Add 5+3, then multiply by 2');
 
-// ✅ Manual execution
+// Manual execution
 $sum = $agent->executeTool('add', [5, 3]);
 $result = $agent->executeTool('multiply', [$sum, 2]);
 ```
@@ -426,7 +426,7 @@ $agent->tool('expensive_computation',
 ```php
 $agent = agent('market-research')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->system('You are a market research analyst.
         Gather data from multiple sources and provide insights.')
     ->tool('scrape_website', 'Scrape competitor website',
@@ -523,10 +523,10 @@ $result = $agent->prompt("
 The LLM relies entirely on tool descriptions for orchestration:
 
 ```php
-// ❌ Vague description
+// Vague description
 $agent->tool('process', 'Process data', ...);
 
-// ✅ Specific description
+// Specific description
 $agent->tool('process_user_data',
     'Process user data: validates email, normalizes name,
      generates username. Returns processed user object.',
@@ -538,7 +538,7 @@ $agent->tool('process_user_data',
 Tools should be safe to call multiple times:
 
 ```php
-// ❌ Not idempotent
+// Not idempotent
 $agent->tool('increment_counter',
     'Increment counter',
     function () {
@@ -546,7 +546,7 @@ $agent->tool('increment_counter',
         return ++$count;
     });
 
-// ✅ Idempotent
+// Idempotent
 $agent->tool('get_counter',
     'Get current counter value',
     fn () => Cache::get('counter', 0));
@@ -561,11 +561,11 @@ $agent->tool('set_counter',
 Help the LLM understand tool results:
 
 ```php
-// ❌ Opaque return
+// Opaque return
 $agent->tool('check_inventory', 'Check inventory',
     fn (string $sku) => Inventory::check($sku));
 
-// ✅ Structured return
+// Structured return
 $agent->tool('check_inventory', 'Check inventory status',
     fn (string $sku) => [
         'sku' => $sku,

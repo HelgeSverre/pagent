@@ -11,7 +11,7 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-echo "=== Example 1: Calculator Tool ===\n\n";
+echo "\n[Example 1: Calculator Tool]\n";
 
 agent('math-assistant')
     ->provider('openai')
@@ -27,10 +27,10 @@ agent('math-assistant')
     });
 
 $response = agent('math-assistant')->prompt('What is 127 times 43?');
-echo "Q: What is 127 times 43?\n";
-echo "A: {$response->content}\n\n";
+echo "Input: What is 127 times 43?\n";
+echo "Output: {$response->content}\n\n";
 
-echo "=== Example 2: Weather Tool ===\n\n";
+echo "\n[Example 2: Weather Tool]\n";
 
 agent('weather-assistant')
     ->provider('openai')
@@ -53,10 +53,10 @@ agent('weather-assistant')
     });
 
 $response = agent('weather-assistant')->prompt('What is the weather like in Oslo?');
-echo "Q: What is the weather like in Oslo?\n";
-echo "A: {$response->content}\n\n";
+echo "Input: What is the weather like in Oslo?\n";
+echo "Output: {$response->content}\n\n";
 
-echo "=== Example 3: Multiple Tools ===\n\n";
+echo "\n[Example 3: Multiple Tools]\n";
 
 agent('multi-tool-assistant')
     ->provider('openai')
@@ -66,10 +66,10 @@ agent('multi-tool-assistant')
     ->tool('reverse_string', 'Reverse a string', fn (string $text): string => strrev($text));
 
 $response = agent('multi-tool-assistant')->prompt('Generate a random number between 1 and 50, then tell me the current time.');
-echo "Q: Generate a random number between 1 and 50, then tell me the current time.\n";
-echo "A: {$response->content}\n\n";
+echo "Input: Generate a random number between 1 and 50, then tell me the current time.\n";
+echo "Output: {$response->content}\n\n";
 
-echo "=== Example 4: Anthropic Tool Calling ===\n\n";
+echo "\n[Example 4: Anthropic Tool Calling]\n";
 
 if (! empty($_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY'))) {
     agent('claude-calculator')
@@ -79,10 +79,10 @@ if (! empty($_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY'))) {
         ->tool('multiply', 'Multiply two numbers', fn (int $a, int $b): int => $a * $b);
 
     $response = agent('claude-calculator')->prompt('What is 25 + 17, and then multiply the result by 3?');
-    echo "Q: What is 25 + 17, and then multiply the result by 3?\n";
-    echo "A: {$response->content}\n\n";
+    echo "Input: What is 25 + 17, and then multiply the result by 3?\n";
+    echo "Output: {$response->content}\n\n";
 } else {
-    echo "Skipped (no ANTHROPIC_API_KEY)\n\n";
+    echo "Skipped: ANTHROPIC_API_KEY is not configured\n\n";
 }
 
-echo "✅ All tool calling examples completed!\n";
+echo "\nDone.\n";

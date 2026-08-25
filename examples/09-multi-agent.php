@@ -11,10 +11,9 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-echo "🤝 Pagent Multi-Agent Orchestration Demo\n";
-echo "=========================================\n\n";
+echo "[Pagent: Multi-Agent Orchestration]\n";
 
-echo "=== Example 1: Pipeline (Sequential Agents) ===\n\n";
+echo "\n[Example 1: Pipeline (Sequential Agents)]\n";
 
 agent('silly')
     ->provider('openai')
@@ -49,7 +48,7 @@ $result = pipeline('document-processor')
 echo "Input: {$document}\n";
 echo "Pipeline output: {$result}\n\n";
 
-echo "=== Example 2: Agent Handoff ===\n\n";
+echo "\n[Example 2: Agent Handoff]\n";
 
 agent('general-support')
     ->provider('openai')
@@ -73,7 +72,7 @@ echo "Legal Expert: Now handling your legal questions\n";
 $response2 = $legalAgent->prompt('Can you help me understand the refund policy?');
 echo "Legal: {$response2->content}\n\n";
 
-echo "=== Example 3: Delegation (Manager → Worker) ===\n\n";
+echo "\n[Example 3: Delegation (Manager → Worker)]\n";
 
 agent('project-manager')
     ->provider('openai')
@@ -96,7 +95,7 @@ $result = $manager->delegate('Write a PHP function that adds two numbers')
         return str_contains($output, 'function');
     })
     ->onComplete(function ($result): void {
-        echo "  [Complete] Task finished!\n";
+        echo "  Status: Task complete\n";
     })
     ->execute();
 
@@ -105,7 +104,7 @@ echo "Worker: {$result->worker}\n";
 echo 'Output: '.mb_substr($result->worker_output, 0, 100)."...\n";
 echo "Manager Review: {$result->manager_review}\n\n";
 
-echo "=== Example 4: Pipeline with Transform ===\n\n";
+echo "\n[Example 4: Pipeline with Transform]\n";
 
 agent('analyzer')
     ->provider('openai')
@@ -122,7 +121,7 @@ $sentimentResult = pipeline('sentiment-analysis')
 
 echo "Pipeline with transform: {$sentimentResult}\n\n";
 
-echo "=== Example 5: Pipeline with Error Recovery ===\n\n";
+echo "\n[Example 5: Pipeline with Error Recovery]\n";
 
 agent('step1')->provider('openai')->system('Step 1');
 agent('step2')->provider('openai')->system('Step 2');
@@ -135,7 +134,7 @@ $safeResult = pipeline('safe-pipeline')
 
 echo 'Safe pipeline result: '.mb_substr($safeResult, 0, 80)."...\n\n";
 
-echo "=== Example 6: Complex Multi-Agent Workflow ===\n\n";
+echo "\n[Example 6: Complex Multi-Agent Workflow]\n";
 
 agent('customer-support')
     ->provider('openai')
@@ -160,5 +159,4 @@ $billing = $support->handoff('billing-specialist', 'Billing inquiry');
 $billingResponse = $billing->prompt('Please explain the charges');
 echo 'Billing: '.mb_substr($billingResponse->content, 0, 80)."...\n\n";
 
-echo "✅ All multi-agent examples completed!\n";
-echo "\n🤝 Multi-agent orchestration enables complex workflows!\n";
+echo "\nDone.\n";

@@ -14,6 +14,14 @@ test('it creates delegation', function (): void {
     expect($delegation)->toBeInstanceOf(Delegation::class);
 });
 
+test('it rejects an unregistered worker without creating one', function (): void {
+    $manager = testAgent('manager');
+
+    expect(fn () => (new Delegation($manager, 'Build feature X'))->to('missing-worker'))
+        ->toThrow(RuntimeException::class, "Worker agent 'missing-worker' not found");
+    expect(getAgent('missing-worker'))->toBeNull();
+});
+
 test('it delegates task to worker', function (): void {
     $b1 = \agent('manager')
         ->provider('mock')

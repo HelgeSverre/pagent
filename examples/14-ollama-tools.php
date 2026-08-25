@@ -12,7 +12,7 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-echo "=== Ollama Tool Calling Examples ===\n\n";
+echo "\n[Ollama Tool Calling Examples]\n";
 echo "Prerequisites: Ollama server running with qwen3:8b model\n";
 echo "Note: Tool calling requires compatible models (qwen3:8b, llama3.1, mistral)\n";
 echo "Run: ollama pull qwen3:8b && ollama serve\n\n";
@@ -33,14 +33,14 @@ function checkOllama(): bool
 }
 
 if (! checkOllama()) {
-    echo "❌ Ollama server not available at http://localhost:11434\n";
+    echo "Error: Ollama server not available at http://localhost:11434\n";
     exit(1);
 }
 
-echo "✅ Ollama server is running\n\n";
+echo "Status: Ollama server is running\n\n";
 
 // Example 1: Simple calculator tool
-echo "=== Example 1: Simple Calculator Tool ===\n\n";
+echo "\n[Example 1: Simple Calculator Tool]\n";
 
 agent('ollama-calculator')
     ->provider(ollama())
@@ -49,11 +49,11 @@ agent('ollama-calculator')
     ->tool('add', 'Add two numbers together', fn (int $a, int $b): int => $a + $b);
 
 $response = agent('ollama-calculator')->prompt('What is 42 + 15?');
-echo "Q: What is 42 + 15?\n";
-echo "A: {$response->content}\n\n";
+echo "Input: What is 42 + 15?\n";
+echo "Output: {$response->content}\n\n";
 
 // Example 2: Multiple math tools
-echo "=== Example 2: Multiple Math Tools ===\n\n";
+echo "\n[Example 2: Multiple Math Tools]\n";
 
 agent('ollama-math')
     ->provider(ollama())
@@ -64,18 +64,18 @@ agent('ollama-math')
     ->tool('multiply', 'Multiply two numbers', fn (int $a, int $b): int => $a * $b)
     ->tool('divide', 'Divide two numbers', function (int $a, int $b): float {
         if ($b === 0) {
-            throw new \RuntimeException('Cannot divide by zero');
+            throw new RuntimeException('Cannot divide by zero');
         }
 
         return $a / $b;
     });
 
 $response = agent('ollama-math')->prompt('Calculate (10 + 5) * 3');
-echo "Q: Calculate (10 + 5) * 3\n";
-echo "A: {$response->content}\n\n";
+echo "Input: Calculate (10 + 5) * 3\n";
+echo "Output: {$response->content}\n\n";
 
 // Example 3: Data retrieval tool
-echo "=== Example 3: Data Retrieval Tool ===\n\n";
+echo "\n[Example 3: Data Retrieval Tool]\n";
 
 agent('ollama-data')
     ->provider(ollama())
@@ -93,11 +93,11 @@ agent('ollama-data')
     });
 
 $response = agent('ollama-data')->prompt('Get the details for user ID 2');
-echo "Q: Get the details for user ID 2\n";
-echo "A: {$response->content}\n\n";
+echo "Input: Get the details for user ID 2\n";
+echo "Output: {$response->content}\n\n";
 
 // Example 4: Weather tool with optional parameters
-echo "=== Example 4: Tool with Optional Parameters ===\n\n";
+echo "\n[Example 4: Tool with Optional Parameters]\n";
 
 agent('ollama-weather')
     ->provider(ollama())
@@ -121,11 +121,11 @@ agent('ollama-weather')
     });
 
 $response = agent('ollama-weather')->prompt('What is the weather in Tokyo with forecast?');
-echo "Q: What is the weather in Tokyo with forecast?\n";
-echo "A: {$response->content}\n\n";
+echo "Input: What is the weather in Tokyo with forecast?\n";
+echo "Output: {$response->content}\n\n";
 
 // Example 5: Built-in FileRead tool
-echo "=== Example 5: Built-in FileRead Tool ===\n\n";
+echo "\n[Example 5: Built-in FileRead Tool]\n";
 
 // Create a test file
 $testFile = sys_get_temp_dir().'/ollama_test.txt';
@@ -138,14 +138,14 @@ agent('ollama-file-reader')
     ->tool(new FileRead);
 
 $response = agent('ollama-file-reader')->prompt("Read the file at {$testFile} and tell me what it contains");
-echo "Q: Read the file and tell me what it contains\n";
-echo "A: {$response->content}\n\n";
+echo "Input: Read the file and tell me what it contains\n";
+echo "Output: {$response->content}\n\n";
 
 // Cleanup
 @unlink($testFile);
 
 // Example 6: Multi-turn conversation with tools
-echo "=== Example 6: Multi-Turn Conversation with Tools ===\n\n";
+echo "\n[Example 6: Multi-Turn Conversation with Tools]\n";
 
 agent('ollama-assistant')
     ->provider(ollama())
@@ -167,7 +167,7 @@ echo "User: Now multiply that result by 2\n";
 echo "Agent: {$response2->content}\n\n";
 
 // Example 7: Error handling in tools
-echo "=== Example 7: Tool Error Handling ===\n\n";
+echo "\n[Example 7: Tool Error Handling]\n";
 
 agent('ollama-safe-divide')
     ->provider(ollama())
@@ -175,7 +175,7 @@ agent('ollama-safe-divide')
     ->system('You are a math assistant.')
     ->tool('divide', 'Divide two numbers', function (int $a, int $b): float {
         if ($b === 0) {
-            throw new \RuntimeException('Error: Cannot divide by zero!');
+            throw new RuntimeException('Error: Cannot divide by zero!');
         }
 
         return $a / $b;
@@ -183,15 +183,16 @@ agent('ollama-safe-divide')
 
 try {
     $response = agent('ollama-safe-divide')->prompt('What is 10 divided by 0?');
-    echo "Q: What is 10 divided by 0?\n";
-    echo "A: {$response->content}\n\n";
-} catch (\RuntimeException $e) {
+    echo "Input: What is 10 divided by 0?\n";
+    echo "Output: {$response->content}\n\n";
+} catch (RuntimeException $e) {
     echo "Tool error was handled: {$e->getMessage()}\n\n";
 }
 
-echo "✅ All tool calling examples completed!\n";
 echo "\nKey points:\n";
 echo "- Ollama uses OpenAI-compatible tool schema format\n";
 echo "- Compatible models: qwen3:8b (recommended), llama3.1, mistral\n";
 echo "- Tools can return strings, arrays, or throw exceptions\n";
 echo "- Multi-turn conversations maintain context with tool results\n";
+
+echo "\nDone.\n";

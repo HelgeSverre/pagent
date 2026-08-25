@@ -27,7 +27,7 @@ Pagent provides two methods for streaming: `stream()` returns a `StreamResponse`
 ```php
 $agent = agent('storyteller')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->build();
 
 // Stream with callback
@@ -199,7 +199,7 @@ Let's build some practical streaming interfaces. Here's a console progress indic
 ```php
 $agent = agent('writer')
     ->provider(anthropic())
-    ->model('claude-sonnet-4-20250514')
+    ->model('claude-sonnet-4-6')
     ->maxTokens(2000)
     ->build();
 
@@ -401,12 +401,12 @@ The memory integration works identically to `prompt()`:
 
 ## Streaming and Guards
 
-Guards execute after the stream completes, not during streaming:
+Streaming preserves the same guard phases, with one important visibility tradeoff:
 
 ```php
 $agent = agent('guarded-stream')
     ->provider(anthropic())
-    ->guard('profanity')
+    ->guard('pii')
     ->fallback(function ($exception) {
         return "I apologize, I cannot provide that content.";
     })
@@ -426,14 +426,17 @@ try {
 }
 ```
 
-This means:
+Input guards always run before streaming starts. Incremental output guards may
+inspect the accumulated text while chunks are forwarded. Output guards that
+return `false` from `supportsIncrementalInspection()`—including the built-in PII
+guard—require a buffered stream: Pagent consumes the provider response, runs the
+policy and middleware, then releases chunks only if they pass. Legacy two-argument
+guards are also buffered because their phase cannot be inferred safely.
 
-- Content streams in real-time
-- After streaming completes, guards check the full content
-- If a guard fails, the exception is thrown after all chunks have streamed
-- Fallback handlers work normally
-
-For real-time content filtering during streaming, you'd need to implement checks in your callback, but be aware the LLM has no way to "un-send" chunks that already streamed.
+This means a buffered guard prevents unsafe partial output from reaching the
+callback, at the cost of real-time delivery. An incremental guard preserves
+low-latency streaming but cannot retract chunks already yielded if it later
+detects a violation.
 
 ## Performance Considerations
 

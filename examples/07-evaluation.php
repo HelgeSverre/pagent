@@ -15,10 +15,9 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-echo "📊 Pagent Evaluation Framework Demo\n";
-echo "====================================\n\n";
+echo "[Pagent: Evaluation Framework]\n";
 
-echo "=== Example 1: Simple Evaluation ===\n\n";
+echo "\n[Example 1: Simple Evaluation]\n";
 
 agent('support-bot')
     ->provider('openai')
@@ -47,7 +46,7 @@ foreach ($result->getSummary()['metrics'] as $name => $data) {
 
 echo "\n";
 
-echo "=== Example 2: Detailed Results ===\n\n";
+echo "\n[Example 2: Detailed Results]\n";
 
 foreach ($result->results as $i => $item) {
     echo 'Test Case #'.($i + 1).":\n";
@@ -61,7 +60,7 @@ foreach ($result->results as $i => $item) {
     echo "\n\n";
 }
 
-echo "=== Example 3: Loading from JSON File ===\n\n";
+echo "\n[Example 3: Loading from JSON File]\n";
 
 $fileDataset = Dataset::fromJson(__DIR__.'/datasets/support_tickets.json');
 echo "Loaded {$fileDataset->count()} test cases from JSON\n\n";
@@ -80,7 +79,7 @@ foreach ($summary['metrics'] as $name => $data) {
 
 echo "\n";
 
-echo "=== Example 4: Custom Metric with Closure ===\n\n";
+echo "\n[Example 4: Custom Metric with Closure]\n";
 
 $result3 = evaluate('support-bot')
     ->dataset(Dataset::fromArray([
@@ -101,7 +100,7 @@ $result3 = evaluate('support-bot')
 
 echo 'Politeness score: '.round($result3->getAverageScore('politeness') * 100, 1)."%\n\n";
 
-echo "=== Example 5: Export Reports ===\n\n";
+echo "\n[Example 5: Export Reports]\n";
 
 agent('report-test')
     ->provider('openai')
@@ -122,22 +121,21 @@ $report = new Report($reportResult);
 
 // Save as JSON
 $report->save(__DIR__.'/reports/evaluation.json');
-echo "✅ Saved JSON report to examples/reports/evaluation.json\n";
+echo "Saved: JSON report to examples/reports/evaluation.json\n";
 
 // Save as Markdown
 $report->save(__DIR__.'/reports/evaluation.md');
-echo "✅ Saved Markdown report to examples/reports/evaluation.md\n";
+echo "Saved: Markdown report to examples/reports/evaluation.md\n";
 
 // Save as HTML
 $report->save(__DIR__.'/reports/evaluation.html');
-echo "✅ Saved HTML report to examples/reports/evaluation.html\n";
+echo "Saved: HTML report to examples/reports/evaluation.html\n";
 
 echo "\n";
 
-echo "=== Example 6: Evaluation Summary ===\n\n";
+echo "\n[Example 6: Evaluation Summary]\n";
 
 echo "Full Summary:\n";
 print_r($reportResult->getSummary());
 
-echo "\n✅ All evaluation examples completed!\n";
-echo "\n📊 Evaluation framework is ready to measure agent quality!\n";
+echo "\nDone.\n";

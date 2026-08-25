@@ -53,12 +53,12 @@ final class DataExtract extends Tool
 
     public function execute(array $params): mixed
     {
-        $text = $params['text'] ?? throw new RuntimeException('Text parameter is required');
-        $schema = $params['schema'] ?? throw new RuntimeException('Schema parameter is required');
-        $instructions = $params['instructions'] ?? 'Extract the requested data from the text.';
+        $text = $this->requiredString($params, 'text');
+        $schema = $this->requiredArray($params, 'schema');
+        $instructions = $this->optionalString($params, 'instructions', 'Extract the requested data from the text.');
 
         // Validate schema
-        if (! isset($schema['type']) || ! isset($schema['properties'])) {
+        if (! is_string($schema['type'] ?? null) || ! is_array($schema['properties'] ?? null)) {
             throw new RuntimeException('Schema must have "type" and "properties" fields');
         }
 

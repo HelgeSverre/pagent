@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace Pagent\Providers;
 
-use Pagent\Contracts\Provider;
+use Pagent\Contracts\IdentifiedProvider;
+use Pagent\Contracts\StreamingProvider;
 use Pagent\Http\CurlTransport;
 use Pagent\Http\HttpClientInterface;
+use Pagent\ProviderCapabilities;
 use Pagent\Streaming\AnthropicStreamParser;
 use Pagent\Streaming\StreamResponse;
+use Pagent\Tool\ToolCallArgumentNormalizer;
 use RuntimeException;
 
 use function getenv;
 use function json_decode;
 
-final class Anthropic implements Provider
+final class Anthropic implements IdentifiedProvider, StreamingProvider
 {
     private string $apiKey;
 
@@ -39,7 +42,7 @@ final class Anthropic implements Provider
 
         // Build request body
         $body = [
-            'model' => $options['model'] ?? 'claude-sonnet-4-20250514',
+            'model' => $options['model'] ?? 'claude-sonnet-4-6',
             'messages' => $messages,
             'max_tokens' => $options['max_tokens'] ?? 1024,
         ];
@@ -87,10 +90,14 @@ final class Anthropic implements Provider
             if ($block['type'] === 'text') {
                 $content .= $block['text'];
             } elseif ($block['type'] === 'tool_use') {
+                $name = is_string($block['name'] ?? null) ? $block['name'] : 'unknown';
                 $toolCalls[] = [
                     'id' => $block['id'],
-                    'name' => $block['name'],
-                    'arguments' => $block['input'],
+                    'name' => $name,
+                    'arguments' => ToolCallArgumentNormalizer::normalize(
+                        $block['input'] ?? null,
+                        "Anthropic tool '{$name}'",
+                    ),
                 ];
             }
         }
@@ -117,7 +124,7 @@ final class Anthropic implements Provider
 
         // Build request body
         $body = [
-            'model' => $options['model'] ?? 'claude-sonnet-4-20250514',
+            'model' => $options['model'] ?? 'claude-sonnet-4-6',
             'messages' => $messages,
             'max_tokens' => $options['max_tokens'] ?? 1024,
             'stream' => true, // Enable streaming
@@ -157,18 +164,32 @@ final class Anthropic implements Provider
             throw new RuntimeException("Anthropic API error: {$type} {$error}");
         }
 
-        $stream = $transport->resource();
-
-        // Create generator that parses the stream
         $parser = new AnthropicStreamParser;
         $model = $body['model'];
-        $generator = $parser->parse($stream, $model);
 
-        // Wrap in StreamResponse
         return new StreamResponse(
-            stream: $generator,
+            stream: $parser->parse($transport->chunks(), $model),
             provider: 'anthropic',
             model: $model,
+            canceller: static function () use ($transport): void {
+                $transport->close();
+            },
+        );
+    }
+
+    public function providerId(): string
+    {
+        return 'anthropic';
+    }
+
+    public function capabilities(): ProviderCapabilities
+    {
+        return new ProviderCapabilities(
+            supportsStreaming: true,
+            supportsTools: true,
+            supportsSystemMessages: true,
+            protocol: 'anthropic-messages',
+            toolProtocol: 'anthropic',
         );
     }
 }

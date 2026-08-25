@@ -67,7 +67,7 @@ try {
             'api_key' => $_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY'),
         ]))
         ->system('You are a helpful assistant. Be concise.')
-        ->model('claude-3-haiku-20240307')
+        ->model('claude-sonnet-4-6')
         ->maxTokens(200);
 
     // Stream the response

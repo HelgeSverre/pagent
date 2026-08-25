@@ -1,6 +1,14 @@
 # Streaming Support
 
-Pagent supports real-time streaming of LLM responses using Server-Sent Events (SSE), enabling ChatGPT-like user experiences where responses appear token-by-token as they're generated.
+Pagent supports incremental LLM streaming and Server-Sent Events (SSE), enabling
+responses to appear as the provider produces them. `stream()` starts a lifecycle
+aware stream; consuming it finalizes history, memory, events, and telemetry.
+
+Streams with no response-transforming middleware and only incrementally-safe output
+guards are delivered immediately. Pagent intentionally quarantines a stream before
+delivery when a policy needs the complete response: a non-incremental
+`OutputGuard`, a legacy two-argument guard, or middleware. This prevents unsafe
+content from reaching a callback at the cost of time to first token.
 
 ## Table of Contents
 
@@ -23,7 +31,7 @@ use function Pagent\agent;
 
 $agent = agent('streamer')
     ->provider(new Anthropic())
-    ->model('claude-3-haiku-20240307');
+    ->model('claude-sonnet-4-6');
 
 // Stream to console
 $agent->streamTo('Tell me a joke', function ($chunk) {
@@ -53,7 +61,8 @@ foreach ($streamResponse->getStream() as $chunk) {
 
     if ($chunk->isEnd()) {
         echo "\n[Stream complete]\n";
-        echo "Tokens used: " . $chunk->getMetadata('usage')['total'] ?? 0;
+        $usage = $chunk->getMetadata('usage') ?? [];
+        echo "Tokens used: " . ($usage['total_tokens'] ?? 0);
     }
 }
 ```
@@ -229,7 +238,7 @@ $question = $_GET['q'] ?? 'Hello';
 
 $agent = agent('sse-agent')
     ->provider(new Anthropic())
-    ->model('claude-3-haiku-20240307');
+    ->model('claude-sonnet-4-6');
 
 $streamResponse = $agent->stream($question);
 
@@ -357,12 +366,8 @@ Full support for streaming including:
 - Usage statistics in final chunks
 - Multiple content blocks
 
-**Supported Models:**
-
-- Claude 3.5 Sonnet
-- Claude 3 Opus
-- Claude 3 Sonnet
-- Claude 3 Haiku
+Use an available Anthropic streaming model, such as `claude-sonnet-4-6`. Model
+availability is provider-controlled; configure a model explicitly for production.
 
 ### OpenAI (GPT)
 
@@ -384,7 +389,8 @@ Full support for streaming including:
 
 ### Buffering
 
-Streaming responses are unbuffered by default. For production SSE endpoints, disable output buffering:
+Provider transport streaming is incremental by default. For production SSE
+endpoints, also disable web-server output buffering:
 
 ```php
 // Disable all output buffering
@@ -402,7 +408,9 @@ Streaming disables timeouts by default (`CURLOPT_TIMEOUT => 0`). Consider implem
 
 ### Memory
 
-Streaming is memory-efficient as chunks are processed one at a time. The full response is only accumulated if you call `collect()` or `streamTo()`.
+Chunks are processed one at a time, although `StreamResponse` retains accumulated
+content and chunk metadata so it can commit a completed conversation. A quarantined
+stream additionally retains the provider response until its policies pass.
 
 ## Troubleshooting
 
@@ -410,14 +418,15 @@ Streaming is memory-efficient as chunks are processed one at a time. The full re
 
 **Error:** `RuntimeException: Provider X does not support streaming`
 
-**Solution:** Ensure you're using Anthropic or OpenAI provider. Mock provider doesn't support streaming.
+**Solution:** Use a provider implementing `StreamingProvider`. Built-in Anthropic,
+OpenAI, OpenCode, Ollama, and Mock providers support streaming.
 
 ```php
-// ✅ Correct
+// Correct
 $agent->provider(new Anthropic());
 
-// ❌ Wrong - Mock doesn't support streaming
-$agent->provider(mock());
+// Also valid for deterministic stream tests
+$agent->provider(mock(['Question' => 'Deterministic answer']));
 ```
 
 ### No Output Appearing
@@ -427,15 +436,15 @@ $agent->provider(mock());
 **Solution:** Remember to iterate the stream or call `collect()`:
 
 ```php
-// ❌ Wrong - stream not consumed
+// Wrong - stream not consumed
 $streamResponse = $agent->stream('Question');
 
-// ✅ Correct - iterate stream
+// Correct - iterate stream
 foreach ($streamResponse->getStream() as $chunk) {
     echo $chunk->content;
 }
 
-// ✅ Or collect all at once
+// Or collect all at once
 $fullContent = $streamResponse->collect();
 ```
 
@@ -452,18 +461,19 @@ $fullContent = $streamResponse->collect();
 
 ## Examples
 
-All streaming examples are in the `examples/` directory:
+Streaming examples are available in the `examples/` directory:
 
-- `streaming-basic.php` - Basic streaming examples
-- `streaming-sse-endpoint.php` - SSE server endpoint
-- `streaming-sse-client.html` - Beautiful web client
+- [`10-streaming-basic.php`](../examples/10-streaming-basic.php) - Callback and iterable streaming
+- [`10-streaming-sse-endpoint.php`](../examples/10-streaming-sse-endpoint.php) - SSE server endpoint
+- [`10-streaming-sse-client.html`](../examples/10-streaming-sse-client.html) - Browser SSE client
 
 ## Next Steps
 
 - Explore [Multi-Agent Workflows](orchestration-workflows.md)
-- Learn about [Tool Usage](tools.md)
+- Learn about [tool calling](../README.md#tool-calling)
 - Check out [Middleware](middleware.md) for streaming interceptors
 
 ---
 
-**Need help?** Open an issue on [GitHub](https://github.com/helgesverre/pagent/issues)
+For questions or documentation corrections, open an issue on
+[GitHub](https://github.com/helgesverre/pagent/issues).

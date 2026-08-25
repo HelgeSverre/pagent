@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 use Pagent\AgentBuilder;
 use Pagent\Registry;
+use Pagent\Tools\FileRead;
+use Pagent\Tools\FileWrite;
+use Pagent\Tools\Glob;
+use Pagent\Tools\Grep;
 
 it('creates agent builders', function (): void {
     $builder = new AgentBuilder('test-agent');
@@ -11,17 +15,21 @@ it('creates agent builders', function (): void {
     expect($builder)->toBeInstanceOf(AgentBuilder::class);
 });
 
-it('registers agent on destruction', function (): void {
-    expect(Registry::has('auto-register'))->toBeFalse();
+it('only registers an explicitly built agent', function (): void {
+    expect(Registry::has('explicit-register'))->toBeFalse();
 
-    // Create builder in a scope so it gets destroyed
     (function (): void {
-        $builder = new AgentBuilder('auto-register');
+        $builder = new AgentBuilder('explicit-register');
         $builder->provider('mock');
     })();
 
-    expect(Registry::has('auto-register'))->toBeTrue();
-    expect(Registry::get('auto-register'))->toBeAgent();
+    expect(Registry::has('explicit-register'))->toBeFalse();
+
+    $agent = (new AgentBuilder('explicit-register'))
+        ->provider('mock')
+        ->build();
+
+    expect(Registry::get('explicit-register'))->toBe($agent);
 });
 
 it('configures agent through builder', function (): void {
@@ -185,9 +193,9 @@ it('adds multiple tools at once using tools() method', function (): void {
     $builder->provider('mock');
 
     $tools = [
-        new \Pagent\Tools\FileRead(baseDir: '/tmp'),
-        new \Pagent\Tools\FileWrite(baseDir: '/tmp'),
-        new \Pagent\Tools\Glob(baseDir: '/tmp'),
+        new FileRead(baseDir: '/tmp'),
+        new FileWrite(baseDir: '/tmp'),
+        new Glob(baseDir: '/tmp'),
     ];
 
     $builder->tools($tools);
@@ -196,9 +204,9 @@ it('adds multiple tools at once using tools() method', function (): void {
     $registeredTools = $agent->getTools();
 
     expect($registeredTools)->toHaveCount(3);
-    expect($registeredTools[0])->toBeInstanceOf(\Pagent\Tools\FileRead::class);
-    expect($registeredTools[1])->toBeInstanceOf(\Pagent\Tools\FileWrite::class);
-    expect($registeredTools[2])->toBeInstanceOf(\Pagent\Tools\Glob::class);
+    expect($registeredTools[0])->toBeInstanceOf(FileRead::class);
+    expect($registeredTools[1])->toBeInstanceOf(FileWrite::class);
+    expect($registeredTools[2])->toBeInstanceOf(Glob::class);
 });
 
 it('chains tools() with individual tool() calls', function (): void {
@@ -207,22 +215,22 @@ it('chains tools() with individual tool() calls', function (): void {
 
     $builder
         ->tools([
-            new \Pagent\Tools\FileRead(baseDir: '/tmp'),
-            new \Pagent\Tools\FileWrite(baseDir: '/tmp'),
+            new FileRead(baseDir: '/tmp'),
+            new FileWrite(baseDir: '/tmp'),
         ])
         ->tool('custom', 'A custom tool', fn (string $input): string => strtoupper($input))
         ->tools([
-            new \Pagent\Tools\Grep(baseDir: '/tmp'),
+            new Grep(baseDir: '/tmp'),
         ]);
 
     $agent = $builder->build();
     $registeredTools = $agent->getTools();
 
     expect($registeredTools)->toHaveCount(4);
-    expect($registeredTools[0])->toBeInstanceOf(\Pagent\Tools\FileRead::class);
-    expect($registeredTools[1])->toBeInstanceOf(\Pagent\Tools\FileWrite::class);
+    expect($registeredTools[0])->toBeInstanceOf(FileRead::class);
+    expect($registeredTools[1])->toBeInstanceOf(FileWrite::class);
     expect($registeredTools[2]->name())->toBe('custom');
-    expect($registeredTools[3])->toBeInstanceOf(\Pagent\Tools\Grep::class);
+    expect($registeredTools[3])->toBeInstanceOf(Grep::class);
 });
 
 it('handles empty array in tools() method', function (): void {
@@ -241,9 +249,9 @@ it('verifies all tools are properly registered via tools() method', function ():
     $builder = new AgentBuilder('verify-tools');
     $builder->provider('mock');
 
-    $fileRead = new \Pagent\Tools\FileRead(baseDir: '/project');
-    $fileWrite = new \Pagent\Tools\FileWrite(baseDir: '/project');
-    $grep = new \Pagent\Tools\Grep(baseDir: '/project');
+    $fileRead = new FileRead(baseDir: '/project');
+    $fileWrite = new FileWrite(baseDir: '/project');
+    $grep = new Grep(baseDir: '/project');
 
     $builder->tools([$fileRead, $fileWrite, $grep]);
 
@@ -261,7 +269,7 @@ it('maintains fluent interface with tools() method', function (): void {
     $result = $builder
         ->provider('mock')
         ->tools([
-            new \Pagent\Tools\FileRead(baseDir: '/tmp'),
+            new FileRead(baseDir: '/tmp'),
         ])
         ->system('You are helpful');
 

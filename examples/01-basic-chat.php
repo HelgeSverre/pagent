@@ -11,7 +11,7 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-echo "=== Example 1: Basic Chat ===\n\n";
+echo "\n[Example 1: Basic Chat]\n";
 
 agent('assistant')
     ->provider('openai')
@@ -19,10 +19,10 @@ agent('assistant')
     ->temperature(0.7);
 
 $response = agent('assistant')->prompt('What is PHP?');
-echo "Q: What is PHP?\n";
-echo "A: {$response->content}\n\n";
+echo "Input: What is PHP?\n";
+echo "Output: {$response->content}\n\n";
 
-echo "=== Example 2: Conversation with Memory ===\n\n";
+echo "\n[Example 2: Conversation with Memory]\n";
 
 agent('chatbot')
     ->provider('openai')
@@ -39,7 +39,7 @@ echo "User: What's my name?\n";
 $response2 = $bot->prompt("What's my name?");
 echo "Bot: {$response2->content}\n\n";
 
-echo "=== Example 3: Using Anthropic ===\n\n";
+echo "\n[Example 3: Using Anthropic]\n";
 
 if (! empty($_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY'))) {
     agent('claude')
@@ -50,10 +50,10 @@ if (! empty($_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY'))) {
     $response = agent('claude')->prompt('Write a haiku about PHP');
     echo "Claude's haiku:\n{$response->content}\n\n";
 } else {
-    echo "Skipped (no ANTHROPIC_API_KEY)\n\n";
+    echo "Skipped: ANTHROPIC_API_KEY is not configured\n\n";
 }
 
-echo "=== Example 4: Mock Provider ===\n\n";
+echo "\n[Example 4: Mock Provider]\n";
 
 agent('mock-bot')
     ->provider('mock')
@@ -62,4 +62,4 @@ agent('mock-bot')
 $response = agent('mock-bot')->prompt('Hello!');
 echo "Mock response: {$response->content}\n\n";
 
-echo "✅ All examples completed!\n";
+echo "\nDone.\n";

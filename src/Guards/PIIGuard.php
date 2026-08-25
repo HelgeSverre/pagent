@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pagent\Guards;
 
-use Pagent\Contracts\Guard;
+use Pagent\Contracts\OutputGuard;
 
 use function preg_match;
 
-final class PIIGuard implements Guard
+final class PIIGuard implements OutputGuard
 {
     private array $patterns = [
         'ssn' => '/\b\d{3}-\d{2}-\d{4}\b/',
@@ -24,6 +24,11 @@ final class PIIGuard implements Guard
 
     public function check(string $input, string $output): bool
     {
+        return $this->checkOutput($output);
+    }
+
+    public function checkOutput(string $output): bool
+    {
         foreach ($this->enabledChecks as $check) {
             if (isset($this->patterns[$check]) && preg_match($this->patterns[$check], $output)) {
                 return false;
@@ -31,6 +36,13 @@ final class PIIGuard implements Guard
         }
 
         return true;
+    }
+
+    public function supportsIncrementalInspection(): bool
+    {
+        // A PII token can span transport chunks. Releasing a prefix before the
+        // complete pattern is known would leak part of the protected value.
+        return false;
     }
 
     public function getName(): string

@@ -30,7 +30,7 @@ $result = Chain::create()
     ->run('Invoice #12345, Amount: $1,500.00, Date: 2025-01-12');
 
 // Output results
-echo "=== Invoice Processing Chain ===\n\n";
+echo "\n[Invoice Processing Chain]\n";
 
 echo "Final Output:\n";
 echo $result->final."\n\n";
@@ -47,5 +47,5 @@ echo "Steps Executed: {$result->meta->stepsExecuted}\n";
 
 // Export for logging
 $export = $result->export();
-echo "\n=== Full Export (for logging) ===\n";
+echo "\n[Full Export]\n";
 echo json_encode($export, JSON_PRETTY_PRINT)."\n";

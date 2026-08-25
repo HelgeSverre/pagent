@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pagent\Contracts\Provider;
 use Pagent\Workflow\Pipeline;
 
 test('pipeline executes named steps', function () {
@@ -53,6 +54,36 @@ test('pipeline supports transform steps', function () {
     expect($result->step('parse')->output)->toBe(['value' => '100']);
     expect($result->step('double')->output)->toBe(['value' => 200]);
     expect($result->final)->toBe(['value' => 200]);
+});
+
+test('pipeline preserves the value each transform received', function () {
+    $result = Pipeline::create()
+        ->transform('first', fn (string $value) => strtoupper($value))
+        ->transform('second', fn (string $value) => $value.'!')
+        ->run('hello');
+
+    expect($result->step('first')->input)->toBe('hello')
+        ->and($result->step('first')->output)->toBe('HELLO')
+        ->and($result->step('second')->input)->toBe('HELLO')
+        ->and($result->step('second')->output)->toBe('HELLO!');
+});
+
+test('pipeline aggregates usage arrays returned by providers', function () {
+    $provider = new class implements Provider
+    {
+        public function prompt(string $message, array $options = []): object
+        {
+            return (object) [
+                'content' => 'done',
+                'usage' => ['total_tokens' => 42],
+            ];
+        }
+    };
+
+    $result = Pipeline::create()->step('provider', $provider)->run('input');
+
+    expect($result->meta->totalTokens)->toBe(42)
+        ->and($result->step('provider')->meta->tokens)->toBe(42);
 });
 
 test('pipeline tracks metadata', function () {

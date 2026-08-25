@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use OpenTelemetry\SDK\Common\Future\FutureInterface;
 use Pagent\Observability\Exporters\OTLPExporter;
 
 test('it initializes with default config', function () {
@@ -46,7 +47,7 @@ test('it handles empty span export', function () {
 
     $result = $exporter->export([]);
 
-    expect($result)->toBeInstanceOf(\OpenTelemetry\SDK\Common\Future\FutureInterface::class);
+    expect($result)->toBeInstanceOf(FutureInterface::class);
 });
 
 test('it can be shut down', function () {

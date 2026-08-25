@@ -1,6 +1,8 @@
 # Testing AI Agent Quality: A Hands-On Tutorial
 
-Welcome! Today you're going to master one of the most important skills in AI development: measuring and improving agent quality. By the end of this tutorial, you'll be confidently testing your AI agents like a pro.
+This tutorial introduces a practical process for measuring and improving agent
+quality. It begins with a single dataset and progresses to custom metrics,
+reporting, prompt comparisons, and regression testing.
 
 ## What You'll Learn
 
@@ -90,7 +92,8 @@ $result = evaluate('support-bot')
     ->run();
 ```
 
-**Pro Tip**: Start with 3-5 test cases. You can always add more later!
+**Note:** Start with three to five representative test cases, then add cases as
+new behavior and failures are discovered.
 
 ### Example 3: Understanding Scores
 
@@ -232,7 +235,7 @@ echo "Version A: " . $resultA->getAverageScore('quality') * 100 . "%\n";
 echo "Version B: " . $resultB->getAverageScore('quality') * 100 . "%\n";
 ```
 
-**Pro Tip**: Always test with the same dataset for fair comparison!
+**Note:** Use the same dataset for each prompt or model comparison.
 
 ---
 
@@ -516,7 +519,7 @@ evaluate('code-reviewer')
 
 ## Next Steps
 
-Congratulations! You've mastered agent evaluation. Here's where to go next:
+After completing the examples:
 
 1. **Build Your Own Dataset**: Start with 10 real test cases from your application
 2. **Create Custom Metrics**: Design metrics specific to your use case
@@ -526,10 +529,10 @@ Congratulations! You've mastered agent evaluation. Here's where to go next:
 
 ## Additional Resources
 
-- [Full API Reference](../docs/evaluation.md)
+- [Evaluation framework chapter](../guide/complete.md#chapter-20-evaluation-framework)
 - [Example Code](08-evaluation-progressive.php) - Run all examples from this tutorial
 - [Dataset Examples](datasets/) - Sample datasets for different use cases
-- [Custom Metrics Guide](../docs/custom-metrics.md)
+- [Custom metrics](../guide/complete.md#custom-metrics-with-callables)
 
 ## Quick Reference
 
@@ -561,15 +564,14 @@ new Report(EvaluationResult $result)
 
 ---
 
-## Final Thoughts
+## Summary
 
-Remember: evaluation isn't about getting perfect scores. It's about:
+Evaluation is not about achieving a perfect score. Use it to:
 
 - Understanding your agent's strengths and weaknesses
 - Making informed decisions about improvements
 - Building confidence in your AI systems
 - Proving value to stakeholders
 
-Start simple, iterate often, and let the metrics guide you to better agents.
-
-Happy evaluating! 🎯
+Start with a small representative dataset, review failures, and expand the suite
+as new behavior and edge cases are discovered.

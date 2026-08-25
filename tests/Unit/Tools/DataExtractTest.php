@@ -137,7 +137,7 @@ test('it has configurable model', function () {
 // ========================================
 
 test('it handles malformed JSON responses', function () {
-    $mockProvider = new class implements \Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         public function prompt(string $message, array $options = []): object
         {
@@ -159,7 +159,7 @@ test('it handles malformed JSON responses', function () {
 });
 
 test('it returns parsed data on valid JSON', function () {
-    $mockProvider = new class implements \Pagent\Contracts\Provider
+    $mockProvider = new class implements Provider
     {
         public function prompt(string $message, array $options = []): object
         {

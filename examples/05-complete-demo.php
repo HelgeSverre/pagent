@@ -11,10 +11,9 @@ if (file_exists(__DIR__.'/../.env')) {
     $dotenv->load();
 }
 
-echo "🤖 Pagent Complete Demo\n";
-echo "=======================\n\n";
+echo "[Pagent: Complete]\n";
 
-echo "=== 1. Customer Support Bot with Tools ===\n\n";
+echo "\n[1. Customer Support Bot with Tools]\n";
 
 agent('support-bot')
     ->provider('openai')
@@ -47,7 +46,7 @@ echo "Customer: I want to return an item worth \$99.99, I bought it 5 days ago\n
 $r2 = $support->prompt('I want to return an item worth $99.99, I bought it 5 days ago');
 echo "Support: {$r2->content}\n\n";
 
-echo "=== 2. Research Assistant ===\n\n";
+echo "\n[2. Research Assistant]\n";
 
 agent('researcher')
     ->provider('openai')
@@ -75,7 +74,7 @@ echo "User: When was PHP created and how old is it?\n";
 $r3 = $researcher->prompt('When was PHP created and how old is it?');
 echo "Assistant: {$r3->content}\n\n";
 
-echo "=== 3. Multi-Step Task with Tools ===\n\n";
+echo "\n[3. Multi-Step Task with Tools]\n";
 
 agent('analyst')
     ->provider('openai')
@@ -93,7 +92,7 @@ echo "User: What was the average sale per customer in February?\n";
 $r4 = $analyst->prompt('What was the average sale per customer in February?');
 echo "Analyst: {$r4->content}\n\n";
 
-echo "=== 4. Conversation Inspection ===\n\n";
+echo "\n[4. Conversation Inspection]\n";
 
 echo "Message history for support-bot:\n";
 echo 'Total messages: '.count($support->messages)."\n";
@@ -103,7 +102,7 @@ foreach (array_slice($support->messages, 0, 4) as $i => $msg) {
     echo "  [{$role}] {$content}...\n";
 }
 
-echo "\n=== 5. Tool Inspection ===\n\n";
+echo "\n[5. Tool Inspection]\n";
 
 $tools = $support->getTools();
 echo 'Support bot has '.count($tools)." tools:\n";
@@ -114,5 +113,4 @@ foreach ($tools as $tool) {
     echo implode(', ', $params)."\n";
 }
 
-echo "\n✅ Complete demo finished!\n";
-echo "\nTool calling is working perfectly with both OpenAI and Anthropic! 🎉\n";
+echo "\nDone.\n";

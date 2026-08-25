@@ -6,18 +6,9 @@ namespace Pagent\Workflow;
 
 use Pagent\Agent;
 use Pagent\Contracts\Provider;
-use Pagent\Observability\NullSpan;
-use Pagent\Observability\Span;
-use Pagent\Observability\TelemetryManager;
-use Pagent\Workflow\Concerns\HasTelemetry;
-use Throwable;
-
-use function microtime;
 
 final class Chain
 {
-    use HasTelemetry;
-
     /** @var array<Agent|Provider> */
     protected array $steps = [];
 
@@ -47,110 +38,17 @@ final class Chain
 
     public function run(mixed $input): WorkflowResult
     {
-        $startTime = microtime(true);
-        $current = $input;
-        $stepResults = [];
-        $totalTokens = 0;
-        $success = true;
+        /** @var list<WorkflowStep> $steps */
+        $steps = [];
 
-        // Start workflow span if any agent has telemetry enabled
-        $workflowSpan = $this->shouldEnableTelemetry()
-            ? TelemetryManager::instance()->startSpan('workflow.chain.run', [
-                'workflow.name' => $this->name,
-                'workflow.type' => 'chain',
-                'workflow.steps' => count($this->steps),
-            ])
-            : new NullSpan;
-
-        try {
-            foreach ($this->steps as $index => $agent) {
-                $stepStartTime = microtime(true);
-                $stepName = "step_{$index}";
-
-                // Start step span
-                $stepSpan = $this->shouldEnableTelemetry()
-                    ? TelemetryManager::instance()->startSpan('workflow.step', [
-                        'step.name' => $stepName,
-                        'step.index' => $index,
-                        'step.type' => 'agent',
-                    ])
-                    : new NullSpan;
-
-                try {
-                    $response = $agent->prompt($current);
-
-                    $stepDuration = (microtime(true) - $stepStartTime) * 1000; // Convert to milliseconds
-                    $stepTokens = $response->usage?->total_tokens ?? 0;
-                    $totalTokens += $stepTokens;
-
-                    // Record step attributes
-                    $stepSpan->setAttributes([
-                        'step.duration' => $stepDuration,
-                        'step.tokens' => $stepTokens,
-                    ]);
-
-                    $stepSpan->setStatus('ok');
-
-                    $stepResults[] = new StepResult(
-                        name: $stepName,
-                        output: $response->content,
-                        input: $current,
-                        agent: $agent instanceof Agent ? $agent->getName() : "agent_{$index}",
-                        meta: StepMetadata::create(
-                            tokens: $stepTokens,
-                            duration: $stepDuration / 1000 // Convert back to seconds for StepMetadata
-                        )
-                    );
-
-                    $current = $response->content;
-                } catch (Throwable $e) {
-                    $success = false;
-                    $stepSpan->recordException($e);
-                    $stepSpan->setStatus('error', $e->getMessage());
-
-                    throw $e;
-                } finally {
-                    $stepSpan->end();
-                }
-            }
-
-            $totalDuration = (microtime(true) - $startTime) * 1000; // Convert to milliseconds
-
-            // Set workflow attributes
-            $workflowSpan->setAttributes([
-                'workflow.duration' => $totalDuration,
-                'workflow.total_tokens' => $totalTokens,
-                'workflow.success' => $success,
-                'workflow.steps_executed' => count($stepResults),
-            ]);
-
-            $workflowSpan->setStatus('ok');
-
-            return new WorkflowResult(
-                final: $current,
-                steps: $stepResults,
-                meta: Metadata::create(
-                    totalTokens: $totalTokens,
-                    duration: $totalDuration / 1000, // Convert back to seconds for Metadata
-                    stepsExecuted: count($stepResults)
-                )
+        foreach ($this->steps as $index => $agent) {
+            $steps[] = WorkflowStep::agent(
+                "step_{$index}",
+                $agent,
+                $agent instanceof Agent ? $agent->getName() : "agent_{$index}",
             );
-        } catch (Throwable $e) {
-            $workflowSpan->recordException($e);
-            $workflowSpan->setStatus('error', $e->getMessage());
-
-            // Set workflow attributes before throwing
-            $totalDuration = (microtime(true) - $startTime) * 1000;
-            $workflowSpan->setAttributes([
-                'workflow.duration' => $totalDuration,
-                'workflow.total_tokens' => $totalTokens,
-                'workflow.success' => false,
-                'workflow.steps_executed' => count($stepResults),
-            ]);
-
-            throw $e;
-        } finally {
-            $workflowSpan->end();
         }
+
+        return WorkflowExecutor::run($this->name, 'chain', $steps, $input);
     }
 }

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pagent\Contracts\OutputGuard;
 use Pagent\Guards\ContentFilterGuard;
 
 test('it detects profanity', function (): void {
@@ -37,4 +38,13 @@ test('it provides correct metadata', function (): void {
 
     expect($guard->getName())->toBe('content_filter')
         ->and($guard->getViolationMessage())->toContain('inappropriate or harmful');
+});
+
+test('it is an incrementally inspectable output-phase guard', function (): void {
+    $guard = new ContentFilterGuard;
+
+    expect($guard)->toBeInstanceOf(OutputGuard::class)
+        ->and($guard->supportsIncrementalInspection())->toBeFalse()
+        ->and($guard->checkOutput('I want to harm someone'))->toBeFalse()
+        ->and($guard->check('I want to harm someone', 'This is allowed'))->toBeTrue();
 });

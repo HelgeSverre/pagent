@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Pagent\Agent;
+use Pagent\Contracts\Middleware;
 use Pagent\Middleware\LoggingMiddleware;
 use Pagent\Middleware\MetricsMiddleware;
 use Pagent\Middleware\RateLimitMiddleware;
@@ -89,7 +90,7 @@ test('middleware can modify options', function (): void {
     $agent = new Agent('middleware-test');
     $agent->provider($mockProvider);
 
-    $customMiddleware = new class implements Pagent\Contracts\Middleware
+    $customMiddleware = new class implements Middleware
     {
         public function before(string $message, array $options): array
         {
