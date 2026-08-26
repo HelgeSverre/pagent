@@ -157,6 +157,11 @@ final class CurlTransport implements HttpClientInterface
             $status = 0;
             $info = [];
             $error = null;
+            $bufferResponse = ($options['buffer_response'] ?? true) !== false;
+            $idleTimeout = isset($options['idle_timeout']) && is_numeric($options['idle_timeout'])
+                ? max(0, (int) $options['idle_timeout'])
+                : 0;
+            $lastActivityAt = microtime(true);
 
             curl_setopt_array($ch, [
                 CURLOPT_CUSTOMREQUEST => $method,
@@ -164,16 +169,23 @@ final class CurlTransport implements HttpClientInterface
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_ENCODING => '',
                 CURLOPT_USERAGENT => $options['user_agent'] ?? 'pagent-http-client/1.0',
-                CURLOPT_WRITEFUNCTION => static function ($ch, string $chunk) use ($stream, &$chunks): int {
-                    $written = fwrite($stream, $chunk);
-
-                    if ($written === false || $written !== strlen($chunk)) {
-                        return 0;
+                CURLOPT_WRITEFUNCTION => static function (CurlHandle $ch, string $chunk) use ($stream, &$chunks, $bufferResponse, &$lastActivityAt): int {
+                    $lastActivityAt = microtime(true);
+                    $length = strlen($chunk);
+                    $responseStatus = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+                    // Providers consume successful responses incrementally, so
+                    // retaining a second full copy is optional. Error bodies
+                    // stay buffered so API exceptions remain informative.
+                    if ($bufferResponse || $responseStatus < 200 || $responseStatus >= 300) {
+                        $written = fwrite($stream, $chunk);
+                        if ($written === false || $written !== $length) {
+                            return 0;
+                        }
                     }
 
                     $chunks[] = $chunk;
 
-                    return $written;
+                    return $length;
                 },
             ]);
 
@@ -185,12 +197,13 @@ final class CurlTransport implements HttpClientInterface
                 curl_setopt($ch, CURLOPT_HTTPHEADER, $this->formatHeaders($headers));
             }
 
-            $this->applyTimeouts($ch, $options);
+            $this->applyTimeouts($ch, $options, applyLowSpeedTimeout: false);
 
             curl_setopt(
                 $ch,
                 CURLOPT_HEADERFUNCTION,
-                static function ($ch, string $header) use (&$headerBag, &$headersReady, &$status): int {
+                static function ($ch, string $header) use (&$headerBag, &$headersReady, &$status, &$lastActivityAt): int {
+                    $lastActivityAt = microtime(true);
                     $trimmed = trim($header);
                     if ($trimmed === '') {
                         // cURL invokes the header callback once for every response
@@ -282,6 +295,8 @@ final class CurlTransport implements HttpClientInterface
                 &$closed,
                 &$info,
                 &$error,
+                &$lastActivityAt,
+                $idleTimeout,
                 $finalize
             ): void {
                 if ($completed || $closed) {
@@ -317,6 +332,16 @@ final class CurlTransport implements HttpClientInterface
 
                         return;
                     }
+                }
+
+                if ($running > 0
+                    && $idleTimeout > 0
+                    && microtime(true) - $lastActivityAt >= $idleTimeout) {
+                    $error = new ConnectionException("Stream received no data for {$idleTimeout} seconds.");
+                    $completed = true;
+                    $finalize($error);
+
+                    return;
                 }
 
                 while (($message = curl_multi_info_read($multi)) !== false) {
@@ -433,7 +458,7 @@ final class CurlTransport implements HttpClientInterface
     /**
      * @param  array<string, mixed>  $options
      */
-    private function applyTimeouts(CurlHandle $ch, array $options): void
+    private function applyTimeouts(CurlHandle $ch, array $options, bool $applyLowSpeedTimeout = true): void
     {
         if (isset($options['timeout']) && is_numeric($options['timeout'])) {
             curl_setopt($ch, CURLOPT_TIMEOUT, (int) $options['timeout']);
@@ -441,6 +466,14 @@ final class CurlTransport implements HttpClientInterface
 
         if (isset($options['connect_timeout']) && is_numeric($options['connect_timeout'])) {
             curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, (int) $options['connect_timeout']);
+        }
+
+        if ($applyLowSpeedTimeout
+            && isset($options['idle_timeout'])
+            && is_numeric($options['idle_timeout'])
+            && (int) $options['idle_timeout'] > 0) {
+            curl_setopt($ch, CURLOPT_LOW_SPEED_LIMIT, 1);
+            curl_setopt($ch, CURLOPT_LOW_SPEED_TIME, (int) $options['idle_timeout']);
         }
     }
 

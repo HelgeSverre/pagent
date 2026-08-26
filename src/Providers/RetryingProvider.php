@@ -20,7 +20,9 @@ use function usleep;
  * failures with exponential backoff.
  *
  * Use {@see self::wrap()} when the caller should retain streaming support from
- * a streaming provider. A plain RetryingProvider deliberately does not claim
+ * a streaming provider. Stream establishment is retried only until a
+ * StreamResponse is returned; consumption failures are never replayed. A
+ * plain RetryingProvider deliberately does not claim
  * StreamingProvider because PHP interfaces cannot be conditional at runtime.
  */
 final class RetryingProvider implements IdentifiedProvider

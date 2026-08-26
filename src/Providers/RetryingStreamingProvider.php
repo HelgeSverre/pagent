@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Pagent\Providers;
 
+use Closure;
 use Pagent\Contracts\IdentifiedProvider;
 use Pagent\Contracts\StreamingProvider;
+use Pagent\Exceptions\ApiException;
+use Pagent\Http\ConnectionException;
 use Pagent\ProviderCapabilities;
 use Pagent\Streaming\StreamResponse;
 
@@ -19,16 +22,24 @@ final class RetryingStreamingProvider implements IdentifiedProvider, StreamingPr
 {
     private readonly RetryingProvider $retrying;
 
+    /** @var Closure(int): void */
+    private readonly Closure $sleeper;
+
     /**
      * @param  null|callable(int): void  $sleeper
      */
     public function __construct(
         private readonly StreamingProvider $inner,
-        int $maxAttempts = 3,
-        int $baseDelayMs = 200,
+        private readonly int $maxAttempts = 3,
+        private readonly int $baseDelayMs = 200,
         ?callable $sleeper = null,
     ) {
         $this->retrying = new RetryingProvider($inner, $maxAttempts, $baseDelayMs, $sleeper);
+        $this->sleeper = $sleeper !== null
+            ? Closure::fromCallable($sleeper)
+            : static function (int $delayMs): void {
+                usleep($delayMs * 1000);
+            };
     }
 
     public function prompt(string $message, array $options = []): object
@@ -38,7 +49,28 @@ final class RetryingStreamingProvider implements IdentifiedProvider, StreamingPr
 
     public function streamPrompt(string $message, array $options = []): StreamResponse
     {
-        return $this->inner->streamPrompt($message, $options);
+        $attempt = 0;
+
+        while (true) {
+            $attempt++;
+
+            try {
+                // Built-in providers await and validate response headers before
+                // returning StreamResponse. Retrying here is therefore safe:
+                // no output has been observable yet.
+                return $this->inner->streamPrompt($message, $options);
+            } catch (ApiException $e) {
+                if (! $e->isRetryable() || $attempt >= $this->maxAttempts) {
+                    throw $e;
+                }
+            } catch (ConnectionException $e) {
+                if ($attempt >= $this->maxAttempts) {
+                    throw $e;
+                }
+            }
+
+            ($this->sleeper)($this->baseDelayMs * (2 ** ($attempt - 1)));
+        }
     }
 
     public function providerId(): string
