@@ -184,3 +184,14 @@ test('it does not emit text chunk when content is empty', function (): void {
 
     fclose($stream);
 });
+
+test('it reports the model returned by Ollama', function (): void {
+    $stream = createOllamaStream("{\"model\":\"resolved:latest\",\"message\":{\"role\":\"assistant\",\"content\":\"Hi\"},\"done\":true}\n");
+    $chunks = iterator_to_array((new OllamaStreamParser)->parse($stream, 'requested'));
+    $end = array_values(array_filter($chunks, fn ($chunk) => $chunk->isEnd()))[0];
+
+    expect($chunks[0]->getMetadata('model'))->toBe('resolved:latest')
+        ->and($end->getMetadata('model'))->toBe('resolved:latest');
+
+    fclose($stream);
+});

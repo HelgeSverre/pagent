@@ -55,10 +55,11 @@ test('it associates streamed tool arguments with their tool call', function (): 
     $parser = new AnthropicStreamParser;
     $chunks = iterator_to_array($parser->parse($stream, 'claude-sonnet-4-6'));
 
-    expect($chunks)->toHaveCount(1)
+    expect($chunks)->toHaveCount(2)
         ->and($chunks[0]->isToolCall())->toBeTrue()
-        ->and($chunks[0]->getMetadata('tool_call_id'))->toBe('toolu_123')
-        ->and($chunks[0]->getMetadata('tool_name'))->toBe('lookup');
+        ->and($chunks[1]->isToolCall())->toBeTrue()
+        ->and($chunks[1]->getMetadata('tool_call_id'))->toBe('toolu_123')
+        ->and($chunks[1]->getMetadata('tool_name'))->toBe('lookup');
 
     fclose($stream);
 });
@@ -150,6 +151,40 @@ test('it handles stream with only whitespace', function (): void {
     $chunks = iterator_to_array($parser->parse($stream, 'claude-3'));
 
     expect($chunks)->toBeEmpty();
+
+    fclose($stream);
+});
+
+test('it reports the concrete Anthropic response model', function (): void {
+    $events = "event: message_start\n".
+        "data: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_123\",\"model\":\"claude-sonnet-4-6-20260801\"}}\n\n".
+        "event: message_stop\n".
+        "data: {\"type\":\"message_stop\"}\n\n";
+
+    $stream = createStreamFromEvents($events);
+    $chunks = iterator_to_array((new AnthropicStreamParser)->parse($stream, 'claude-sonnet-4-6'));
+
+    expect($chunks[0]->getMetadata('model'))->toBe('claude-sonnet-4-6-20260801')
+        ->and($chunks[1]->getMetadata('model'))->toBe('claude-sonnet-4-6-20260801');
+
+    fclose($stream);
+});
+
+test('it emits tool identity even when Anthropic sends no argument deltas', function (): void {
+    $events = "event: content_block_start\n".
+        "data: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"tool_use\",\"id\":\"toolu_empty\",\"name\":\"now\",\"input\":{}}}\n\n".
+        "event: content_block_stop\n".
+        "data: {\"type\":\"content_block_stop\",\"index\":0}\n\n".
+        "event: message_stop\n".
+        "data: {\"type\":\"message_stop\"}\n\n";
+
+    $stream = createStreamFromEvents($events);
+    $chunks = iterator_to_array((new AnthropicStreamParser)->parse($stream, 'claude'));
+
+    expect($chunks[0]->isToolCall())->toBeTrue()
+        ->and($chunks[0]->content)->toBe('')
+        ->and($chunks[0]->getMetadata('tool_call_id'))->toBe('toolu_empty')
+        ->and($chunks[0]->getMetadata('tool_name'))->toBe('now');
 
     fclose($stream);
 });

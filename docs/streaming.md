@@ -160,13 +160,12 @@ $streamResponse->streamTo(function ($chunk) {
         $usage = $chunk->getMetadata('usage');
         $stopReason = $chunk->getMetadata('stop_reason');
     }
-
-    if ($chunk->isError()) {
-        // Error occurred
-        error_log("Stream error: " . $chunk->content);
-    }
 });
 ```
+
+Provider and parser failures are thrown before an error chunk can reach
+application output. This keeps a failed terminal event from looking like a
+successful end marker.
 
 ### Accessing Metadata
 
@@ -186,21 +185,84 @@ $stopReason = $streamResponse->getStopReason();
 
 // Get provider info
 $provider = $streamResponse->getProvider(); // 'anthropic' or 'openai'
-$model = $streamResponse->getModel();
+$model = $streamResponse->getModel();          // provider-reported model
+$requested = $streamResponse->getRequestedModel();
 
 // Get all chunks
 $chunks = $streamResponse->getChunks();
+$count = $streamResponse->getChunkCount();
+
+// Multi-round tool streams expose both views explicitly
+$allDeliveredText = $streamResponse->getFullContent();
+$finalAnswer = $streamResponse->getFinalContent();
 ```
+
+`getModel()` begins with the requested model and changes to the concrete model
+reported by the provider as chunks arrive. `getRequestedModel()` always returns
+the original request value.
+
+### Streaming Tool Calls
+
+When an agent has registered tools, streaming uses automatic tool execution by
+default. Argument fragments are assembled and validated, the tool result is
+added to provider history, middleware is applied to the follow-up round, and
+the public stream emits exactly one final end chunk. Usage is accumulated across
+all rounds.
+
+```php
+$agent->tool('weather', 'Look up weather', fn (string $city): array => [
+    'city' => $city,
+    'temperature' => 18,
+]);
+
+$answer = $agent->stream('What is the weather in Oslo?');
+$answer->streamTo(function ($chunk): void {
+    if ($chunk->isText()) {
+        echo $chunk->content;
+    }
+});
+```
+
+For applications that execute calls elsewhere, select manual mode and inspect
+the normalized calls after consumption:
+
+```php
+$response = $agent->stream('Check Oslo', ['tool_mode' => 'manual']);
+$response->collect();
+
+foreach ($response->getToolCalls() as $call) {
+    // id, name, decoded arguments, and raw_arguments
+}
+
+$final = $agent->continueToolCalls($response, [
+    $response->getToolCalls()[0]['id'] => ['temperature' => 18],
+]);
+$final->streamTo(function ($chunk): void {
+    if ($chunk->isText()) {
+        echo $chunk->content;
+    }
+});
+```
+
+The manual response retains the assistant tool-call message in the active agent
+but defers persistent-memory writes until the tool results complete the turn.
+Supply exactly one result for every call id with
+`continueToolCalls()`. Until then, the agent rejects new prompts so it cannot send
+an invalid dangling tool-call history; it also rejects provider, memory, and
+session changes that would detach the pending turn. Use
+`$agent->discardToolCalls($response)` to abandon the prompt and atomically restore
+its previous conversation state.
+
+Use `tool_mode => 'none'` to omit tool schemas. Tool chunks include a
+`tool_round` metadata value when more than one provider round is involved.
+For automatic multi-round tools, `getFullContent()` contains every text chunk
+delivered across rounds, while `getFinalContent()` contains only the final answer.
 
 ### Error Handling
 
 ```php
 try {
     $agent->streamTo('Question', function ($chunk) {
-        if ($chunk->isError()) {
-            throw new RuntimeException($chunk->content);
-        }
-
         if ($chunk->isText()) {
             echo $chunk->content;
         }
@@ -326,11 +388,15 @@ Container for streaming responses.
 - `collect(): string` - Collect all text content
 - `streamTo(callable $callback): void` - Stream chunks to callback
 - `getFullContent(): string` - Get accumulated text
+- `getFinalContent(): string` - Get only the final provider round's text
 - `getChunks(): StreamChunk[]` - Get all chunks
+- `getChunkCount(): int` - Get the delivered chunk count, including chunks not retained
+- `getToolCalls(): array` - Get normalized completed tool calls
 - `getUsage(): ?array` - Get token usage statistics
 - `getStopReason(): ?string` - Get stop reason
 - `getProvider(): string` - Get provider name
-- `getModel(): string` - Get model name
+- `getModel(): string` - Get the provider-reported model after it becomes available
+- `getRequestedModel(): string` - Get the originally requested model
 
 ### Agent Streaming Methods
 
@@ -343,6 +409,19 @@ public function stream(string $message, array $options = []): StreamResponse
 Stream a prompt and return a StreamResponse for manual control.
 
 **Throws:** `RuntimeException` if provider doesn't support streaming
+
+#### continueToolCalls()
+
+```php
+public function continueToolCalls(
+    StreamResponse $response,
+    array $results,
+    array $options = []
+): StreamResponse
+```
+
+Continue a pending manual tool turn. Results are keyed by tool-call id.
+`discardToolCalls(StreamResponse $response)` abandons it instead.
 
 #### streamTo()
 
@@ -404,13 +483,40 @@ header('X-Accel-Buffering: no'); // Disable nginx buffering
 
 ### Timeouts
 
-Streaming disables timeouts by default (`CURLOPT_TIMEOUT => 0`). Consider implementing application-level timeouts for long-running streams.
+Built-in providers do not impose a total streaming timeout by default. They use
+a 10-second connection timeout and a 30-second idle timeout. An explicitly
+configured provider `timeout` also becomes the stream timeout unless the more
+specific `stream_timeout` is set. Configure either value on the provider or
+override it for one stream:
+
+```php
+use Pagent\Providers\OpenAI;
+
+$provider = new OpenAI([
+    'api_key' => $_ENV['OPENAI_API_KEY'],
+    'stream_timeout' => 120,
+    'connect_timeout' => 10,
+    'idle_timeout' => 30,
+]);
+
+$response = $provider->streamPrompt('Long task', [
+    'stream_timeout' => 300,
+]);
+```
+
+Set `stream_timeout` or `idle_timeout` to `0` to disable that limit explicitly.
+Stream establishment failures can be retried safely with
+`RetryingProvider::wrap()`; failures after a `StreamResponse` is returned are
+never replayed.
 
 ### Memory
 
-Chunks are processed one at a time, although `StreamResponse` retains accumulated
-content and chunk metadata so it can commit a completed conversation. A quarantined
-stream additionally retains the provider response until its policies pass.
+Chunks are processed one at a time. Built-in providers do not spool a second
+copy of successful response bytes, but `StreamResponse` retains accumulated text
+and chunk objects by default. Set `retain_chunks => false` in provider config or
+per-stream options to keep only accumulated text, usage, tool calls, and the chunk
+count. A quarantined stream additionally retains provider chunks until its policies
+pass.
 
 ## Troubleshooting
 

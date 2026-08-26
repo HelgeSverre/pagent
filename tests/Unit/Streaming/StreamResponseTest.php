@@ -136,7 +136,8 @@ test('StreamResponse runs completion handlers exactly once after natural complet
 
     $response->onComplete(function (StreamResponse $completed) use (&$calls): void {
         $calls++;
-        expect($completed->getFullContent())->toBe('done');
+        expect($completed->getFullContent())->toBe('done')
+            ->and($completed->isComplete())->toBeTrue();
     });
 
     expect($response->collect())->toBe('done')
@@ -257,4 +258,182 @@ test('StreamResponse cancellation always releases the transport after observer f
     $response->cancel();
 
     expect($transportClosed)->toBeTrue();
+});
+
+test('StreamResponse settles before delivering its terminal chunk', function () {
+    $released = 0;
+    $response = new StreamResponse((function () {
+        yield StreamChunk::text('done');
+        yield StreamChunk::end();
+    })(), 'mock', 'requested', releaser: function () use (&$released): void {
+        $released++;
+    });
+
+    foreach ($response->getStream() as $chunk) {
+        if ($chunk->isEnd()) {
+            expect($response->isComplete())->toBeTrue();
+            break;
+        }
+    }
+
+    expect($response->isComplete())->toBeTrue()
+        ->and($response->isCancelled())->toBeFalse()
+        ->and($released)->toBe(1);
+});
+
+test('StreamResponse releases its transport on failure', function () {
+    $released = 0;
+    $response = new StreamResponse((function () {
+        yield StreamChunk::error('broken');
+    })(), 'mock', 'mock', releaser: function () use (&$released): void {
+        $released++;
+    });
+
+    expect(fn () => $response->collect())->toThrow(RuntimeException::class, 'broken')
+        ->and($released)->toBe(1)
+        ->and($response->isCancelled())->toBeFalse();
+});
+
+test('StreamResponse keeps cancellation and generic release callbacks distinct', function (): void {
+    $cancelled = 0;
+    $released = 0;
+    $response = new StreamResponse(
+        (function (): Generator {
+            yield StreamChunk::end();
+        })(),
+        'mock',
+        'mock',
+        canceller: function () use (&$cancelled): void {
+            $cancelled++;
+        },
+        releaser: function () use (&$released): void {
+            $released++;
+        },
+    );
+
+    $response->collect();
+
+    expect($cancelled)->toBe(0)
+        ->and($released)->toBe(1);
+});
+
+test('StreamResponse cannot be consumed after cancellation', function (): void {
+    $response = new StreamResponse((function (): Generator {
+        yield StreamChunk::text('must not leak');
+        yield StreamChunk::end();
+    })(), 'mock', 'mock');
+
+    $response->cancel();
+
+    expect(fn () => $response->collect())
+        ->toThrow(LogicException::class, 'cancelled StreamResponse cannot be consumed')
+        ->and($response->getFullContent())->toBe('')
+        ->and($response->getChunkCount())->toBe(0);
+});
+
+test('StreamResponse stops an active iterator after cancellation', function (): void {
+    $response = new StreamResponse((function (): Generator {
+        yield StreamChunk::text('first');
+        yield StreamChunk::text('must not leak');
+        yield StreamChunk::end();
+    })(), 'mock', 'mock');
+    $stream = $response->getStream();
+    $stream->rewind();
+
+    expect($stream->current()->content)->toBe('first');
+
+    $response->cancel();
+    $stream->next();
+
+    expect($stream->valid())->toBeFalse()
+        ->and($response->getFullContent())->toBe('first')
+        ->and($response->getChunkCount())->toBe(1);
+});
+
+test('StreamResponse can count chunks without retaining every chunk', function () {
+    $response = new StreamResponse((function () {
+        yield StreamChunk::text('one');
+        yield StreamChunk::text('two');
+        yield StreamChunk::end();
+    })(), 'mock', 'mock', retainChunks: false);
+
+    expect($response->collect())->toBe('onetwo')
+        ->and($response->getChunks())->toBe([])
+        ->and($response->getChunkCount())->toBe(3);
+});
+
+test('StreamResponse exposes the provider-reported model separately from the requested model', function () {
+    $response = new StreamResponse((function () {
+        yield StreamChunk::start(['model' => 'actual-model']);
+        yield StreamChunk::end(['model' => 'actual-model']);
+    })(), 'mock', 'requested-model');
+
+    $response->collect();
+
+    expect($response->getRequestedModel())->toBe('requested-model')
+        ->and($response->getModel())->toBe('actual-model');
+});
+
+test('StreamResponse assembles and normalizes streamed tool calls', function () {
+    $response = new StreamResponse((function () {
+        yield new StreamChunk('tool_call', '{"city"', metadata: [
+            'tool_call_id' => 'call_1',
+            'tool_name' => 'weather',
+            'index' => 0,
+        ]);
+        yield new StreamChunk('tool_call', ':"Oslo"}', metadata: [
+            'tool_call_id' => 'call_1',
+            'index' => 0,
+        ]);
+        yield StreamChunk::end();
+    })(), 'mock', 'mock');
+
+    $response->collect();
+
+    expect($response->getToolCalls())->toBe([[
+        'id' => 'call_1',
+        'name' => 'weather',
+        'arguments' => ['city' => 'Oslo'],
+        'raw_arguments' => '{"city":"Oslo"}',
+    ]]);
+});
+
+test('StreamResponse preserves zero-argument and multiple streamed tool calls', function () {
+    $response = new StreamResponse((function () {
+        yield new StreamChunk('tool_call', '', metadata: [
+            'tool_call_id' => 'call_1',
+            'tool_name' => 'now',
+            'index' => 0,
+        ]);
+        yield new StreamChunk('tool_call', '{}', metadata: [
+            'tool_call_id' => 'call_2',
+            'tool_name' => 'health',
+            'index' => 1,
+        ]);
+        yield StreamChunk::end();
+    })(), 'mock', 'mock');
+
+    $response->collect();
+
+    expect($response->getToolCalls())->toMatchArray([
+        ['id' => 'call_1', 'name' => 'now', 'arguments' => [], 'raw_arguments' => ''],
+        ['id' => 'call_2', 'name' => 'health', 'arguments' => [], 'raw_arguments' => '{}'],
+    ]);
+});
+
+test('StreamResponse gives missing provider tool ids a stable unique id', function () {
+    $response = new StreamResponse((function () {
+        yield new StreamChunk('tool_call', '{}', metadata: [
+            'tool_name' => 'health',
+            'index' => 0,
+        ]);
+        yield StreamChunk::end();
+    })(), 'mock', 'mock');
+
+    $response->collect();
+    $first = $response->getToolCalls()[0]['id'];
+    $second = $response->getToolCalls()[0]['id'];
+
+    expect($first)->toStartWith('call_')
+        ->and($second)->toBe($first);
 });

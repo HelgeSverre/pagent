@@ -123,3 +123,68 @@ it('retains streaming for providers that do not implement the optional identity 
         ->and($provider->capabilities()->supportsStreaming)->toBeTrue()
         ->and($provider->streamPrompt('hi')->collect())->toBe('streamed');
 });
+
+it('retries streaming failures that happen before a stream is returned', function (): void {
+    $inner = new class implements StreamingProvider
+    {
+        public int $calls = 0;
+
+        public function prompt(string $message, array $options = []): object
+        {
+            return (object) ['content' => 'unused'];
+        }
+
+        public function streamPrompt(string $message, array $options = []): StreamResponse
+        {
+            $this->calls++;
+            if ($this->calls < 3) {
+                throw new ConnectionException('headers unavailable');
+            }
+
+            return new StreamResponse((function (): Generator {
+                yield StreamChunk::text('ok');
+                yield StreamChunk::end();
+            })(), 'custom', 'custom');
+        }
+    };
+    $delays = [];
+    $provider = RetryingProvider::wrap(
+        $inner,
+        maxAttempts: 3,
+        baseDelayMs: 25,
+        sleeper: function (int $delay) use (&$delays): void {
+            $delays[] = $delay;
+        },
+    );
+
+    expect($provider->streamPrompt('hello')->collect())->toBe('ok')
+        ->and($inner->calls)->toBe(3)
+        ->and($delays)->toBe([25, 50]);
+});
+
+it('does not retry after a StreamResponse has become observable', function (): void {
+    $inner = new class implements StreamingProvider
+    {
+        public int $calls = 0;
+
+        public function prompt(string $message, array $options = []): object
+        {
+            return (object) ['content' => 'unused'];
+        }
+
+        public function streamPrompt(string $message, array $options = []): StreamResponse
+        {
+            $this->calls++;
+
+            return new StreamResponse((function (): Generator {
+                yield StreamChunk::text('visible');
+                throw new ConnectionException('connection dropped');
+            })(), 'custom', 'custom');
+        }
+    };
+    $provider = RetryingProvider::wrap($inner, sleeper: fn (int $delay) => null);
+    $response = $provider->streamPrompt('hello');
+
+    expect(fn () => $response->collect())->toThrow(ConnectionException::class, 'connection dropped')
+        ->and($inner->calls)->toBe(1);
+});

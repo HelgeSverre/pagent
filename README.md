@@ -146,8 +146,9 @@ $response = openai()->prompt('Return a JSON object with a status field.', [
 ```
 
 Retry transient API and connection failures with the capability-preserving
-decorator factory. Completed requests are retried; streams are delegated once
-so partially emitted output is never replayed:
+decorator factory. Completed requests and stream establishment failures are
+retried; once a `StreamResponse` has been returned, consumption failures are
+never replayed, so partially emitted output cannot be duplicated:
 
 ```php
 use Pagent\Providers\OpenAI;
@@ -287,6 +288,14 @@ foreach ($stream->getStream() as $chunk) {
     }
 }
 ```
+
+Registered tools work in streaming mode too. Pagent assembles argument deltas,
+executes each completed call, and continues streaming the follow-up response.
+Use `['tool_mode' => 'manual']` to inspect normalized calls with
+`$stream->getToolCalls()` without executing them, then pass externally produced
+results to `$assistant->continueToolCalls($stream, $resultsByCallId)`. Use
+`$assistant->discardToolCalls($stream)` to abandon the pending turn, or
+`tool_mode => 'none'` to omit tool schemas for that request.
 
 Ordinary streams are incremental. Pagent intentionally quarantines a stream before
 calling your callback when it has an output policy that needs the complete response

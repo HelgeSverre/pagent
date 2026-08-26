@@ -38,10 +38,12 @@ test('StreamChunk::isThinking() identifies thinking chunks correctly', function 
 
 test('StreamChunk::isToolCall() identifies tool call chunks correctly', function () {
     $toolChunk = new StreamChunk('tool_call', '{"arg": "value"}');
+    $doneToolChunk = new StreamChunk('tool_call_done', '{"arg": "value"}');
     $jsonDeltaChunk = new StreamChunk('input_json_delta', '{"arg"');
     $textChunk = new StreamChunk('text', 'Hello');
 
     expect($toolChunk->isToolCall())->toBeTrue()
+        ->and($doneToolChunk->isToolCall())->toBeTrue()
         ->and($jsonDeltaChunk->isToolCall())->toBeTrue()
         ->and($textChunk->isToolCall())->toBeFalse();
 });
@@ -60,7 +62,7 @@ test('StreamChunk::isEnd() identifies end chunks correctly', function () {
     $text = new StreamChunk('text', 'Hello');
 
     expect($done->isEnd())->toBeTrue()
-        ->and($complete->isEnd())->toBeTrue()
+        ->and($complete->isEnd())->toBeFalse()
         ->and($text->isEnd())->toBeFalse();
 });
 

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pagent\Http\ConnectionException;
 use Pagent\Http\CurlTransport;
 
 /**
@@ -125,6 +126,105 @@ test('it exposes final response metadata after following redirects', function ()
         expect($stream->status())->toBe(200)
             ->and($stream->headers())->not->toHaveKey('x-redirect-only')
             ->and($stream->headers()['content-type'] ?? null)->toBe('text/event-stream;charset=UTF-8');
+    } finally {
+        $stream?->close();
+        stopDelayedStreamServer($process);
+    }
+});
+
+test('it can stream successful bytes without retaining a duplicate body', function (): void {
+    [$process, $port] = startDelayedStreamServer();
+    $stream = null;
+
+    try {
+        $stream = (new CurlTransport)->streamJson(
+            'GET',
+            "http://127.0.0.1:{$port}",
+            options: ['buffer_response' => false],
+        );
+        $body = implode('', iterator_to_array($stream->chunks(), false));
+
+        expect($body)->toBe("data: first\n\ndata: second\n\n")
+            ->and($stream->getContent())->toBe('');
+    } finally {
+        $stream?->close();
+        stopDelayedStreamServer($process);
+    }
+});
+
+test('it still buffers error bodies when successful-body buffering is disabled', function (): void {
+    [$process, $port] = startDelayedStreamServer();
+    $stream = null;
+
+    try {
+        $stream = (new CurlTransport)->streamJson(
+            'GET',
+            "http://127.0.0.1:{$port}/error",
+            options: ['buffer_response' => false],
+        );
+
+        expect($stream->status())->toBe(429)
+            ->and($stream->getContent())->toBe('{"error":{"message":"slow down"}}');
+    } finally {
+        $stream?->close();
+        stopDelayedStreamServer($process);
+    }
+});
+
+test('it enforces an explicitly configured total stream timeout', function (): void {
+    [$process, $port] = startDelayedStreamServer();
+    $stream = null;
+
+    try {
+        $stream = (new CurlTransport)->streamJson(
+            'GET',
+            "http://127.0.0.1:{$port}/timeout",
+            options: ['timeout' => 1, 'idle_timeout' => 0],
+        );
+        $chunks = $stream->chunks();
+        $chunks->rewind();
+
+        expect($chunks->current())->toBe("data: first\n\n")
+            ->and(fn () => $chunks->next())->toThrow(ConnectionException::class);
+    } finally {
+        $stream?->close();
+        stopDelayedStreamServer($process);
+    }
+});
+
+test('it enforces the configured idle stream timeout', function (): void {
+    [$process, $port] = startDelayedStreamServer();
+    $stream = null;
+
+    try {
+        $stream = (new CurlTransport)->streamJson(
+            'GET',
+            "http://127.0.0.1:{$port}/timeout",
+            options: ['timeout' => 0, 'idle_timeout' => 1],
+        );
+        $chunks = $stream->chunks();
+        $chunks->rewind();
+
+        expect($chunks->current())->toBe("data: first\n\n")
+            ->and(fn () => $chunks->next())->toThrow(ConnectionException::class);
+    } finally {
+        $stream?->close();
+        stopDelayedStreamServer($process);
+    }
+});
+
+test('idle timeout also covers waiting for the first response headers', function (): void {
+    [$process, $port] = startDelayedStreamServer();
+    $stream = null;
+
+    try {
+        $stream = (new CurlTransport)->streamJson(
+            'GET',
+            "http://127.0.0.1:{$port}/header-timeout",
+            options: ['timeout' => 0, 'idle_timeout' => 1],
+        );
+
+        expect(fn () => $stream->status())->toThrow(ConnectionException::class);
     } finally {
         $stream?->close();
         stopDelayedStreamServer($process);

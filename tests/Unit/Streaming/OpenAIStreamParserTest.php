@@ -159,6 +159,21 @@ test('it yields an error chunk on malformed json', function (): void {
     fclose($stream);
 });
 
+test('it treats top-level OpenAI stream errors as failures instead of successful empty responses', function (): void {
+    $events = "data: {\"error\":{\"message\":\"rate limited\",\"type\":\"server_error\"}}\n\n".
+        "data: [DONE]\n\n";
+
+    $stream = createOpenAIStream($events);
+    $chunks = iterator_to_array((new OpenAIStreamParser)->parse($stream, 'gpt-4'));
+
+    expect($chunks)->toHaveCount(1)
+        ->and($chunks[0]->isError())->toBeTrue()
+        ->and($chunks[0]->content)->toBe('rate limited')
+        ->and($chunks[0]->getMetadata('error_type'))->toBe('server_error');
+
+    fclose($stream);
+});
+
 test('it handles empty stream', function (): void {
     $stream = createOpenAIStream('');
     $parser = new OpenAIStreamParser;
@@ -210,4 +225,17 @@ test('it parses transport chunks that split SSE records', function (): void {
 
     expect($parsed[0]->content)->toBe('Hello')
         ->and($parsed[1]->isEnd())->toBeTrue();
+});
+
+test('it reports the model returned by OpenAI instead of the requested alias', function (): void {
+    $events = "data: {\"model\":\"gpt-4.1-2026-08-01\",\"choices\":[{\"delta\":{\"role\":\"assistant\",\"content\":\"Hi\"},\"index\":0}]}\n\n".
+        "data: [DONE]\n\n";
+
+    $stream = createOpenAIStream($events);
+    $chunks = iterator_to_array((new OpenAIStreamParser)->parse($stream, 'gpt-4.1'));
+
+    expect($chunks[0]->getMetadata('model'))->toBe('gpt-4.1-2026-08-01')
+        ->and($chunks[array_key_last($chunks)]->getMetadata('model'))->toBe('gpt-4.1-2026-08-01');
+
+    fclose($stream);
 });
