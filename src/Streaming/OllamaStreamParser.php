@@ -24,6 +24,8 @@ final class OllamaStreamParser implements StreamParser
 
     private bool $isFirstChunk = true;
 
+    private string $responseModel = '';
+
     /**
      * Parse NDJSON stream from Ollama API
      *
@@ -35,6 +37,7 @@ final class OllamaStreamParser implements StreamParser
         $this->accumulatedText = '';
         $this->usage = [];
         $this->isFirstChunk = true;
+        $this->responseModel = $model;
 
         foreach (LineIterator::from($stream) as $line) {
             $line = trim($line);
@@ -61,7 +64,7 @@ final class OllamaStreamParser implements StreamParser
                 break;
             }
 
-            foreach ($this->handleChunk($chunk, $model) as $streamChunk) {
+            foreach ($this->handleChunk($chunk) as $streamChunk) {
                 yield $streamChunk;
             }
 
@@ -77,15 +80,19 @@ final class OllamaStreamParser implements StreamParser
      *
      * @return Generator<StreamChunk>
      */
-    private function handleChunk(array $chunk, string $model): Generator
+    private function handleChunk(array $chunk): Generator
     {
+        if (is_string($chunk['model'] ?? null) && $chunk['model'] !== '') {
+            $this->responseModel = $chunk['model'];
+        }
+
         $message = $chunk['message'] ?? [];
 
         // Emit start chunk on first message
         if ($this->isFirstChunk && isset($message['role'])) {
             $this->isFirstChunk = false;
             yield StreamChunk::start([
-                'model' => $model,
+                'model' => $this->responseModel,
                 'role' => $message['role'],
             ]);
         }
@@ -96,13 +103,13 @@ final class OllamaStreamParser implements StreamParser
             $this->accumulatedText .= $content;
 
             yield StreamChunk::text($content, [
-                'model' => $model,
+                'model' => $this->responseModel,
             ]);
         }
 
         // Handle tool calls
         if (isset($message['tool_calls'])) {
-            foreach ($message['tool_calls'] as $toolCall) {
+            foreach ($message['tool_calls'] as $index => $toolCall) {
                 $arguments = $toolCall['function']['arguments'] ?? '';
                 yield new StreamChunk(
                     type: 'tool_call',
@@ -111,6 +118,8 @@ final class OllamaStreamParser implements StreamParser
                     metadata: [
                         'tool_call_id' => $toolCall['id'] ?? null,
                         'tool_name' => $toolCall['function']['name'] ?? null,
+                        'index' => $index,
+                        'model' => $this->responseModel,
                     ],
                 );
             }
@@ -132,7 +141,7 @@ final class OllamaStreamParser implements StreamParser
                 'finish_reason' => 'stop',
                 'usage' => $this->usage,
                 'full_content' => $this->accumulatedText,
-                'model' => $model,
+                'model' => $this->responseModel,
                 'total_duration' => $chunk['total_duration'] ?? null,
                 'load_duration' => $chunk['load_duration'] ?? null,
                 'prompt_eval_duration' => $chunk['prompt_eval_duration'] ?? null,

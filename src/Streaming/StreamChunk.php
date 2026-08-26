@@ -38,7 +38,9 @@ final class StreamChunk
      */
     public function isToolCall(): bool
     {
-        return $this->type === 'tool_call' || $this->type === 'input_json_delta';
+        return $this->type === 'tool_call'
+            || $this->type === 'tool_call_done'
+            || $this->type === 'input_json_delta';
     }
 
     /**
@@ -54,7 +56,7 @@ final class StreamChunk
      */
     public function isEnd(): bool
     {
-        return $this->type === 'done' || $this->isComplete;
+        return $this->type === 'done';
     }
 
     /**

@@ -6,6 +6,9 @@ namespace Pagent\Streaming;
 
 use Generator;
 
+use function array_key_exists;
+use function is_array;
+use function is_string;
 use function json_decode;
 use function str_starts_with;
 use function substr;
@@ -19,6 +22,8 @@ final class OpenAIStreamParser implements StreamParser
     private string $accumulatedText = '';
 
     private array $usage = [];
+
+    private string $responseModel = '';
 
     /** @var array<int, array<string, mixed>> */
     private array $toolCalls = [];
@@ -34,6 +39,7 @@ final class OpenAIStreamParser implements StreamParser
         $this->accumulatedText = '';
         $this->usage = [];
         $this->toolCalls = [];
+        $this->responseModel = $model;
         $finishReason = null;
         $sawDone = false;
 
@@ -54,7 +60,7 @@ final class OpenAIStreamParser implements StreamParser
                     yield StreamChunk::end([
                         'full_content' => $this->accumulatedText,
                         'usage' => $this->usage,
-                        'model' => $model,
+                        'model' => $this->responseModel,
                         'finish_reason' => $finishReason,
                     ]);
                     break;
@@ -70,12 +76,25 @@ final class OpenAIStreamParser implements StreamParser
                     return;
                 }
 
+                if (array_key_exists('error', $chunk)) {
+                    $error = $chunk['error'];
+                    $message = is_array($error) && is_string($error['message'] ?? null)
+                        ? $error['message']
+                        : (is_string($error) && $error !== '' ? $error : 'Unknown error');
+                    $metadata = is_array($error) && is_string($error['type'] ?? null)
+                        ? ['error_type' => $error['type']]
+                        : null;
+                    yield StreamChunk::error($message, $metadata);
+
+                    return;
+                }
+
                 $reportedFinishReason = $chunk['choices'][0]['finish_reason'] ?? null;
                 if (is_string($reportedFinishReason)) {
                     $finishReason = $reportedFinishReason;
                 }
 
-                foreach ($this->handleChunk($chunk, $model) as $streamChunk) {
+                foreach ($this->handleChunk($chunk) as $streamChunk) {
                     yield $streamChunk;
                 }
             }
@@ -85,7 +104,7 @@ final class OpenAIStreamParser implements StreamParser
             yield StreamChunk::end([
                 'full_content' => $this->accumulatedText,
                 'usage' => $this->usage,
-                'model' => $model,
+                'model' => $this->responseModel,
                 'finish_reason' => $finishReason,
             ]);
         }
@@ -96,8 +115,12 @@ final class OpenAIStreamParser implements StreamParser
      *
      * @return Generator<StreamChunk>
      */
-    private function handleChunk(array $chunk, string $model): Generator
+    private function handleChunk(array $chunk): Generator
     {
+        if (is_string($chunk['model'] ?? null) && $chunk['model'] !== '') {
+            $this->responseModel = $chunk['model'];
+        }
+
         if (isset($chunk['usage']) && is_array($chunk['usage'])) {
             $this->usage = $chunk['usage'];
         }
@@ -113,7 +136,7 @@ final class OpenAIStreamParser implements StreamParser
         // Check if this is the first chunk (has role)
         if (isset($delta['role'])) {
             yield StreamChunk::start([
-                'model' => $model,
+                'model' => $this->responseModel,
                 'role' => $delta['role'],
             ]);
         }
@@ -124,7 +147,7 @@ final class OpenAIStreamParser implements StreamParser
             $this->accumulatedText .= $text;
             yield StreamChunk::text($text, [
                 'index' => $choice['index'] ?? 0,
-                'model' => $model,
+                'model' => $this->responseModel,
             ]);
         }
 

@@ -8,6 +8,7 @@ use Closure;
 use Generator;
 use Pagent\Exceptions\LogicException;
 use Pagent\Exceptions\RuntimeException;
+use Pagent\Tool\ToolCallArgumentNormalizer;
 use Pagent\Usage\UsageNormalizer;
 use Throwable;
 
@@ -22,8 +23,15 @@ final class StreamResponse
 {
     private string $fullContent = '';
 
+    private ?string $finalContent = null;
+
     /** @var list<StreamChunk> */
     private array $chunks = [];
+
+    private int $chunkCount = 0;
+
+    /** @var array<string, array{id: ?string, name: ?string, arguments: string}> */
+    private array $toolCalls = [];
 
     private ?array $usage = null;
 
@@ -36,6 +44,8 @@ final class StreamResponse
     private bool $completing = false;
 
     private bool $cancelled = false;
+
+    private bool $transportReleased = false;
 
     private ?Throwable $failure = null;
 
@@ -50,21 +60,33 @@ final class StreamResponse
     /** @var list<Closure(self): void> */
     private array $cancelHandlers = [];
 
+    private readonly string $requestedModel;
+
+    private string $actualModel;
+
+    /** @var (Closure(): void)|null */
+    private readonly ?Closure $canceller;
+
+    /** @var (Closure(): void)|null */
+    private readonly ?Closure $releaser;
+
     /**
      * @param  Generator<StreamChunk>  $stream
      * @param  null|callable(): void  $canceller
+     * @param  null|callable(): void  $releaser
      */
     public function __construct(
         private readonly Generator $stream,
         private readonly string $provider,
-        private readonly string $model,
+        string $model,
         ?callable $canceller = null,
+        private readonly bool $retainChunks = true,
+        ?callable $releaser = null,
     ) {
-        if ($canceller !== null) {
-            $this->cancelHandlers[] = static function (self $response) use ($canceller): void {
-                $canceller();
-            };
-        }
+        $this->requestedModel = $model;
+        $this->actualModel = $model;
+        $this->canceller = $canceller === null ? null : Closure::fromCallable($canceller);
+        $this->releaser = $releaser === null ? null : Closure::fromCallable($releaser);
     }
 
     public function __destruct()
@@ -198,6 +220,9 @@ final class StreamResponse
                 // handler must still run so the transport is always released.
             }
         }
+
+        $this->invokeCanceller();
+        $this->releaseTransport();
     }
 
     public function isComplete(): bool
@@ -220,10 +245,50 @@ final class StreamResponse
         return $this->fullContent;
     }
 
+    /** Final provider round content; equals full content for single-round streams. */
+    public function getFinalContent(): string
+    {
+        return $this->finalContent ?? $this->fullContent;
+    }
+
     /** @return list<StreamChunk> */
     public function getChunks(): array
     {
         return $this->chunks;
+    }
+
+    /** Number of chunks observed, including chunks omitted from retention. */
+    public function getChunkCount(): int
+    {
+        return $this->chunkCount;
+    }
+
+    /**
+     * Return completed, provider-neutral tool calls after the stream settles.
+     *
+     * @return list<array{id: string, name: string, arguments: array<string, mixed>, raw_arguments: string}>
+     */
+    public function getToolCalls(): array
+    {
+        $calls = [];
+
+        foreach (array_values($this->toolCalls) as $index => $call) {
+            if ($call['name'] === null || $call['name'] === '') {
+                throw new RuntimeException('Streamed tool call is missing a function name.');
+            }
+
+            $rawArguments = $call['arguments'];
+            $calls[] = [
+                'id' => $call['id'] ?? 'call_stream_'.$index,
+                'name' => $call['name'],
+                'arguments' => $rawArguments === ''
+                    ? []
+                    : ToolCallArgumentNormalizer::normalize($rawArguments, "Streamed tool '{$call['name']}'"),
+                'raw_arguments' => $rawArguments,
+            ];
+        }
+
+        return $calls;
     }
 
     public function getUsage(): ?array
@@ -243,12 +308,21 @@ final class StreamResponse
 
     public function getModel(): string
     {
-        return $this->model;
+        return $this->actualModel;
+    }
+
+    public function getRequestedModel(): string
+    {
+        return $this->requestedModel;
     }
 
     /** @return Generator<StreamChunk> */
     private function iterate(): Generator
     {
+        if ($this->cancelled) {
+            throw new LogicException('A cancelled StreamResponse cannot be consumed.');
+        }
+
         if ($this->consumed) {
             throw new LogicException('A StreamResponse can only be consumed once.');
         }
@@ -258,10 +332,25 @@ final class StreamResponse
         try {
             foreach ($this->stream as $chunk) {
                 $this->record($chunk);
-                yield $chunk;
 
                 if ($chunk->isError()) {
-                    throw new RuntimeException('Provider stream failed: '.$chunk->content);
+                    $error = new RuntimeException('Provider stream failed: '.$chunk->content);
+                    $this->fail($error);
+
+                    throw $error;
+                }
+
+                if ($chunk->isEnd()) {
+                    $this->complete();
+                    yield $chunk;
+
+                    return;
+                }
+
+                yield $chunk;
+
+                if ($this->cancelled) {
+                    return;
                 }
             }
 
@@ -282,14 +371,31 @@ final class StreamResponse
 
     private function record(StreamChunk $chunk): void
     {
+        $this->chunkCount++;
+
         if ($chunk->isText()) {
             $this->fullContent .= $chunk->content;
         }
 
-        $this->chunks[] = $chunk;
+        if ($this->retainChunks) {
+            $this->chunks[] = $chunk;
+        }
+
+        $reportedModel = $chunk->getMetadata('model');
+        if (is_string($reportedModel) && $reportedModel !== '') {
+            $this->actualModel = $reportedModel;
+        }
+
+        if ($chunk->isToolCall()) {
+            $this->recordToolCall($chunk);
+        }
 
         if ($chunk->isEnd()) {
             $this->sawTerminalChunk = true;
+            $finalContent = $chunk->getMetadata('final_content');
+            if (is_string($finalContent)) {
+                $this->finalContent = $finalContent;
+            }
             $usage = $chunk->getMetadata('usage');
             $this->usage = UsageNormalizer::normalize(is_array($usage) ? $usage : null);
             $this->stopReason = $chunk->getMetadata('stop_reason', $chunk->getMetadata('finish_reason'));
@@ -303,13 +409,18 @@ final class StreamResponse
         }
 
         $this->completing = true;
+        $this->settled = true;
 
         try {
             foreach ($this->completeHandlers as $handler) {
                 $handler($this);
             }
 
-            $this->settled = true;
+            $this->releaseTransport();
+        } catch (Throwable $exception) {
+            $this->settled = false;
+
+            throw $exception;
         } finally {
             $this->completing = false;
         }
@@ -330,6 +441,74 @@ final class StreamResponse
             } catch (Throwable) {
                 // Preserve the transport/parser failure seen by callers.
             }
+        }
+
+        $this->releaseTransport();
+    }
+
+    private function recordToolCall(StreamChunk $chunk): void
+    {
+        $id = $chunk->getMetadata('tool_call_id');
+        $metadata = $chunk->metadata ?? [];
+        $index = $metadata['output_index'] ?? $metadata['index'] ?? null;
+        $round = $metadata['tool_round'] ?? 0;
+        $key = 'round:'.(string) $round.':'.(
+            is_int($index) || is_string($index)
+                ? 'index:'.(string) $index
+                : (is_string($id) && $id !== '' ? 'id:'.$id : 'index:0')
+        );
+        $call = $this->toolCalls[$key] ?? [
+            'id' => is_string($id) && $id !== '' ? $id : uniqid('call_'),
+            'name' => null,
+            'arguments' => '',
+        ];
+
+        if (is_string($id) && $id !== '') {
+            $call['id'] = $id;
+        }
+
+        $name = $chunk->getMetadata('tool_name');
+        if (is_string($name) && $name !== '') {
+            $call['name'] = $name;
+        }
+
+        $call['arguments'] = $chunk->getMetadata('arguments_complete', false)
+            ? $chunk->content
+            : $call['arguments'].$chunk->content;
+        $this->toolCalls[$key] = $call;
+    }
+
+    private function releaseTransport(): void
+    {
+        if ($this->transportReleased) {
+            return;
+        }
+
+        $this->transportReleased = true;
+
+        if ($this->releaser === null) {
+            return;
+        }
+
+        try {
+            ($this->releaser)();
+        } catch (Throwable) {
+            // Settlement state and the original failure take precedence over a
+            // best-effort transport cleanup error.
+        }
+    }
+
+    private function invokeCanceller(): void
+    {
+        if ($this->canceller === null) {
+            return;
+        }
+
+        try {
+            ($this->canceller)();
+        } catch (Throwable) {
+            // Cancellation and lifecycle rollback remain best-effort, but the
+            // generic releaser still needs to run afterwards.
         }
     }
 }

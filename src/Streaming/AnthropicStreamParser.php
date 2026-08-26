@@ -24,6 +24,8 @@ final class AnthropicStreamParser implements StreamParser
 
     private string $accumulatedText = '';
 
+    private string $responseModel = '';
+
     /**
      * Parse SSE stream from Anthropic API
      *
@@ -35,6 +37,7 @@ final class AnthropicStreamParser implements StreamParser
         $this->currentMessage = [];
         $this->contentBlocks = [];
         $this->accumulatedText = '';
+        $this->responseModel = $model;
 
         foreach (SseEventIterator::from($stream) as $buffer) {
             try {
@@ -46,7 +49,9 @@ final class AnthropicStreamParser implements StreamParser
             }
 
             if ($event !== null) {
-                yield from $this->handleEvent($event, $model);
+                foreach ($this->handleEvent($event) as $chunk) {
+                    yield $chunk;
+                }
             }
         }
     }
@@ -88,7 +93,7 @@ final class AnthropicStreamParser implements StreamParser
      *
      * @return Generator<StreamChunk>
      */
-    private function handleEvent(array $event, string $model): Generator
+    private function handleEvent(array $event): Generator
     {
         $data = $event['data'] ?? [];
         $type = $data['type'] ?? null;
@@ -96,9 +101,12 @@ final class AnthropicStreamParser implements StreamParser
         switch ($type) {
             case 'message_start':
                 $this->currentMessage = $data['message'] ?? [];
+                if (is_string($this->currentMessage['model'] ?? null) && $this->currentMessage['model'] !== '') {
+                    $this->responseModel = $this->currentMessage['model'];
+                }
                 yield StreamChunk::start([
                     'message_id' => $this->currentMessage['id'] ?? null,
-                    'model' => $model,
+                    'model' => $this->responseModel,
                     'usage' => $this->currentMessage['usage'] ?? null,
                 ]);
                 break;
@@ -107,6 +115,21 @@ final class AnthropicStreamParser implements StreamParser
                 $index = $data['index'] ?? 0;
                 $contentBlock = $data['content_block'] ?? [];
                 $this->contentBlocks[$index] = $contentBlock;
+                if (($contentBlock['type'] ?? null) === 'tool_use') {
+                    // Identity must not depend on a later JSON delta: tools
+                    // with no arguments may move straight to block_stop.
+                    yield new StreamChunk(
+                        type: 'tool_call',
+                        content: '',
+                        delta: $contentBlock,
+                        metadata: [
+                            'index' => $index,
+                            'tool_call_id' => $contentBlock['id'] ?? null,
+                            'tool_name' => $contentBlock['name'] ?? null,
+                            'model' => $this->responseModel,
+                        ],
+                    );
+                }
                 break;
 
             case 'content_block_delta':
@@ -120,6 +143,7 @@ final class AnthropicStreamParser implements StreamParser
                     yield StreamChunk::text($text, [
                         'index' => $index,
                         'delta_type' => 'text_delta',
+                        'model' => $this->responseModel,
                     ]);
                 } elseif (isset($delta['partial_json'])) {
                     // Tool input delta
@@ -132,6 +156,7 @@ final class AnthropicStreamParser implements StreamParser
                             'index' => $index,
                             'tool_call_id' => $contentBlock['id'] ?? null,
                             'tool_name' => $contentBlock['name'] ?? null,
+                            'model' => $this->responseModel,
                         ],
                     );
                 } elseif (isset($delta['thinking'])) {
@@ -170,6 +195,7 @@ final class AnthropicStreamParser implements StreamParser
                     'stop_reason' => $this->currentMessage['stop_reason'] ?? null,
                     'usage' => $this->currentMessage['usage'] ?? null,
                     'full_content' => $this->accumulatedText,
+                    'model' => $this->responseModel,
                 ]);
                 break;
 

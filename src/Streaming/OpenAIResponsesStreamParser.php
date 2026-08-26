@@ -26,8 +26,13 @@ final class OpenAIResponsesStreamParser implements StreamParser
 
     private bool $started = false;
 
+    private string $responseModel = '';
+
     /** @var array<int, array<string, mixed>> */
     private array $toolCalls = [];
+
+    /** @var array<int, true> */
+    private array $completedToolCalls = [];
 
     /**
      * @param  resource|iterable<string>  $stream
@@ -39,6 +44,8 @@ final class OpenAIResponsesStreamParser implements StreamParser
         $this->usage = [];
         $this->started = false;
         $this->toolCalls = [];
+        $this->completedToolCalls = [];
+        $this->responseModel = $model;
 
         foreach (SseEventIterator::from($stream) as $buffer) {
             try {
@@ -50,7 +57,9 @@ final class OpenAIResponsesStreamParser implements StreamParser
             }
 
             if ($event !== null) {
-                yield from $this->handleEvent($event, $model);
+                foreach ($this->handleEvent($event) as $chunk) {
+                    yield $chunk;
+                }
             }
         }
     }
@@ -85,16 +94,20 @@ final class OpenAIResponsesStreamParser implements StreamParser
      * @param  array{event: string, data: array<string, mixed>}  $event
      * @return Generator<StreamChunk>
      */
-    private function handleEvent(array $event, string $model): Generator
+    private function handleEvent(array $event): Generator
     {
         $type = $event['event'];
         $data = $event['data'];
+        $this->captureResponseModel($data);
 
         if ($type === 'response.created' || $type === 'response.in_progress') {
             if (! $this->started) {
                 $this->started = true;
                 $response = is_array($data['response'] ?? null) ? $data['response'] : [];
-                yield StreamChunk::start(['model' => $model, 'response_id' => $response['id'] ?? null]);
+                yield StreamChunk::start([
+                    'model' => $this->responseModel,
+                    'response_id' => $response['id'] ?? null,
+                ]);
             }
 
             return;
@@ -114,7 +127,20 @@ final class OpenAIResponsesStreamParser implements StreamParser
             $text = is_string($data['delta'] ?? null) ? $data['delta'] : '';
             $this->accumulatedText .= $text;
             yield StreamChunk::text($text, [
-                'model' => $model,
+                'model' => $this->responseModel,
+                'output_index' => $data['output_index'] ?? 0,
+                'content_index' => $data['content_index'] ?? 0,
+            ]);
+
+            return;
+        }
+
+        if ($type === 'response.refusal.delta') {
+            $text = is_string($data['delta'] ?? null) ? $data['delta'] : '';
+            $this->accumulatedText .= $text;
+            yield StreamChunk::text($text, [
+                'model' => $this->responseModel,
+                'content_type' => 'refusal',
                 'output_index' => $data['output_index'] ?? 0,
                 'content_index' => $data['content_index'] ?? 0,
             ]);
@@ -139,6 +165,54 @@ final class OpenAIResponsesStreamParser implements StreamParser
             return;
         }
 
+        if ($type === 'response.function_call_arguments.done') {
+            $outputIndex = is_int($data['output_index'] ?? null) ? $data['output_index'] : 0;
+            $toolCall = $this->toolCalls[$outputIndex] ?? [];
+            $arguments = is_string($data['arguments'] ?? null) ? $data['arguments'] : '';
+            $this->completedToolCalls[$outputIndex] = true;
+            yield new StreamChunk(
+                type: 'tool_call_done',
+                content: $arguments,
+                delta: $data,
+                metadata: [
+                    'tool_call_id' => $data['call_id'] ?? $toolCall['call_id'] ?? null,
+                    'tool_name' => $data['name'] ?? $toolCall['name'] ?? null,
+                    'output_index' => $outputIndex,
+                    'arguments_complete' => true,
+                    'model' => $this->responseModel,
+                ],
+            );
+
+            return;
+        }
+
+        if ($type === 'response.output_item.done') {
+            $item = is_array($data['item'] ?? null) ? $data['item'] : [];
+            if (($item['type'] ?? null) !== 'function_call') {
+                return;
+            }
+
+            $outputIndex = is_int($data['output_index'] ?? null) ? $data['output_index'] : 0;
+            if (isset($this->completedToolCalls[$outputIndex])) {
+                return;
+            }
+            $this->completedToolCalls[$outputIndex] = true;
+            yield new StreamChunk(
+                type: 'tool_call_done',
+                content: is_string($item['arguments'] ?? null) ? $item['arguments'] : '',
+                delta: $item,
+                metadata: [
+                    'tool_call_id' => $item['call_id'] ?? null,
+                    'tool_name' => $item['name'] ?? null,
+                    'output_index' => $outputIndex,
+                    'arguments_complete' => true,
+                    'model' => $this->responseModel,
+                ],
+            );
+
+            return;
+        }
+
         if ($type === 'response.completed') {
             $response = is_array($data['response'] ?? null) ? $data['response'] : [];
             $usage = $response['usage'] ?? [];
@@ -150,7 +224,29 @@ final class OpenAIResponsesStreamParser implements StreamParser
                 'finish_reason' => $response['status'] ?? 'completed',
                 'usage' => $this->usage,
                 'full_content' => $this->accumulatedText,
-                'model' => $model,
+                'model' => $this->responseModel,
+            ]);
+
+            return;
+        }
+
+        if ($type === 'response.incomplete') {
+            $response = is_array($data['response'] ?? null) ? $data['response'] : [];
+            $usage = $response['usage'] ?? [];
+            if (is_array($usage)) {
+                $this->usage = $usage;
+            }
+            $details = is_array($response['incomplete_details'] ?? null)
+                ? $response['incomplete_details']
+                : [];
+            $reason = is_string($details['reason'] ?? null) ? $details['reason'] : 'incomplete';
+
+            yield StreamChunk::end([
+                'finish_reason' => $reason,
+                'status' => 'incomplete',
+                'usage' => $this->usage,
+                'full_content' => $this->accumulatedText,
+                'model' => $this->responseModel,
             ]);
 
             return;
@@ -161,6 +257,16 @@ final class OpenAIResponsesStreamParser implements StreamParser
             $error = $data['error'] ?? $response['error'] ?? [];
             $message = is_array($error) ? ($error['message'] ?? 'Unknown error') : 'Unknown error';
             yield StreamChunk::error((string) $message);
+        }
+    }
+
+    /** @param array<string, mixed> $data */
+    private function captureResponseModel(array $data): void
+    {
+        $response = is_array($data['response'] ?? null) ? $data['response'] : [];
+        $reportedModel = $response['model'] ?? $data['model'] ?? null;
+        if (is_string($reportedModel) && $reportedModel !== '') {
+            $this->responseModel = $reportedModel;
         }
     }
 }
