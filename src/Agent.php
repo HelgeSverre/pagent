@@ -56,14 +56,17 @@ use Pagent\Tool\ToolCallArgumentNormalizer;
 use Pagent\Tool\ToolSchemaSerializer;
 use Pagent\Usage\Storage\UsageStorage;
 use Pagent\Usage\UsageData;
+use Pagent\Usage\UsageNormalizer;
 use Pagent\Usage\UsageTracker;
 use Throwable;
 
 use function array_filter;
+use function array_key_exists;
 use function array_keys;
 use function array_map;
 use function array_merge;
 use function array_slice;
+use function array_values;
 use function asort;
 use function class_exists;
 use function count;
@@ -74,6 +77,7 @@ use function is_string;
 use function json_decode;
 use function json_encode;
 use function levenshtein;
+use function spl_object_id;
 use function sprintf;
 use function str_replace;
 use function strlen;
@@ -121,6 +125,18 @@ final class Agent
 
     private bool $turnInProgress = false;
 
+    /**
+     * Manual streamed tool turns keyed by their StreamResponse object id.
+     *
+     * @var array<int, array{
+     *     message: string,
+     *     options: array<string, mixed>,
+     *     snapshot: array<int, array<string, mixed>>,
+     *     calls: list<array{id: string, name: string, arguments: array<string, mixed>, raw_arguments: string}>
+     * }>
+     */
+    private array $pendingStreamToolTurns = [];
+
     private ?ContextManager $contextManager = null;
 
     public bool $telemetryEnabled = false;
@@ -139,6 +155,7 @@ final class Agent
 
     public function provider(string|Provider $provider, array $config = []): self
     {
+        $this->assertNoPendingStreamToolTurn();
         $this->provider = ProviderFactory::resolve($provider, $config);
         $this->cachedToolSchemas = null;
 
@@ -202,6 +219,7 @@ final class Agent
 
     public function memory(string|Memory $adapter, array $config = []): self
     {
+        $this->assertNoPendingStreamToolTurn();
         if ($adapter instanceof Memory) {
             $this->memory = $adapter;
             $this->sessionLoaded = false;
@@ -230,6 +248,7 @@ final class Agent
             return $this;
         }
 
+        $this->assertNoPendingStreamToolTurn();
         $this->sessionId = $id;
         $this->messages = [];
         $this->sessionLoaded = false;
@@ -360,6 +379,8 @@ final class Agent
 
     public function prompt(string $message, array $options = []): object
     {
+        $this->assertNoPendingStreamToolTurn();
+
         if (! $this->provider) {
             throw new RuntimeException("No provider set for agent '{$this->name}'");
         }
@@ -503,6 +524,91 @@ final class Agent
      */
     public function stream(string $message, array $options = []): StreamResponse
     {
+        $this->assertNoPendingStreamToolTurn();
+
+        return $this->startStream($message, $options);
+    }
+
+    /**
+     * Continue a completed manual streaming tool turn with externally produced
+     * results keyed by tool-call id.
+     *
+     * @param  array<string, mixed>  $results
+     * @param  array<string, mixed>  $options
+     */
+    public function continueToolCalls(StreamResponse $response, array $results, array $options = []): StreamResponse
+    {
+        if (! $response->isComplete()) {
+            throw new InvalidArgumentException('Only a completed StreamResponse can be continued.');
+        }
+
+        $responseId = spl_object_id($response);
+        $context = $this->pendingStreamToolTurns[$responseId] ?? null;
+        if ($context === null) {
+            throw new InvalidArgumentException('The StreamResponse is not a pending manual tool turn for this agent.');
+        }
+
+        $calls = $response->getToolCalls();
+        if ($this->toolCallIds($calls) !== $this->toolCallIds($context['calls'])) {
+            throw new InvalidArgumentException('The StreamResponse tool calls no longer match the pending agent turn.');
+        }
+        $this->validateExternalToolResults($calls, $results);
+
+        return $this->startStream($context['message'], $options, [
+            'response_id' => $responseId,
+            'context' => $context,
+            'calls' => $calls,
+            'results' => $results,
+        ]);
+    }
+
+    /**
+     * Abandon a pending manual streaming tool turn and restore the conversation
+     * to its state before the original prompt.
+     */
+    public function discardToolCalls(StreamResponse $response): self
+    {
+        $responseId = spl_object_id($response);
+        $context = $this->pendingStreamToolTurns[$responseId] ?? null;
+        if ($context === null) {
+            throw new InvalidArgumentException('The StreamResponse is not a pending manual tool turn for this agent.');
+        }
+
+        $this->beginTurn();
+        $previousMessages = $this->messages;
+
+        try {
+            $this->messages = $context['snapshot'];
+            $committed = false;
+            $this->saveMemory($committed);
+            unset($this->pendingStreamToolTurns[$responseId]);
+
+            return $this;
+        } catch (Throwable $exception) {
+            $this->messages = $previousMessages;
+
+            throw $exception;
+        } finally {
+            $this->endTurn();
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @param  array{
+     *     response_id: int,
+     *     context: array{
+     *         message: string,
+     *         options: array<string, mixed>,
+     *         snapshot: array<int, array<string, mixed>>,
+     *         calls: list<array{id: string, name: string, arguments: array<string, mixed>, raw_arguments: string}>
+     *     },
+     *     calls: list<array{id: string, name: string, arguments: array<string, mixed>, raw_arguments: string}>,
+     *     results: array<string, mixed>
+     * }|null  $continuation
+     */
+    private function startStream(string $message, array $options, ?array $continuation = null): StreamResponse
+    {
         if (! $this->provider instanceof StreamingProvider) {
             throw new RuntimeException("No provider set for agent '{$this->name}'");
         }
@@ -513,46 +619,95 @@ final class Agent
         ]);
         $startedAt = microtime(true);
         $committed = false;
+        $eventOptions = $continuation === null
+            ? $options
+            : array_merge($continuation['context']['options'], $options);
+        $streamOptions = $eventOptions;
+        $providerMessage = $continuation === null ? $message : '';
 
         try {
+            $toolMode = $this->streamToolMode($streamOptions);
+            $retainChunks = $this->streamRetainsChunks($streamOptions);
             $this->loadMemory();
             $snapshot = $this->messages;
-            $this->runInputGuardsWithSpans($message);
-            $this->messages[] = ['role' => 'user', 'content' => $message];
-            $this->fireEvent(new BeforePromptEvent($this, $message, $options));
-            $mergedOptions = $this->prepareProviderOptions($this->messages, $options, $span);
+            if ($continuation === null) {
+                $this->runInputGuardsWithSpans($message);
+                $this->messages[] = ['role' => 'user', 'content' => $message];
+                $this->fireEvent(new BeforePromptEvent($this, $message, $eventOptions));
+            } else {
+                $this->assertPendingToolCallHistory($continuation['calls']);
+                $this->appendExternalToolResults($continuation['calls'], $continuation['results']);
+            }
+            $turnOptions = $this->prepareProviderOptions(
+                $this->messages,
+                $streamOptions,
+                $span,
+                includeTools: $toolMode !== 'none',
+            );
+            $requestOptions = $turnOptions;
 
             foreach ($this->middleware as $middleware) {
-                $mergedOptions = $middleware->before($message, $mergedOptions);
+                $requestOptions = $middleware->before($providerMessage, $requestOptions);
             }
 
             $providerName = $this->getProviderName();
-            $model = $mergedOptions['model'] ?? $this->config['model'] ?? 'unknown';
+            $model = $requestOptions['model'] ?? $this->config['model'] ?? 'unknown';
             $this->fireEvent(new StreamStartedEvent($this, $providerName, $model));
 
-            $providerResponse = $this->provider->streamPrompt($message, $mergedOptions);
+            $providerResponse = $this->provider->streamPrompt($providerMessage, $requestOptions);
             $buffered = $this->requiresBufferedStreaming();
+            $activeProvider = $providerResponse;
             $stream = new StreamResponse(
-                stream: $this->streamWithPolicies($providerResponse, $message, $buffered),
+                stream: $this->streamProviderRounds(
+                    $activeProvider,
+                    $message,
+                    $turnOptions,
+                    $buffered,
+                    $toolMode,
+                ),
                 provider: $providerResponse->getProvider(),
                 model: $providerResponse->getModel(),
-                canceller: static function () use ($providerResponse): void {
-                    $providerResponse->cancel();
+                releaser: static function () use (&$activeProvider): void {
+                    $activeProvider->cancel();
                 },
+                retainChunks: $retainChunks,
             );
 
-            $stream->onComplete(function (StreamResponse $response) use ($message, $options, $snapshot, $span, $startedAt, &$committed): void {
+            $stream->onComplete(function (StreamResponse $response) use ($message, $eventOptions, $snapshot, $span, $startedAt, $toolMode, $continuation, &$committed): void {
+                $previousPendingToolTurns = $this->pendingStreamToolTurns;
+
                 try {
-                    $content = $response->getFullContent();
-                    if ($content !== '') {
+                    $content = $response->getFinalContent();
+                    $manualToolCalls = $toolMode === 'manual' ? $response->getToolCalls() : [];
+                    if ($manualToolCalls !== []) {
+                        $this->appendToolCallMessage($this->streamedToolResponse($content, $manualToolCalls));
+                    } elseif ($content !== '') {
                         $this->messages[] = ['role' => 'assistant', 'content' => $content];
                     }
-                    $this->saveMemory($committed);
-                    $this->fireEvent(new AfterPromptEvent($this, $message, $content, $options));
+                    // A manual tool turn is not a valid standalone provider
+                    // history yet. Keep it in this Agent until results arrive,
+                    // then persist the complete tool-call/result sequence.
+                    if ($manualToolCalls === []) {
+                        $this->saveMemory($committed);
+                    }
+
+                    if ($continuation !== null) {
+                        unset($this->pendingStreamToolTurns[$continuation['response_id']]);
+                    }
+                    if ($manualToolCalls !== []) {
+                        $this->pendingStreamToolTurns[spl_object_id($response)] = [
+                            'message' => $message,
+                            'options' => $eventOptions,
+                            'snapshot' => $continuation['context']['snapshot'] ?? $snapshot,
+                            'calls' => $manualToolCalls,
+                        ];
+                    } else {
+                        $this->fireEvent(new AfterPromptEvent($this, $message, $content, $eventOptions));
+                    }
                     $this->fireEvent(new StreamCompletedEvent(
                         $this,
-                        $content,
-                        count($response->getChunks()),
+                        $response->getFullContent(),
+                        $response->getChunkCount(),
                         (microtime(true) - $startedAt) * 1000,
                         $response->getProvider(),
                         $response->getModel(),
@@ -562,6 +717,7 @@ final class Agent
                 } catch (Throwable $exception) {
                     if (! $committed) {
                         $this->messages = $snapshot;
+                        $this->pendingStreamToolTurns = $previousPendingToolTurns;
                     }
                     $span?->recordException($exception);
                     $span?->setStatus('error', $exception->getMessage());
@@ -908,6 +1064,7 @@ final class Agent
         $this->sessionId = null;
         $this->sessionLoaded = false;
         $this->contextManager = null;
+        $this->pendingStreamToolTurns = [];
         $this->cachedToolSchemas = null; // Invalidate cache
 
         return $this;
@@ -952,7 +1109,9 @@ final class Agent
 
         $previousMessages = $this->messages;
         $previousSessionLoaded = $this->sessionLoaded;
+        $previousPendingToolTurns = $this->pendingStreamToolTurns;
         $this->messages = $messages;
+        $this->pendingStreamToolTurns = [];
         // An explicitly adopted context is authoritative. Do not replace it
         // with a lazy session load on the next prompt.
         $this->sessionLoaded = true;
@@ -963,6 +1122,7 @@ final class Agent
         } catch (Throwable $exception) {
             $this->messages = $previousMessages;
             $this->sessionLoaded = $previousSessionLoaded;
+            $this->pendingStreamToolTurns = $previousPendingToolTurns;
 
             throw $exception;
         }
@@ -1166,6 +1326,32 @@ final class Agent
 
     private function handleToolCalls(object $response, array $turnOptions): object
     {
+        $this->appendAndExecuteToolCalls($response);
+
+        // Preserve every per-turn option and reapply the context window after
+        // appending tool messages. Otherwise a pruned initial request can grow
+        // back to the full conversation on its first follow-up round.
+        $options = $this->prepareProviderOptions($this->messages, $turnOptions);
+
+        return $this->callProviderRound('', $options);
+    }
+
+    private function appendAndExecuteToolCalls(object $response): void
+    {
+        $this->appendToolCallMessage($response);
+        $results = [];
+
+        foreach ($response->tool_calls as $toolCall) {
+            $arguments = $this->normalizeToolCallArguments($toolCall);
+            $this->runInputGuardsWithSpans(json_encode($arguments, JSON_THROW_ON_ERROR));
+            $results[$toolCall['id']] = $this->executeToolWithSpan($toolCall['name'], $arguments);
+        }
+
+        $this->appendExternalToolResults($response->tool_calls, $results);
+    }
+
+    private function appendToolCallMessage(object $response): void
+    {
         // Add assistant message with tool calls to history
         $assistantMessage = ['role' => 'assistant', 'content' => $response->content ?? ''];
 
@@ -1188,42 +1374,35 @@ final class Agent
         }
 
         $this->messages[] = $assistantMessage;
+    }
 
-        // Execute each tool call
-        foreach ($response->tool_calls as $toolCall) {
-            $arguments = $this->normalizeToolCallArguments($toolCall);
-            $this->runInputGuardsWithSpans(json_encode($arguments, JSON_THROW_ON_ERROR));
-            $result = $this->executeToolWithSpan($toolCall['name'], $arguments);
-
-            // Add tool result to messages
-            if ($this->getProviderProtocol() === 'anthropic-messages') {
-                // Anthropic format
-                $this->messages[] = [
-                    'role' => 'user',
-                    'content' => [
-                        [
-                            'type' => 'tool_result',
-                            'tool_use_id' => $toolCall['id'],
-                            'content' => $this->serializeToolResult($toolCall['name'], $result),
-                        ],
-                    ],
-                ];
-            } else {
-                // OpenAI format
-                $this->messages[] = [
-                    'role' => 'tool',
-                    'tool_call_id' => $toolCall['id'],
-                    'content' => $this->serializeToolResult($toolCall['name'], $result),
+    /**
+     * @param  list<array{id: string, name: string, arguments: array<string, mixed>}>  $toolCalls
+     * @param  array<string, mixed>  $results
+     */
+    private function appendExternalToolResults(array $toolCalls, array $results): void
+    {
+        if ($this->getProviderProtocol() === 'anthropic-messages') {
+            $blocks = [];
+            foreach ($toolCalls as $toolCall) {
+                $blocks[] = [
+                    'type' => 'tool_result',
+                    'tool_use_id' => $toolCall['id'],
+                    'content' => $this->serializeToolResult($toolCall['name'], $results[$toolCall['id']]),
                 ];
             }
+            $this->messages[] = ['role' => 'user', 'content' => $blocks];
+
+            return;
         }
 
-        // Preserve every per-turn option and reapply the context window after
-        // appending tool messages. Otherwise a pruned initial request can grow
-        // back to the full conversation on its first follow-up round.
-        $options = $this->prepareProviderOptions($this->messages, $turnOptions);
-
-        return $this->callProviderRound('', $options);
+        foreach ($toolCalls as $toolCall) {
+            $this->messages[] = [
+                'role' => 'tool',
+                'tool_call_id' => $toolCall['id'],
+                'content' => $this->serializeToolResult($toolCall['name'], $results[$toolCall['id']]),
+            ];
+        }
     }
 
     private function serializeToolResult(string $toolName, mixed $result): string
@@ -1238,6 +1417,82 @@ final class Agent
             throw new RuntimeException(
                 "Tool '{$toolName}' returned a result that cannot be encoded as JSON: {$exception->getMessage()}",
                 previous: $exception,
+            );
+        }
+    }
+
+    /**
+     * @param  list<array{id: string, name: string, arguments: array<string, mixed>, raw_arguments: string}>  $toolCalls
+     * @param  array<string, mixed>  $results
+     */
+    private function validateExternalToolResults(array $toolCalls, array $results): void
+    {
+        if ($toolCalls === []) {
+            throw new InvalidArgumentException('The StreamResponse does not contain tool calls to continue.');
+        }
+
+        $expected = [];
+        foreach ($toolCalls as $toolCall) {
+            $expected[$toolCall['id']] = true;
+            if (! array_key_exists($toolCall['id'], $results)) {
+                throw new InvalidArgumentException("Missing external result for tool call '{$toolCall['id']}'.");
+            }
+        }
+
+        foreach (array_keys($results) as $callId) {
+            if (! isset($expected[(string) $callId])) {
+                throw new InvalidArgumentException("Unexpected external result for tool call '{$callId}'.");
+            }
+        }
+    }
+
+    /**
+     * @param  list<array{id: string}>  $toolCalls
+     * @return list<string>
+     */
+    private function toolCallIds(array $toolCalls): array
+    {
+        return array_values(array_map(
+            static fn (array $toolCall): string => $toolCall['id'],
+            $toolCalls,
+        ));
+    }
+
+    /** @param list<array{id: string}> $toolCalls */
+    private function assertPendingToolCallHistory(array $toolCalls): void
+    {
+        $lastIndex = array_key_last($this->messages);
+        $lastMessage = $lastIndex === null ? null : $this->messages[$lastIndex];
+        if (! is_array($lastMessage) || ($lastMessage['role'] ?? null) !== 'assistant') {
+            throw new RuntimeException('Pending tool-call history is missing its assistant message.');
+        }
+
+        $historyIds = [];
+        foreach ($lastMessage['tool_calls'] ?? [] as $toolCall) {
+            if (is_array($toolCall) && is_string($toolCall['id'] ?? null)) {
+                $historyIds[] = $toolCall['id'];
+            }
+        }
+        if (is_array($lastMessage['content'] ?? null)) {
+            foreach ($lastMessage['content'] as $block) {
+                if (is_array($block)
+                    && ($block['type'] ?? null) === 'tool_use'
+                    && is_string($block['id'] ?? null)) {
+                    $historyIds[] = $block['id'];
+                }
+            }
+        }
+
+        if ($historyIds !== $this->toolCallIds($toolCalls)) {
+            throw new RuntimeException('Pending tool-call history does not match the continued StreamResponse.');
+        }
+    }
+
+    private function assertNoPendingStreamToolTurn(): void
+    {
+        if ($this->pendingStreamToolTurns !== []) {
+            throw new RuntimeException(
+                'This agent has pending manual streamed tool calls; continueToolCalls() or discardToolCalls() before starting another prompt.',
             );
         }
     }
@@ -1462,9 +1717,14 @@ final class Agent
         }
     }
 
-    private function prepareProviderOptions(array $messages, array $options, Span|NullSpan|null $span = null): array
-    {
+    private function prepareProviderOptions(
+        array $messages,
+        array $options,
+        Span|NullSpan|null $span = null,
+        bool $includeTools = true,
+    ): array {
         $mergedOptions = array_merge($this->config, $options);
+        unset($mergedOptions['tool_mode']);
         $messagesToSend = $messages;
 
         if ($this->contextManager) {
@@ -1490,7 +1750,9 @@ final class Agent
             $mergedOptions['messages'] = $messagesToSend;
         }
 
-        if ($this->tools !== []) {
+        if (! $includeTools) {
+            unset($mergedOptions['tools']);
+        } elseif ($this->tools !== []) {
             $schemas = $this->getToolSchemas();
             if ($schemas !== []) {
                 $mergedOptions['tools'] = $schemas;
@@ -1523,11 +1785,257 @@ final class Agent
         return false;
     }
 
-    /** @return Generator<StreamChunk> */
-    private function streamWithPolicies(StreamResponse $providerResponse, string $input, bool $buffered): Generator
+    /** @param array<string, mixed> $options */
+    private function streamToolMode(array $options): string
     {
-        $chunkNumber = 0;
+        $mode = $options['tool_mode'] ?? $this->config['tool_mode'] ?? 'auto';
+        if (! is_string($mode) || ! in_array($mode, ['auto', 'manual', 'none'], true)) {
+            throw new InvalidArgumentException("tool_mode must be 'auto', 'manual', or 'none'");
+        }
 
+        return $mode;
+    }
+
+    /** @param array<string, mixed> $options */
+    private function streamRetainsChunks(array $options): bool
+    {
+        $retain = $options['retain_chunks'] ?? $this->config['retain_chunks'] ?? true;
+        if (! is_bool($retain)) {
+            throw new InvalidArgumentException('retain_chunks must be a boolean');
+        }
+
+        return $retain;
+    }
+
+    /**
+     * Stream provider rounds, executing completed tool calls between rounds.
+     * Only the final provider terminal marker escapes, so the public response
+     * has one unambiguous completion point.
+     *
+     * @return Generator<StreamChunk>
+     */
+    private function streamProviderRounds(
+        StreamResponse &$activeProvider,
+        string $input,
+        array $turnOptions,
+        bool $buffered,
+        string $toolMode,
+    ): Generator {
+        $toolCallDepth = 0;
+        $chunkNumber = 0;
+        $round = 0;
+        $totalUsage = null;
+
+        while (true) {
+            $providerResponse = $activeProvider;
+            $terminal = null;
+            $roundContent = '';
+            $roundToolCalls = [];
+
+            foreach ($this->streamWithPolicies(
+                $providerResponse,
+                $input,
+                $buffered,
+                $chunkNumber,
+                $roundToolCalls,
+            ) as $chunk) {
+                $chunk = $this->withStreamMetadata($chunk, ['tool_round' => $round]);
+                if ($chunk->isText()) {
+                    $roundContent .= $chunk->content;
+                }
+
+                if ($chunk->isEnd()) {
+                    $terminal = $chunk;
+
+                    continue;
+                }
+
+                yield $chunk;
+            }
+
+            if ($terminal === null) {
+                throw new RuntimeException('Provider stream ended without a terminal chunk.');
+            }
+
+            $totalUsage = $this->mergeStreamUsage($totalUsage, $providerResponse->getUsage());
+            $toolCalls = $roundToolCalls;
+
+            if ($toolCalls === [] || $toolMode === 'manual') {
+                $metadata = $terminal->metadata ?? [];
+                $metadata['final_content'] = $roundContent;
+                if ($totalUsage !== null) {
+                    $metadata['usage'] = $totalUsage;
+                }
+
+                yield StreamChunk::end($metadata);
+
+                return;
+            }
+
+            if ($toolMode === 'none') {
+                throw new RuntimeException('Provider emitted tool calls while tool_mode is disabled.');
+            }
+
+            if ($this->tools === []) {
+                throw new RuntimeException('Provider emitted tool calls but the agent has no registered tools.');
+            }
+
+            $toolCallDepth++;
+            if ($toolCallDepth > self::MAX_TOOL_CALL_DEPTH) {
+                throw new RuntimeException(sprintf(
+                    'Maximum tool call depth exceeded (%d calls). Possible infinite loop detected.',
+                    self::MAX_TOOL_CALL_DEPTH,
+                ));
+            }
+
+            $this->appendAndExecuteToolCalls($this->streamedToolResponse($roundContent, $toolCalls));
+            $nextOptions = $this->prepareProviderOptions($this->messages, $turnOptions);
+            foreach ($this->middleware as $middleware) {
+                $nextOptions = $middleware->before('', $nextOptions);
+            }
+
+            if (! $this->provider instanceof StreamingProvider) {
+                throw new RuntimeException("No provider set for agent '{$this->name}'");
+            }
+
+            $activeProvider = $this->provider->streamPrompt('', $nextOptions);
+            $round++;
+        }
+    }
+
+    /**
+     * @param  list<array{id: string, name: string, arguments: array<string, mixed>, raw_arguments: string}>  $toolCalls
+     */
+    private function streamedToolResponse(string $content, array $toolCalls): object
+    {
+        $response = (object) [
+            'content' => $content,
+            'tool_calls' => $toolCalls,
+        ];
+
+        if ($this->getProviderProtocol() === 'anthropic-messages') {
+            $blocks = $content === '' ? [] : [['type' => 'text', 'text' => $content]];
+            foreach ($toolCalls as $toolCall) {
+                $blocks[] = [
+                    'type' => 'tool_use',
+                    'id' => $toolCall['id'],
+                    'name' => $toolCall['name'],
+                    'input' => $toolCall['arguments'],
+                ];
+            }
+            $response->raw_content = $blocks;
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param  array<int|string, mixed>  $toolCalls
+     * @return list<array{id: string, name: string, arguments: array<string, mixed>, raw_arguments: string}>
+     */
+    private function normalizeStreamToolCalls(array $toolCalls): array
+    {
+        $normalized = [];
+
+        foreach (array_values($toolCalls) as $toolCall) {
+            if (! is_array($toolCall)) {
+                throw new RuntimeException('Streaming middleware tool calls must be arrays.');
+            }
+
+            $id = $toolCall['id'] ?? null;
+            $name = $toolCall['name'] ?? null;
+            if (! is_string($id) || $id === '' || ! is_string($name) || $name === '') {
+                throw new RuntimeException('Streaming middleware tool calls require non-empty id and name values.');
+            }
+
+            $arguments = $this->normalizeToolCallArguments($toolCall);
+            $normalized[] = [
+                'id' => $id,
+                'name' => $name,
+                'arguments' => $arguments,
+                'raw_arguments' => $arguments === []
+                    ? '{}'
+                    : json_encode($arguments, JSON_THROW_ON_ERROR),
+            ];
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param  array{id: string, name: string, arguments: array<string, mixed>, raw_arguments: string}  $toolCall
+     */
+    private function completedToolCallChunk(array $toolCall, int $index, string $model): StreamChunk
+    {
+        return new StreamChunk(
+            type: 'tool_call_done',
+            content: $toolCall['raw_arguments'],
+            delta: $toolCall,
+            metadata: [
+                'tool_call_id' => $toolCall['id'],
+                'tool_name' => $toolCall['name'],
+                'index' => $index,
+                'arguments_complete' => true,
+                'model' => $model,
+            ],
+        );
+    }
+
+    /** @param array<string, mixed> $metadata */
+    private function withStreamMetadata(StreamChunk $chunk, array $metadata): StreamChunk
+    {
+        return new StreamChunk(
+            type: $chunk->type,
+            content: $chunk->content,
+            delta: $chunk->delta,
+            metadata: array_merge($chunk->metadata ?? [], $metadata),
+            isComplete: $chunk->isComplete,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $total
+     * @param  array<string, mixed>|null  $round
+     * @return array<string, mixed>|null
+     */
+    private function mergeStreamUsage(?array $total, ?array $round): ?array
+    {
+        $round = UsageNormalizer::normalize($round);
+        if ($round === null) {
+            return $total;
+        }
+        if ($total === null) {
+            return $round;
+        }
+
+        $merged = array_merge($total, $round);
+        foreach ([
+            'input_tokens',
+            'output_tokens',
+            'total_tokens',
+            'prompt_tokens',
+            'completion_tokens',
+            'cache_read_input_tokens',
+        ] as $key) {
+            $totalValue = $total[$key] ?? null;
+            $roundValue = $round[$key] ?? null;
+            if (is_numeric($totalValue) || is_numeric($roundValue)) {
+                $merged[$key] = (is_numeric($totalValue) ? (int) $totalValue : 0)
+                    + (is_numeric($roundValue) ? (int) $roundValue : 0);
+            }
+        }
+
+        return $merged;
+    }
+
+    /** @return Generator<StreamChunk> */
+    private function streamWithPolicies(
+        StreamResponse $providerResponse,
+        string $input,
+        bool $buffered,
+        int &$chunkNumber,
+        array &$toolCalls,
+    ): Generator {
         if ($buffered) {
             $chunks = [];
             foreach ($providerResponse->getStream() as $chunk) {
@@ -1535,11 +2043,13 @@ final class Agent
             }
 
             $rawContent = $providerResponse->getFullContent();
+            $rawToolCalls = $providerResponse->getToolCalls();
             $processed = (object) [
                 'content' => $rawContent,
                 'provider' => $providerResponse->getProvider(),
                 'model' => $providerResponse->getModel(),
                 'usage' => $providerResponse->getUsage(),
+                'tool_calls' => $rawToolCalls,
             ];
 
             foreach ($this->middleware as $middleware) {
@@ -1550,32 +2060,59 @@ final class Agent
             $processedContent = is_string($processedData['content'] ?? null)
                 ? $processedData['content']
                 : $rawContent;
+            $processedToolCalls = array_key_exists('tool_calls', $processedData)
+                ? $processedData['tool_calls']
+                : $rawToolCalls;
+            if (! is_array($processedToolCalls)) {
+                throw new RuntimeException('Streaming middleware tool_calls must be an array.');
+            }
+            $toolCalls = $this->normalizeStreamToolCalls($processedToolCalls);
             $this->runOutputGuardsWithSpans($input, $processedContent);
 
+            $startMetadata = [];
+            $terminalMetadata = [];
+            foreach ($chunks as $chunk) {
+                if ($chunk->isStart() && $startMetadata === []) {
+                    $startMetadata = $chunk->metadata ?? [];
+                }
+                if ($chunk->isEnd()) {
+                    $terminalMetadata = $chunk->metadata ?? [];
+                }
+            }
+
+            yield StreamChunk::start(array_merge($startMetadata, [
+                'provider' => $providerResponse->getProvider(),
+                'model' => $providerResponse->getModel(),
+            ]));
             if ($processedContent === $rawContent) {
                 foreach ($chunks as $chunk) {
+                    if ($chunk->isStart() || $chunk->isToolCall() || $chunk->isEnd()) {
+                        continue;
+                    }
                     if ($chunk->isText()) {
                         $this->fireEvent(new StreamChunkEvent($this, $chunk->content, ++$chunkNumber));
                     }
 
                     yield $chunk;
                 }
-
-                return;
+            } else {
+                if ($processedContent !== '') {
+                    $this->fireEvent(new StreamChunkEvent($this, $processedContent, ++$chunkNumber));
+                    yield StreamChunk::text($processedContent);
+                }
+                foreach ($chunks as $chunk) {
+                    if (! $chunk->isStart() && ! $chunk->isText() && ! $chunk->isToolCall() && ! $chunk->isEnd()) {
+                        yield $chunk;
+                    }
+                }
             }
-
-            yield StreamChunk::start([
-                'provider' => $providerResponse->getProvider(),
-                'model' => $providerResponse->getModel(),
-            ]);
-            if ($processedContent !== '') {
-                $this->fireEvent(new StreamChunkEvent($this, $processedContent, ++$chunkNumber));
-                yield StreamChunk::text($processedContent);
+            foreach ($toolCalls as $index => $toolCall) {
+                yield $this->completedToolCallChunk($toolCall, $index, $providerResponse->getModel());
             }
-            yield StreamChunk::end([
+            yield StreamChunk::end(array_merge($terminalMetadata, [
                 'usage' => $providerResponse->getUsage(),
                 'stop_reason' => $providerResponse->getStopReason(),
-            ]);
+            ]));
 
             return;
         }
@@ -1595,6 +2132,8 @@ final class Agent
 
             yield $chunk;
         }
+
+        $toolCalls = $providerResponse->getToolCalls();
 
         if ($accumulated === '') {
             foreach ($this->guards as $guard) {
