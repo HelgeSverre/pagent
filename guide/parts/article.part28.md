@@ -570,6 +570,7 @@ $result = $delegation
             'supervised' => $result->supervised,
         ]);
     })
+    ->review()
     ->execute();
 
 echo "Manager review: {$result->manager_review}\n";

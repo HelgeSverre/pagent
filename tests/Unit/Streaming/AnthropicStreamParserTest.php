@@ -108,14 +108,27 @@ test('it parses error events', function (): void {
     fclose($stream);
 });
 
-test('it throws on malformed json in SSE data', function (): void {
+test('it yields an error chunk on malformed json in SSE data', function (): void {
     $events = "event: message_start\ndata: {invalid json}\n\n";
 
     $stream = createStreamFromEvents($events);
     $parser = new AnthropicStreamParser;
+    $chunks = iterator_to_array($parser->parse($stream, 'claude-3'));
 
-    expect(fn () => iterator_to_array($parser->parse($stream, 'claude-3')))
-        ->toThrow(RuntimeException::class, 'Failed to parse SSE data');
+    expect($chunks)->toHaveCount(1)
+        ->and($chunks[0]->isError())->toBeTrue()
+        ->and($chunks[0]->content)->toContain('Failed to parse SSE data');
+
+    fclose($stream);
+});
+
+test('it yields an error chunk when SSE data is valid JSON but not an object', function (): void {
+    $stream = createStreamFromEvents("event: message_start\ndata: null\n\n");
+    $chunks = iterator_to_array((new AnthropicStreamParser)->parse($stream, 'claude-3'));
+
+    expect($chunks)->toHaveCount(1)
+        ->and($chunks[0]->isError())->toBeTrue()
+        ->and($chunks[0]->content)->toContain('expected a JSON object');
 
     fclose($stream);
 });

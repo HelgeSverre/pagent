@@ -16,12 +16,7 @@ beforeAll(function () {
         return;
     }
 
-    try {
-        ObservabilityTestHelper::ensureServicesRunning();
-    } catch (RuntimeException $e) {
-        echo "\n\n⚠️  {$e->getMessage()}\n\n";
-        throw $e;
-    }
+    ObservabilityTestHelper::ensureServicesRunning();
 });
 
 test('all observability services are accessible', function () {

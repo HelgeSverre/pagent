@@ -153,7 +153,7 @@ test('it records step failures in pipeline', function () {
         $pipeline->run('test input');
         $this->fail('Expected RuntimeException was not thrown');
     } catch (RuntimeException $e) {
-        expect($e->getMessage())->toBe('Intentional failure for testing');
+        expect($e->getMessage())->toContain('Intentional failure for testing');
     }
 
     TelemetryManager::instance()->shutdown();
@@ -307,12 +307,12 @@ test('it traces chain workflow with telemetry', function () {
     TelemetryManager::instance()->shutdown();
 
     // Verify chain span was created
-    $chainSpans = $this->exporter->findSpansByName('workflow.chain.run');
+    $chainSpans = $this->exporter->findSpansByName('workflow.pipeline.run');
     expect($chainSpans)->toHaveCount(1);
 
     $chainSpan = $chainSpans[0];
     expect($chainSpan->getAttributes()->get('workflow.name'))->toBe('test-chain');
-    expect($chainSpan->getAttributes()->get('workflow.type'))->toBe('chain');
+    expect($chainSpan->getAttributes()->get('workflow.type'))->toBe('pipeline');
     expect($chainSpan->getAttributes()->get('workflow.steps_executed'))->toBe(3);
 
     // Verify step spans
@@ -348,13 +348,13 @@ test('it records chain failures with telemetry', function () {
         $chain->run('input');
         $this->fail('Expected RuntimeException was not thrown');
     } catch (RuntimeException $e) {
-        expect($e->getMessage())->toBe('Chain failure test');
+        expect($e->getMessage())->toContain('Chain failure test');
     }
 
     TelemetryManager::instance()->shutdown();
 
     // Verify chain span has error status
-    $chainSpans = $this->exporter->findSpansByName('workflow.chain.run');
+    $chainSpans = $this->exporter->findSpansByName('workflow.pipeline.run');
     expect($chainSpans)->toHaveCount(1);
     expect($chainSpans[0]->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR);
 
@@ -428,7 +428,7 @@ test('it verifies workflow span timing', function () {
     }
 });
 
-test('it records workflow input and output in spans', function () {
+test('it records workflow shape without exporting content by default', function () {
     $agent1 = new Agent('io-test');
     $agent1->provider(new Mock(['responses' => ['test input' => 'test output']]));
     $agent1->telemetry(true);
@@ -441,11 +441,35 @@ test('it records workflow input and output in spans', function () {
 
     TelemetryManager::instance()->shutdown();
 
-    // Verify pipeline span has input/output
+    // Verify pipeline span has useful metadata but no raw input/output.
     $pipelineSpans = $this->exporter->findSpansByName('workflow.pipeline.run');
     expect($pipelineSpans)->toHaveCount(1);
 
     $pipelineSpan = $pipelineSpans[0];
-    expect($pipelineSpan->getAttributes()->get('workflow.input'))->toBe('test input');
-    expect($pipelineSpan->getAttributes()->get('workflow.output'))->toBe('test output');
+    expect($pipelineSpan->getAttributes()->get('workflow.input'))->toBeNull();
+    expect($pipelineSpan->getAttributes()->get('workflow.output'))->toBeNull();
+    expect($pipelineSpan->getAttributes()->get('workflow.input.type'))->toBe('string');
+    expect($pipelineSpan->getAttributes()->get('workflow.input.size'))->toBe(strlen('test input'));
+    expect($pipelineSpan->getAttributes()->get('workflow.output.size'))->toBe(strlen('test output'));
+});
+
+test('workflow content capture is explicit and supports redaction', function () {
+    TelemetryManager::reset();
+    $this->exporter = new InMemoryExporter;
+    TelemetryManager::instance()->initialize([
+        'enabled' => true,
+        'capture_content' => true,
+        'content_redactor' => fn (string $content): string => str_replace('secret', '[redacted]', $content),
+    ])->setExporter($this->exporter);
+
+    $agent = new Agent('content-capture-test');
+    $agent->provider(new Mock(['responses' => ['secret input' => 'secret output']]));
+    $agent->telemetry(true);
+
+    Pipeline::create('content-capture')->step('process', $agent)->run('secret input');
+    TelemetryManager::instance()->shutdown();
+
+    $span = $this->exporter->findSpansByName('workflow.pipeline.run')[0];
+    expect($span->getAttributes()->get('workflow.input'))->toBe('[redacted] input');
+    expect($span->getAttributes()->get('workflow.output'))->toBe('[redacted] output');
 });

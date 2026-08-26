@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace Pagent\Tools;
 
-use RuntimeException;
+use Pagent\Exceptions\ConfigurationException;
+use Pagent\Exceptions\InvalidArgumentException;
+use Pagent\Exceptions\RuntimeException;
+use Pagent\Support\Web\UrlAccessPolicy;
 
 final class WebFetch extends Tool
 {
+    private readonly UrlAccessPolicy $accessPolicy;
+
     /**
      * @param  int  $timeout  Request timeout in seconds
      * @param  int  $maxSize  Maximum response size in bytes
@@ -22,18 +27,31 @@ final class WebFetch extends Tool
      *   new WebFetch(allowList: ['*.company.com', 'partner.com'])
      * @example Block specific domains (blacklist mode):
      *   new WebFetch(disallowList: ['competitor.com', 'spam-site.com'])
-     * @example Allow localhost for development (bypasses SSRF):
-     *   new WebFetch(allowList: ['127.0.0.1', 'localhost', '*.test'])
+     * @example Allow localhost for trusted development environments:
+     *   new WebFetch(ssrfProtection: false, allowList: ['127.0.0.1', 'localhost', '*.test'])
      * @example Allow only specific API paths:
      *   new WebFetch(allowList: ['api.github.com/repos/*', 'api.example.com/public/*'])
+     *
+     * Redirects are followed manually (up to 5 hops); allow/disallow lists and
+     * SSRF protection are enforced on every hop, including redirects issued by
+     * allowlisted hosts.
      */
     public function __construct(
         private int $timeout = 30,
         private int $maxSize = 10 * 1024 * 1024, // 10MB
         private bool $ssrfProtection = true,
-        private array $allowList = [],
-        private array $disallowList = [],
-    ) {}
+        array $allowList = [],
+        array $disallowList = [],
+    ) {
+        if ($timeout < 1) {
+            throw new ConfigurationException('WebFetch timeout must be at least one second');
+        }
+        if ($maxSize < 1) {
+            throw new ConfigurationException('WebFetch maxSize must be at least one byte');
+        }
+
+        $this->accessPolicy = new UrlAccessPolicy($allowList, $disallowList);
+    }
 
     public function name(): string
     {
@@ -72,59 +90,213 @@ final class WebFetch extends Tool
         $url = $this->requiredString($params, 'url');
         $headers = $this->headers($params);
 
-        // Parse URL
-        $parsed = parse_url($url);
-        if ($parsed === false || ! isset($parsed['host'])) {
-            throw new RuntimeException('Invalid URL');
+        // Redirects are followed manually so that allow/disallow lists and SSRF
+        // protection are re-applied to EVERY hop. Automatic following would let
+        // an allowed host 302 to an internal address (e.g. cloud metadata IPs).
+        $maxRedirects = 5;
+        $currentUrl = $url;
+
+        for ($hop = 0; $hop <= $maxRedirects; $hop++) {
+            // Parse URL
+            $parsed = parse_url($currentUrl);
+            if ($parsed === false || ! isset($parsed['host'], $parsed['scheme'])) {
+                throw new RuntimeException('Invalid URL');
+            }
+            $scheme = strtolower($parsed['scheme']);
+            if (! in_array($scheme, ['http', 'https'], true)) {
+                throw new RuntimeException('Only HTTP and HTTPS URLs are supported');
+            }
+            if (isset($parsed['user']) || isset($parsed['pass'])) {
+                throw new RuntimeException('Credentials in URLs are not supported');
+            }
+
+            // Check allow/disallow lists (every hop)
+            $this->accessPolicy->assertAllowed($currentUrl);
+
+            // Resolve and validate every address, then pin cURL to one of the
+            // validated addresses. This closes the DNS-rebinding gap between a
+            // safety check and the actual connection.
+            $pinnedIp = $this->ssrfProtection ? $this->checkSSRF($parsed['host']) : null;
+            [$content, $responseHeaders] = $this->request($currentUrl, $parsed, $headers, $pinnedIp);
+
+            $location = $this->redirectTarget($responseHeaders);
+            if ($location !== null) {
+                $redirectUrl = $this->resolveRedirect($parsed, $location);
+                if (! $this->sameOrigin($currentUrl, $redirectUrl)) {
+                    $headers = $this->withoutSensitiveHeaders($headers);
+                }
+                $currentUrl = $redirectUrl;
+
+                continue;
+            }
+
+            return [
+                'content' => $content,
+                'size' => strlen($content),
+                'url' => $currentUrl,
+            ];
         }
 
-        // Check allow/disallow lists
-        // Returns true if URL is in allowList (bypasses SSRF), false otherwise
-        $bypassSSRF = $this->checkAllowDisallow($url, $parsed['host']);
+        throw new RuntimeException("Too many redirects (max: {$maxRedirects})");
+    }
 
-        // SSRF Protection (Server-Side Request Forgery)
-        // Skip if URL is in allowList
-        if ($this->ssrfProtection && ! $bypassSSRF) {
-            $this->checkSSRF($parsed['host']);
+    /**
+     * @param  array{scheme: string, host: string, port?: int, path?: string, query?: string}  $parsed
+     * @param  array<string, string>  $headers
+     * @return array{string, list<string>}
+     */
+    private function request(string $url, array $parsed, array $headers, ?string $pinnedIp): array
+    {
+        $handle = curl_init();
+        if ($handle === false) {
+            throw new RuntimeException('Failed to initialize HTTP client');
         }
 
-        // Build headers
+        $content = '';
+        $responseHeaders = [];
+        $tooLarge = false;
         $headerLines = [];
-        foreach ($headers as $key => $value) {
-            $headerLines[] = "$key: $value";
+        foreach ($headers as $name => $value) {
+            $headerLines[] = "{$name}: {$value}";
         }
 
-        // Set up context
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'GET',
-                'timeout' => $this->timeout,
-                'header' => implode("\r\n", $headerLines),
-                'follow_location' => 1,
-                'max_redirects' => 5,
-            ],
-        ]);
+        $options = [
+            CURLOPT_URL => $url,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_TIMEOUT => $this->timeout,
+            CURLOPT_CONNECTTIMEOUT => min($this->timeout, 10),
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            // A configured environment proxy could perform its own DNS lookup
+            // and defeat the address pinned below.
+            CURLOPT_PROXY => '',
+            CURLOPT_HTTPHEADER => $headerLines,
+            CURLOPT_HEADERFUNCTION => static function ($handle, string $line) use (&$responseHeaders): int {
+                if (str_starts_with($line, 'HTTP/')) {
+                    $responseHeaders = [];
+                }
+                $responseHeaders[] = rtrim($line, "\r\n");
 
-        // Fetch content - suppress all errors including SSL/network warnings
-        set_error_handler(function () {});
-        $content = file_get_contents($url, false, $context);
-        $error = error_get_last();
-        restore_error_handler();
+                return strlen($line);
+            },
+            CURLOPT_WRITEFUNCTION => function ($handle, string $chunk) use (&$content, &$tooLarge): int {
+                if (strlen($content) + strlen($chunk) > $this->maxSize) {
+                    $tooLarge = true;
 
-        if ($content === false) {
-            throw new RuntimeException('Failed to fetch URL: '.($error['message'] ?? 'Unknown error'));
-        }
+                    return 0;
+                }
 
-        // Check size
-        if (strlen($content) > $this->maxSize) {
-            throw new RuntimeException('Response too large');
-        }
+                $content .= $chunk;
 
-        return [
-            'content' => $content,
-            'size' => strlen($content),
-            'url' => $url,
+                return strlen($chunk);
+            },
         ];
+
+        if ($pinnedIp !== null) {
+            $host = trim($parsed['host'], '[]');
+            $port = isset($parsed['port'])
+                ? $parsed['port']
+                : (strtolower($parsed['scheme']) === 'https' ? 443 : 80);
+            $address = str_contains($pinnedIp, ':') ? "[{$pinnedIp}]" : $pinnedIp;
+            $options[CURLOPT_RESOLVE] = ["{$host}:{$port}:{$address}"];
+        }
+
+        try {
+            if (! curl_setopt_array($handle, $options)) {
+                throw new RuntimeException('Failed to configure HTTP client');
+            }
+
+            $success = curl_exec($handle);
+            if ($tooLarge) {
+                throw new RuntimeException('Response too large');
+            }
+            if ($success === false) {
+                throw new RuntimeException('Failed to fetch URL: '.curl_error($handle));
+            }
+        } finally {
+            curl_close($handle);
+        }
+
+        return [$content, $responseHeaders];
+    }
+
+    /**
+     * Return the redirect Location if the response is a 3xx redirect, null otherwise.
+     *
+     * @param  list<string>  $responseHeaders
+     */
+    private function redirectTarget(array $responseHeaders): ?string
+    {
+        if (! isset($responseHeaders[0])
+            || preg_match('{^HTTP/\S+\s+(\d{3})}', $responseHeaders[0], $matches) !== 1) {
+            return null;
+        }
+
+        $status = (int) $matches[1];
+        if ($status < 300 || $status >= 400) {
+            return null;
+        }
+
+        foreach ($responseHeaders as $header) {
+            if (stripos($header, 'Location:') === 0) {
+                $location = trim(substr($header, strlen('Location:')));
+
+                return $location === '' ? null : $location;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve a (possibly relative) redirect Location against the current URL.
+     *
+     * @param  array{scheme?: string, host?: string, port?: int, path?: string, query?: string}  $parsed
+     */
+    private function resolveRedirect(array $parsed, string $location): string
+    {
+        // Absolute URL
+        if (parse_url($location, PHP_URL_SCHEME) !== null) {
+            return $location;
+        }
+
+        $scheme = $parsed['scheme'] ?? 'http';
+
+        // Protocol-relative URL
+        if (str_starts_with($location, '//')) {
+            return $scheme.':'.$location;
+        }
+
+        $base = $scheme.'://'.($parsed['host'] ?? '').(isset($parsed['port']) ? ':'.$parsed['port'] : '');
+
+        // Query-only redirects keep the current path.
+        if (str_starts_with($location, '?')) {
+            return $base.($parsed['path'] ?? '/').$location;
+        }
+
+        [$locationPath, $suffix] = array_pad(preg_split('/(?=[?#])/', $location, 2) ?: [], 2, '');
+        $path = str_starts_with($locationPath, '/')
+            ? $locationPath
+            : rtrim(dirname($parsed['path'] ?? '/'), '/').'/'.$locationPath;
+
+        return $base.$this->normalizePath($path).$suffix;
+    }
+
+    private function normalizePath(string $path): string
+    {
+        $segments = [];
+        foreach (explode('/', $path) as $segment) {
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+            if ($segment === '..') {
+                array_pop($segments);
+
+                continue;
+            }
+            $segments[] = $segment;
+        }
+
+        return '/'.implode('/', $segments);
     }
 
     /**
@@ -140,16 +312,19 @@ final class WebFetch extends Tool
         $headers = $params['headers'];
 
         if (! is_array($headers)) {
-            throw new \InvalidArgumentException('headers parameter must be an object with string header values');
+            throw new InvalidArgumentException('headers parameter must be an object with string header values');
         }
 
         foreach ($headers as $name => $value) {
             if (! is_string($name) || $name === '') {
-                throw new \InvalidArgumentException('headers parameter must use non-empty string header names');
+                throw new InvalidArgumentException('headers parameter must use non-empty string header names');
+            }
+            if (preg_match('/^[!#$%&\'*+.^_`|~0-9A-Za-z-]+$/D', $name) !== 1) {
+                throw new InvalidArgumentException("Header '{$name}' has an invalid name");
             }
 
-            if (! is_string($value)) {
-                throw new \InvalidArgumentException("Header '{$name}' value must be a string");
+            if (! is_string($value) || str_contains($value, "\r") || str_contains($value, "\n")) {
+                throw new InvalidArgumentException("Header '{$name}' value must be a string without newlines");
             }
         }
 
@@ -157,157 +332,140 @@ final class WebFetch extends Tool
         return $headers;
     }
 
-    /**
-     * Check allow/disallow lists and determine if SSRF protection should be bypassed.
-     *
-     * Logic:
-     * - If allowList is non-empty: Only allowed patterns can proceed (whitelist mode)
-     * - If allowList is empty: disallowList patterns are blocked (blacklist mode)
-     * - Patterns in allowList bypass SSRF protection
-     *
-     * @param  string  $url  Full URL
-     * @param  string  $host  Hostname
-     * @return bool True if URL is in allowList (bypasses SSRF), false otherwise
-     *
-     * @throws RuntimeException If URL is not allowed
-     */
-    private function checkAllowDisallow(string $url, string $host): bool
+    /** Resolve all A/AAAA records, reject any non-public address, and return one address to pin. */
+    private function checkSSRF(string $host): string
     {
-        // Whitelist mode: If allowList has entries, ONLY those are allowed
-        if (! empty($this->allowList)) {
-            foreach ($this->allowList as $pattern) {
-                if ($this->matchesPattern($url, $host, $pattern)) {
-                    // URL matches allow list - bypass SSRF protection
-                    return true;
-                }
-            }
+        $host = trim($host, '[]');
+        $addresses = filter_var($host, FILTER_VALIDATE_IP)
+            ? [$host]
+            : $this->resolveAddresses($host);
 
-            // Not in allow list - block
-            throw new RuntimeException('URL not in allow list');
+        if ($addresses === []) {
+            throw new RuntimeException("SSRF protection: Could not resolve host '{$host}'");
         }
 
-        // Blacklist mode: If disallowList has entries, block those patterns
-        if (! empty($this->disallowList)) {
-            foreach ($this->disallowList as $pattern) {
-                if ($this->matchesPattern($url, $host, $pattern)) {
-                    throw new RuntimeException('URL is in disallow list');
-                }
-            }
-        }
-
-        // No restrictions or passed checks - apply normal SSRF protection
-        return false;
-    }
-
-    private function checkSSRF(string $host): void
-    {
-        // Resolve hostname to IP
-        $ip = gethostbyname($host);
-
-        if ($ip === $host && ! filter_var($host, FILTER_VALIDATE_IP)) {
-            // Couldn't resolve
-            return;
-        }
-
-        // Block private IP ranges
-        $blocked = [
-            '127.0.0.0/8',      // Loopback
-            '10.0.0.0/8',       // Private
-            '172.16.0.0/12',    // Private
-            '192.168.0.0/16',   // Private
-            '169.254.0.0/16',   // Link-local
-            '::1/128',          // IPv6 loopback
-            'fc00::/7',         // IPv6 private
-            'fe80::/10',        // IPv6 link-local
-        ];
-
-        foreach ($blocked as $cidr) {
-            if ($this->ipInRange($ip, $cidr)) {
+        foreach ($addresses as $address) {
+            if (! $this->isPublicAddress($address)) {
                 throw new RuntimeException('SSRF protection: Cannot access private/local IP addresses');
             }
         }
+
+        return $addresses[0];
+    }
+
+    /** @return list<string> */
+    private function resolveAddresses(string $host): array
+    {
+        $records = dns_get_record($host, DNS_A | DNS_AAAA);
+        if ($records === false) {
+            return [];
+        }
+
+        $addresses = [];
+        foreach ($records as $record) {
+            $address = $record['ip'] ?? $record['ipv6'] ?? null;
+            if (is_string($address) && filter_var($address, FILTER_VALIDATE_IP)) {
+                $addresses[] = $address;
+            }
+        }
+
+        return array_values(array_unique($addresses));
+    }
+
+    private function sameOrigin(string $first, string $second): bool
+    {
+        $a = parse_url($first);
+        $b = parse_url($second);
+        if ($a === false || $b === false) {
+            return false;
+        }
+
+        $aScheme = strtolower((string) ($a['scheme'] ?? ''));
+        $bScheme = strtolower((string) ($b['scheme'] ?? ''));
+        $aPort = $a['port'] ?? ($aScheme === 'https' ? 443 : 80);
+        $bPort = $b['port'] ?? ($bScheme === 'https' ? 443 : 80);
+
+        return $aScheme === $bScheme
+            && strtolower((string) ($a['host'] ?? '')) === strtolower((string) ($b['host'] ?? ''))
+            && $aPort === $bPort;
+    }
+
+    /** @param array<string, string> $headers @return array<string, string> */
+    private function withoutSensitiveHeaders(array $headers): array
+    {
+        foreach (array_keys($headers) as $name) {
+            if (in_array(strtolower($name), ['authorization', 'cookie', 'proxy-authorization'], true)) {
+                unset($headers[$name]);
+            }
+        }
+
+        return $headers;
+    }
+
+    private function isPublicAddress(string $address): bool
+    {
+        if (filter_var(
+            $address,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
+        ) === false) {
+            return false;
+        }
+
+        // PHP's reserved-range flag does not cover every special IPv6 block.
+        // Reject transition, documentation, benchmarking, multicast, and other
+        // non-global ranges explicitly so alternate address forms cannot bypass
+        // the simpler private/loopback checks.
+        $reserved = [
+            '::/128',
+            '::1/128',
+            '::ffff:0:0/96',
+            '64:ff9b::/96',
+            '100::/64',
+            '2001::/23',
+            '2001:db8::/32',
+            '3fff::/20',
+            'fc00::/7',
+            'fe80::/10',
+            'ff00::/8',
+        ];
+
+        foreach ($reserved as $cidr) {
+            if ($this->ipInRange($address, $cidr)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function ipInRange(string $ip, string $cidr): bool
     {
-        if (str_contains($cidr, ':')) {
-            // IPv6 - skip for now (simplified)
-            return false;
-        }
-
         [$subnet, $mask] = explode('/', $cidr);
-
-        $ipLong = ip2long($ip);
-        $subnetLong = ip2long($subnet);
-
-        if ($ipLong === false || $subnetLong === false) {
+        $ipBytes = inet_pton($ip);
+        $subnetBytes = inet_pton($subnet);
+        if ($ipBytes === false || $subnetBytes === false || strlen($ipBytes) !== strlen($subnetBytes)) {
             return false;
         }
 
-        $maskLong = -1 << (32 - (int) $mask);
-
-        return ($ipLong & $maskLong) === ($subnetLong & $maskLong);
-    }
-
-    /**
-     * Check if a URL or host matches a pattern.
-     * Supports exact matches, wildcards (*), and URL path patterns.
-     * Matching is case-insensitive.
-     *
-     * @param  string  $url  Full URL to match against
-     * @param  string  $host  Hostname extracted from URL
-     * @param  string  $pattern  Pattern to match (e.g., '*.example.com', 'example.com/api/*')
-     * @return bool True if matches
-     */
-    private function matchesPattern(string $url, string $host, string $pattern): bool
-    {
-        // Normalize for case-insensitive comparison
-        $url = strtolower($url);
-        $host = strtolower($host);
-        $pattern = strtolower($pattern);
-
-        // Check if pattern is a CIDR block (for IP matching)
-        if (str_contains($pattern, '/') && preg_match('/^\d+\.\d+\.\d+\.\d+\/\d+$/', $pattern)) {
-            // Try to resolve host to IP and check CIDR
-            $ip = gethostbyname($host);
-            if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                return $this->ipInRange($ip, $pattern);
-            }
-
+        $maskBits = (int) $mask;
+        $maxBits = strlen($ipBytes) * 8;
+        if ($maskBits < 0 || $maskBits > $maxBits) {
             return false;
         }
 
-        // Check if pattern contains path (has /)
-        if (str_contains($pattern, '/')) {
-            // URL pattern match - need to match against full URL
-            // Replace * with .* and escape special regex chars except *
-            $regex = preg_replace_callback('/[^*]+|\*/', function ($matches) {
-                if ($matches[0] === '*') {
-                    return '.*';
-                }
-
-                return preg_quote($matches[0], '/');
-            }, $pattern);
-
-            return preg_match('/^https?:\/\/'.$regex.'$/i', $url) === 1;
+        $wholeBytes = intdiv($maskBits, 8);
+        if (substr($ipBytes, 0, $wholeBytes) !== substr($subnetBytes, 0, $wholeBytes)) {
+            return false;
         }
 
-        // Domain/host pattern match
-        if (str_contains($pattern, '*')) {
-            // Wildcard pattern - convert to regex
-            // Split by * and quote each part, then join with .*
-            $regex = preg_replace_callback('/[^*]+|\*/', function ($matches) {
-                if ($matches[0] === '*') {
-                    return '.*';
-                }
-
-                return preg_quote($matches[0], '/');
-            }, $pattern);
-
-            return preg_match('/^'.$regex.'$/i', $host) === 1;
+        $remainingBits = $maskBits % 8;
+        if ($remainingBits === 0) {
+            return true;
         }
 
-        // Exact match
-        return $host === $pattern;
+        $byteMask = (0xFF << (8 - $remainingBits)) & 0xFF;
+
+        return (ord($ipBytes[$wholeBytes]) & $byteMask) === (ord($subnetBytes[$wholeBytes]) & $byteMask);
     }
 }

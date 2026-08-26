@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Pagent\Memory;
 
-use InvalidArgumentException;
+use Pagent\Exceptions\InvalidArgumentException;
 
+use function array_slice;
 use function count;
 use function is_array;
-use function is_string;
+use function json_encode;
+use function serialize;
 use function strlen;
 
 final class ContextManager
@@ -24,13 +26,16 @@ final class ContextManager
         $this->validateStrategy($strategy);
     }
 
+    /**
+     * @param  array<int, array<string, mixed>>  $messages
+     * @return array<int, array<string, mixed>>
+     */
     public function prune(array $messages): array
     {
         if (empty($messages)) {
             return [];
         }
-        $tokenCount = $this->countTokens($messages);
-        if ($tokenCount <= $this->maxTokens) {
+        if ($this->countTokens($messages) <= $this->maxTokens) {
             return $messages;
         }
 
@@ -40,27 +45,22 @@ final class ContextManager
         };
     }
 
+    /**
+     * Estimate token count for a set of messages.
+     *
+     * Uses the serialized JSON length of each message so that tool calls,
+     * tool results, JSON arguments, and other non-text content all count.
+     *
+     * @param  array<int, array<string, mixed>>  $messages
+     */
     public function countTokens(array $messages): int
     {
-        $totalChars = 0;
+        $total = 0;
         foreach ($messages as $message) {
-            if (isset($message['role'])) {
-                $totalChars += strlen($message['role']);
-            }
-            if (isset($message['content'])) {
-                if (is_string($message['content'])) {
-                    $totalChars += strlen($message['content']);
-                } elseif (is_array($message['content'])) {
-                    foreach ($message['content'] as $block) {
-                        if (isset($block['text']) && is_string($block['text'])) {
-                            $totalChars += strlen($block['text']);
-                        }
-                    }
-                }
-            }
+            $total += $this->estimateTokens($message);
         }
 
-        return (int) ceil($totalChars / self::CHARS_PER_TOKEN);
+        return $total;
     }
 
     public function setMaxTokens(int $tokens): self
@@ -81,50 +81,161 @@ final class ContextManager
         return $this;
     }
 
-    private function removeOldest(array $messages): array
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    private function estimateTokens(array $message): int
     {
-        $systemMessage = null;
-        $otherMessages = [];
-        foreach ($messages as $message) {
-            if (isset($message['role']) && $message['role'] === 'system' && $systemMessage === null) {
-                $systemMessage = $message;
-            } else {
-                $otherMessages[] = $message;
-            }
-        }
-        while (count($otherMessages) > 1) {
-            $testMessages = $systemMessage ? [$systemMessage, ...$otherMessages] : $otherMessages;
-            if ($this->countTokens($testMessages) <= $this->maxTokens) {
-                break;
-            }
-            array_shift($otherMessages);
+        $json = json_encode($message);
+        if ($json === false) {
+            $json = serialize($message);
         }
 
-        return $systemMessage ? [$systemMessage, ...$otherMessages] : $otherMessages;
+        return (int) ceil(strlen($json) / self::CHARS_PER_TOKEN);
     }
 
-    private function slidingWindow(array $messages): array
+    /**
+     * Split messages into the first system message and prunable units.
+     *
+     * A unit is either a single message or an assistant tool-call exchange
+     * (the tool_use/tool_calls message plus its tool results), which must
+     * never be split apart or providers reject the message sequence.
+     *
+     * @param  array<int, array<string, mixed>>  $messages
+     * @return array{0: array<string, mixed>|null, 1: int, 2: list<array{messages: list<array<string, mixed>>, tokens: int, tool: bool}>}
+     */
+    private function partition(array $messages): array
     {
         $systemMessage = null;
-        $otherMessages = [];
+        $systemTokens = 0;
+        $units = [];
+
         foreach ($messages as $message) {
-            if (isset($message['role']) && $message['role'] === 'system' && $systemMessage === null) {
+            if ($systemMessage === null && isset($message['role']) && $message['role'] === 'system') {
                 $systemMessage = $message;
-            } else {
-                $otherMessages[] = $message;
+                $systemTokens = $this->estimateTokens($message);
+
+                continue;
             }
-        }
-        $kept = [];
-        $reversedMessages = array_reverse($otherMessages);
-        foreach ($reversedMessages as $message) {
-            $testMessages = $systemMessage ? [$systemMessage, ...$kept, $message] : [...$kept, $message];
-            if ($this->countTokens($testMessages) > $this->maxTokens) {
-                break;
+
+            $tokens = $this->estimateTokens($message);
+            $last = count($units) - 1;
+
+            if ($last >= 0 && $units[$last]['tool'] && $this->isToolResult($message)) {
+                $units[$last]['messages'][] = $message;
+                $units[$last]['tokens'] += $tokens;
+
+                continue;
             }
-            array_unshift($kept, $message);
+
+            $units[] = [
+                'messages' => [$message],
+                'tokens' => $tokens,
+                'tool' => $this->hasToolCalls($message) || $this->isToolResult($message),
+            ];
         }
 
-        return $systemMessage ? [$systemMessage, ...$kept] : $kept;
+        return [$systemMessage, $systemTokens, $units];
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    private function hasToolCalls(array $message): bool
+    {
+        if (isset($message['tool_calls'])) {
+            return true;
+        }
+
+        if (isset($message['content']) && is_array($message['content'])) {
+            foreach ($message['content'] as $block) {
+                if (is_array($block) && ($block['type'] ?? null) === 'tool_use') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    private function isToolResult(array $message): bool
+    {
+        if (($message['role'] ?? null) === 'tool') {
+            return true;
+        }
+
+        if (isset($message['content']) && is_array($message['content'])) {
+            foreach ($message['content'] as $block) {
+                if (is_array($block) && ($block['type'] ?? null) === 'tool_result') {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $messages
+     * @return array<int, array<string, mixed>>
+     */
+    private function removeOldest(array $messages): array
+    {
+        [$systemMessage, $systemTokens, $units] = $this->partition($messages);
+
+        $total = $systemTokens;
+        foreach ($units as $unit) {
+            $total += $unit['tokens'];
+        }
+
+        $offset = 0;
+        while (count($units) - $offset > 1 && $total > $this->maxTokens) {
+            $total -= $units[$offset]['tokens'];
+            $offset++;
+        }
+
+        return $this->flatten($systemMessage, array_slice($units, $offset));
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $messages
+     * @return array<int, array<string, mixed>>
+     */
+    private function slidingWindow(array $messages): array
+    {
+        [$systemMessage, $systemTokens, $units] = $this->partition($messages);
+
+        $kept = [];
+        $total = $systemTokens;
+        for ($i = count($units) - 1; $i >= 0; $i--) {
+            if ($total + $units[$i]['tokens'] > $this->maxTokens) {
+                break;
+            }
+            $total += $units[$i]['tokens'];
+            array_unshift($kept, $units[$i]);
+        }
+
+        return $this->flatten($systemMessage, $kept);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $systemMessage
+     * @param  list<array{messages: list<array<string, mixed>>, tokens: int, tool: bool}>  $units
+     * @return array<int, array<string, mixed>>
+     */
+    private function flatten(?array $systemMessage, array $units): array
+    {
+        $result = $systemMessage !== null ? [$systemMessage] : [];
+        foreach ($units as $unit) {
+            foreach ($unit['messages'] as $message) {
+                $result[] = $message;
+            }
+        }
+
+        return $result;
     }
 
     private function validateStrategy(string $strategy): void

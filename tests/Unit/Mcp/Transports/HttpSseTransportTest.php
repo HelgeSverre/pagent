@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Pagent\Mcp\Exceptions\McpConnectionException;
+use Pagent\Mcp\Exceptions\McpTimeoutException;
 use Pagent\Mcp\Transports\HttpSseTransport;
 
 /**
@@ -136,15 +137,69 @@ test('connect to invalid port throws exception', function () {
 });
 
 test('connect to non-responsive server throws exception', function () {
-    // Use a non-routable IP
-    $transport = new HttpSseTransport(
-        baseUrl: 'http://10.255.255.1',
-        timeoutMs: 1000
-    );
+    $server = startNonResponsiveSseServer();
+    [, $port] = $server;
+    $transport = new HttpSseTransport(baseUrl: "http://127.0.0.1:{$port}", timeoutMs: 100);
 
-    expect(fn () => $transport->connect())
-        ->toThrow(McpConnectionException::class);
-})->skip('Too slow for regular test runs');
+    try {
+        expect(fn () => $transport->connect())
+            ->toThrow(McpTimeoutException::class, 'timed out after 100ms')
+            ->and($transport->isConnected())->toBeFalse();
+    } finally {
+        stopNonResponsiveSseServer($server);
+    }
+});
+
+/** @return array{resource, int, string} */
+function startNonResponsiveSseServer(): array
+{
+    $router = sys_get_temp_dir().'/pagent_sse_router_'.bin2hex(random_bytes(8)).'.php';
+    file_put_contents($router, <<<'PHP'
+<?php
+header('Content-Type: text/event-stream');
+header('Cache-Control: no-cache');
+echo ": keepalive\n\n";
+flush();
+usleep(500000);
+PHP);
+
+    $port = random_int(19000, 19999);
+    $process = proc_open(
+        [PHP_BINARY, '-S', "127.0.0.1:{$port}", $router],
+        [1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']],
+        $pipes,
+    );
+    if (! is_resource($process)) {
+        @unlink($router);
+        throw new RuntimeException('Failed to start local SSE fixture');
+    }
+
+    set_error_handler(static fn (): bool => true);
+    try {
+        $deadline = microtime(true) + 3;
+        do {
+            $connection = fsockopen('127.0.0.1', $port, $errno, $error, 0.1);
+            if ($connection !== false) {
+                fclose($connection);
+                break;
+            }
+            usleep(20000);
+        } while (microtime(true) < $deadline);
+    } finally {
+        restore_error_handler();
+    }
+
+    return [$process, $port, $router];
+}
+
+/** @param array{resource, int, string} $server */
+function stopNonResponsiveSseServer(array $server): void
+{
+    [$process, , $router] = $server;
+    proc_terminate($process);
+    proc_close($process);
+    @unlink($router);
+}
 
 // ===== Error Handling Tests =====
 

@@ -122,14 +122,27 @@ test('it stops parsing when done is true', function (): void {
     fclose($stream);
 });
 
-test('it throws on malformed json', function (): void {
+test('it yields an error chunk on malformed json', function (): void {
     $ndjson = "{invalid json}\n";
 
     $stream = createOllamaStream($ndjson);
     $parser = new OllamaStreamParser;
+    $chunks = iterator_to_array($parser->parse($stream, 'qwen3:8b'));
 
-    expect(fn () => iterator_to_array($parser->parse($stream, 'qwen3:8b')))
-        ->toThrow(RuntimeException::class, 'Failed to parse NDJSON data');
+    expect($chunks)->toHaveCount(1)
+        ->and($chunks[0]->isError())->toBeTrue()
+        ->and($chunks[0]->content)->toContain('Failed to parse NDJSON data');
+
+    fclose($stream);
+});
+
+test('it yields an error chunk when a line is valid JSON but not an object', function (): void {
+    $stream = createOllamaStream("null\n");
+    $chunks = iterator_to_array((new OllamaStreamParser)->parse($stream, 'qwen3:8b'));
+
+    expect($chunks)->toHaveCount(1)
+        ->and($chunks[0]->isError())->toBeTrue()
+        ->and($chunks[0]->content)->toContain('expected a JSON object');
 
     fclose($stream);
 });

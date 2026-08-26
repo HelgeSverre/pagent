@@ -34,7 +34,8 @@ test('it handles empty span export', function () {
 
     $result = $exporter->export([]);
 
-    expect($result)->toBeInstanceOf(FutureInterface::class);
+    expect($result)->toBeInstanceOf(FutureInterface::class)
+        ->and($result->await())->toBeTrue();
 });
 
 test('it can be shut down', function () {

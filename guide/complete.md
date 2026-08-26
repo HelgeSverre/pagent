@@ -759,6 +759,7 @@ In **Chapter 2: Working with Providers**, we'll dive deeper into:
 - Configuration is validated before reaching the provider layer
 
 Continue to [Chapter 2: Working with Providers](./article.part2.md) →
+
 # Chapter 2: Working with Providers
 
 **Learning Objectives:**
@@ -1178,14 +1179,14 @@ The `clearAgents()` function removes all registered agents from the global regis
 
 Different providers have different strengths. Here's a practical comparison:
 
-| Feature               | Anthropic         | OpenAI        | OpenCode                   | Ollama       | Mock    |
-| --------------------- | ----------------- | ------------- | -------------------------- | ------------ | ------- |
-| **API key required**  | Yes               | Yes           | Yes                        | No           | No      |
-| **Default model**     | claude-sonnet-4-6 | gpt-3.5-turbo | Gateway-specific           | qwen3:8b     | mock    |
-| **Wire protocol**     | Messages          | Chat API      | Chat completions, Responses, or Messages | Chat API | N/A |
-| **Streaming support** | Yes               | Yes           | Yes                        | Yes          | No      |
-| **Tool calling**      | Yes               | Yes           | Protocol-dependent         | Yes          | No      |
-| **Cost**              | Paid              | Paid          | Gateway-dependent          | Free (local) | Free    |
+| Feature               | Anthropic         | OpenAI        | OpenCode                                 | Ollama       | Mock |
+| --------------------- | ----------------- | ------------- | ---------------------------------------- | ------------ | ---- |
+| **API key required**  | Yes               | Yes           | Yes                                      | No           | No   |
+| **Default model**     | claude-sonnet-4-6 | gpt-3.5-turbo | Gateway-specific                         | qwen3:8b     | mock |
+| **Wire protocol**     | Messages          | Chat API      | Chat completions, Responses, or Messages | Chat API     | N/A  |
+| **Streaming support** | Yes               | Yes           | Yes                                      | Yes          | No   |
+| **Tool calling**      | Yes               | Yes           | Protocol-dependent                       | Yes          | No   |
+| **Cost**              | Paid              | Paid          | Gateway-dependent                        | Free (local) | Free |
 
 ### When to Use Each Provider
 
@@ -1359,6 +1360,7 @@ In the next chapter, we'll explore how to build multi-turn conversations by mana
 - Environment variables are the recommended way to configure API keys
 - Provider responses use a consistent object structure across all implementations
 - Error handling should be provider-agnostic using try-catch blocks
+
 # Chapter 3: Messages and Conversations
 
 In Chapter 1, we learned how to create agents and send single prompts. In Chapter 2, we explored the different providers that power those prompts. But real-world AI applications rarely work with isolated messages. They require conversations - multi-turn exchanges where the agent remembers what was said before and builds on that context.
@@ -1731,6 +1733,7 @@ We've now covered the fundamentals: creating agents, configuring providers, and 
 In the next chapter, we'll explore prompting strategies - how to craft system prompts that guide agent behavior, implement few-shot learning, and design effective prompts that get better results from your LLMs.
 
 You'll learn that while conversation management keeps the dialogue flowing, prompt engineering determines the quality of what flows through it. Let's dive into that next.
+
 # Chapter 4: Prompting Strategies
 
 **Target Audience:** PHP developers familiar with Pagent basics (Chapters 1-3)
@@ -2492,6 +2495,7 @@ In the next chapter, we'll explore response processing techniques—parsing stru
 - Explored real-world examples: SQL generation, content moderation, translation
 
 **Next Chapter:** Chapter 5 - Response Processing (parsing, validation, transformation)
+
 # Chapter 5: Response Processing
 
 In the previous chapters, we learned how to send prompts to LLMs and manage conversations. But the real challenge often lies in what comes next: processing the responses you receive. LLMs return text, but your application needs structured data, validated content, and reliable formats.
@@ -3188,6 +3192,7 @@ We've explored the complete lifecycle of a prompt: creating agents, configuring 
 In the next chapter, we'll expand agent capabilities dramatically by introducing tool calling - the ability for agents to execute functions, call APIs, and interact with external systems. This is where agents transform from conversational interfaces into autonomous systems that can take action in the world.
 
 You'll learn how to define tools, handle tool execution, and build agents that seamlessly combine conversation with capability. Let's explore that next.
+
 # Chapter 6: Introduction to Tool Calling
 
 One of the most powerful features of modern large language models is their ability to call functions or "tools" to extend their capabilities beyond text generation. In Pagent, tool calling transforms your agents from simple conversational interfaces into action-taking systems that can query databases, read files, call APIs, perform calculations, and interact with the real world.
@@ -3709,6 +3714,7 @@ In this chapter, you learned:
 Tool calling transforms your agents from conversational systems into action-taking systems. With tools, your agents can query databases, read files, call APIs, perform calculations, and interact with external systems—all while maintaining natural language interaction.
 
 In the next chapter, we'll dive deeper into building custom tools with validation, error handling, and advanced patterns for production use.
+
 # Chapter 7: Building Custom Tools
 
 In Chapter 6, we learned how to add tool calling capabilities to agents using simple closures. But as your applications grow more sophisticated, you'll need tools that are reusable, composable, and well-documented. You'll want to share tools across multiple agents, add validation logic, handle edge cases gracefully, and create libraries of functionality that other developers can use.
@@ -4538,6 +4544,7 @@ canonical `Tool` contract, use the convenience base class when it fits, and
 organize tools into reusable libraries.
 
 In the next chapter, we'll explore recursive tool execution - how agents can chain multiple tool calls together, handle complex multi-step workflows, and avoid infinite loops. You'll learn how Pagent's automatic recursion handling makes it easy to build agents that break down complex tasks into a series of tool calls.
+
 # Chapter 8: Recursive Tool Execution
 
 **Learning Objectives:**
@@ -5016,6 +5023,7 @@ In Chapter 9, we'll explore tool orchestration patterns, learning how to design 
 - [Anthropic Tool Use Guide](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)
 - [OpenAI Function Calling](https://platform.openai.com/docs/guides/function-calling)
 - [Pagent Source Code - Agent.php](https://github.com/hhelge/pagent/blob/main/src/Agent.php)
+
 # Chapter 9: Tool Orchestration Patterns
 
 **Learning Objectives:**
@@ -5660,6 +5668,7 @@ Now that you understand tool orchestration patterns, you're ready for:
 - **Part 6 (Chapters 18-20):** Multi-agent orchestration with pipelines, handoffs, and delegation
 
 Tool orchestration is where Pagent transforms from a simple chat interface into a powerful workflow engine. Master these patterns and you'll build sophisticated AI applications that blend LLM intelligence with deterministic reliability.
+
 # Chapter 10: Streaming Fundamentals
 
 In previous chapters, we've worked with the standard `prompt()` method - send a message, wait for the complete response, then display it. This works perfectly for many use cases, but what about scenarios where you want to show progress as the response generates? What about building a chatbot with that characteristic "typing" effect, or displaying long-form content word-by-word as it's created?
@@ -6178,6 +6187,7 @@ Streaming brings real-time responsiveness to your LLM applications. The key conc
 - All major providers support streaming with transparent format handling
 
 In the next chapter, we'll explore advanced streaming patterns including cancellation, progress tracking, and building complex streaming interfaces for production applications.
+
 # Chapter 11: Advanced Streaming Patterns
 
 In Chapter 10, we explored the basics of streaming responses - receiving LLM output token by token as it's generated. But production applications require more sophisticated streaming patterns. You need to handle errors gracefully, integrate streaming with conversation memory, track token usage and completion metadata, and build robust user interfaces that handle network interruptions.
@@ -6803,6 +6813,7 @@ In **Chapter 12: Memory Systems**, we'll explore:
 - Batch processing can reduce per-chunk overhead
 
 Continue to [Chapter 12: Memory Systems](./article.part12.md) →
+
 # Chapter 12: Memory Systems
 
 ## Why Memory Matters
@@ -7422,6 +7433,7 @@ In the next chapter, we'll explore **Events and Hooks** - how to tap into the ag
 - Automatic lazy loading and auto-save eliminate boilerplate
 - Session IDs organize conversations by user, workflow, or context
 - The `Memory` interface makes custom adapters straightforward
+
 # Chapter 13: Advanced Memory Patterns
 
 In the previous chapter, we explored basic memory persistence with SQLite and file-based storage. While those patterns work well for straightforward conversation history, real-world applications often demand more sophisticated memory management. What happens when conversations grow to thousands of messages? How do you implement semantic search across conversation history? What about hierarchical memory systems that summarize old context while preserving important details?
@@ -8052,6 +8064,7 @@ This architecture scales from dozens to thousands of concurrent conversations wh
 In this chapter, we've explored advanced memory patterns - from context window management to semantic search and hierarchical storage. You've learned how to build custom memory adapters, implement compression strategies, and optimize performance for production workloads.
 
 The next chapter moves to safety and reliability. We'll examine Pagent's guard system for detecting PII, filtering content, and protecting against prompt injection attacks - essential features for deploying LLM applications in production.
+
 # Chapter 14: Safety Guards
 
 ## Introduction
@@ -8718,6 +8731,7 @@ Pagent's guard system provides defense-in-depth for LLM applications. By layerin
 With guards in place, you can confidently deploy agents that handle sensitive data, comply with regulations, and protect against adversarial inputs.
 
 **Next:** In Chapter 15, we'll explore reliability patterns - retries, circuit breakers, and timeouts that keep your agents running smoothly even when LLM providers have issues.
+
 # Chapter 15: Reliability Patterns
 
 When building production LLM applications, you need to handle failures gracefully. Network requests time out. APIs return errors. Rate limits get hit. Unsafe content gets generated. In this chapter, we'll explore how Pagent helps you build resilient agents through fallback mechanisms, error handling strategies, and custom middleware patterns.
@@ -9388,6 +9402,7 @@ In Chapter 16, we'll explore multi-agent orchestration, learning how to coordina
 - [Circuit Breaker Pattern](https://martinfowler.com/bliki/CircuitBreaker.html)
 - [Exponential Backoff And Jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/)
 - [Pagent Middleware Implementation](https://github.com/hhelge/pagent/tree/main/src/Middleware)
+
 # Chapter 16: Multi-Agent Fundamentals
 
 ## Why Multiple Agents?
@@ -9577,7 +9592,7 @@ echo $finalAdvice->content;
 
 ## Pattern 2: Delegation
 
-**Delegation** implements a manager-worker pattern where a manager agent assigns tasks to worker agents and reviews their output. Unlike handoffs, delegation maintains the manager as the primary agent and creates a structured workflow.
+**Delegation** implements a manager-worker pattern where a manager agent assigns tasks to worker agents. Unlike handoffs, delegation maintains the manager as the primary agent and creates a structured workflow. Worker output is returned directly by default; manager review is explicit because it costs another provider call.
 
 ### Basic Delegation
 
@@ -9599,6 +9614,7 @@ $researcher = agent('researcher')
 // Manager delegates research task
 $result = $manager->delegate('Research the history of PHP')
     ->to('researcher')
+    ->review()
     ->execute();
 
 echo "Task: {$result->task}\n";
@@ -9613,7 +9629,7 @@ The result object contains:
 - `worker` - Name of the worker agent
 - `worker_output` - The worker's response
 - `manager` - Name of the manager agent
-- `manager_review` - Manager's summary/review
+- `manager_review` - Manager's summary/review when `review()` was requested; otherwise an empty compatibility value
 - `supervised` - Whether supervision was enabled
 
 ### Delegation with Supervision
@@ -10183,6 +10199,7 @@ assert($result === 'Expected output');
 ## What's Next
 
 You now understand the fundamentals of multi-agent orchestration: handoffs for conversation routing, delegation for manager-worker patterns, and pipelines for sequential processing. In the next chapter, we'll dive deeper into the **Pipeline Pattern**, exploring advanced techniques for building complex multi-stage workflows with error handling, transformations, and performance optimization.
+
 # Chapter 17: Pipeline Pattern
 
 In previous chapters, we've explored how individual agents handle tasks, how streaming enables real-time interactions, and how guards protect against unwanted outputs. But what happens when you need to process information through multiple stages, where each agent specializes in one aspect of the task? What if you want to extract data, transform it, validate it, and format it - each step performed by a different expert agent?
@@ -10819,6 +10836,7 @@ The Pipeline pattern brings structure and composability to complex agent workflo
 - Pipelines execute sequentially, one stage at a time
 
 In the next chapter, we'll explore the Workflow Orchestration system, which provides even more sophisticated control over agent execution including parallel processing, conditional branching, and complex multi-agent coordination.
+
 # Chapter 18: Handoff Pattern
 
 **Learning Objectives:**
@@ -11692,6 +11710,7 @@ Now that you understand handoffs, you're ready for:
 - **Chapter 21:** Advanced Multi-Agent Patterns - Complex workflows and coordination
 
 Handoffs are just the beginning. Combined with delegation and pipelines, you can build sophisticated multi-agent applications that handle complex workflows with ease.
+
 # Chapter 19: Delegation Pattern
 
 In complex AI applications, a single agent often can't handle every task effectively. Some tasks require specialized expertise, different system prompts, or distinct tool sets. The Delegation pattern solves this by allowing a manager agent to delegate specific tasks to specialized worker agents, review their work, and aggregate results.
@@ -11700,7 +11719,7 @@ This chapter explores Pagent's built-in delegation system. You'll learn how to d
 
 ## Understanding the Delegation Pattern
 
-Delegation in Pagent follows a manager-worker model. A manager agent receives a high-level task, identifies work that can be delegated, assigns it to a specialized worker agent, and reviews the results before synthesizing a final response.
+Delegation in Pagent follows a manager-worker model. A manager agent receives a high-level task and assigns it to a specialized worker agent. The worker result is returned directly unless `review()` is enabled, avoiding a hidden second provider call.
 
 ### Real-World Analogy
 
@@ -11789,6 +11808,7 @@ $worker = agent('backend-developer')
 // Delegate a task
 $result = $manager->delegate('Implement a JWT authentication middleware')
     ->to('backend-developer')
+    ->review()
     ->execute();
 
 // Inspect the result
@@ -11803,50 +11823,11 @@ echo "Manager Review:\n{$result->manager_review}\n";
 When you call `execute()`, the delegation follows this sequence:
 
 ```php
-// From src/Orchestration/Delegation.php:59-101
-public function execute(): object
-{
-    if (! isset($this->worker)) {
-        throw new RuntimeException('No worker agent assigned for delegation');
-    }
-
-    // Worker executes the task
-    $workerResponse = $this->worker->prompt($this->task);
-
-    // Supervisor reviews if provided
-    if ($this->supervisor) {
-        $review = ($this->supervisor)($workerResponse->content, $this->task);
-
-        if ($review === false) {
-            throw new RuntimeException("Supervisor rejected worker output");
-        }
-
-        if (is_string($review)) {
-            // Supervisor provided feedback, ask worker to revise
-            $workerResponse = $this->worker->prompt("Please revise based on this feedback: {$review}");
-        }
-    }
-
-    // Manager reviews the result
-    $managerPrompt = "Task: {$this->task}\n\nWorker ({$this->worker->getName()}) completed it with:\n{$workerResponse->content}\n\nProvide a brief summary.";
-    $managerReview = $this->manager->prompt($managerPrompt);
-
-    $result = (object) [
-        'task' => $this->task,
-        'worker' => $this->worker->getName(),
-        'worker_output' => $workerResponse->content,
-        'manager' => $this->manager->getName(),
-        'manager_review' => $managerReview->content,
-        'supervised' => $this->supervisor !== null,
-    ];
-
-    // Call completion callback if provided
-    if ($this->onComplete) {
-        ($this->onComplete)($result);
-    }
-
-    return $result;
-}
+$result = $manager->delegate('Implement JWT authentication')
+    ->to('backend-developer')
+    ->supervise($qualityCheck) // optional validation/revision callback
+    ->review()                 // optional manager summary/provider call
+    ->execute();
 ```
 
 The execution flow:
@@ -11855,7 +11836,7 @@ The execution flow:
 2. **Execute** - Worker agent processes the task via `prompt()`
 3. **Supervise** (optional) - Supervisor callback reviews worker output
 4. **Revise** (if needed) - Worker revises based on supervisor feedback
-5. **Review** - Manager agent reviews the final worker output
+5. **Review** (optional) - Manager agent summarizes the final worker output only when `review()` is enabled
 6. **Package** - Results are wrapped in a result object
 7. **Callback** (optional) - onComplete handler is invoked
 
@@ -12251,7 +12232,7 @@ $result->task;            // string - Original task description
 $result->worker;          // string - Worker agent name
 $result->worker_output;   // string - Worker's response content
 $result->manager;         // string - Manager agent name
-$result->manager_review;  // string - Manager's review/summary
+$result->manager_review;  // string - Manager's review/summary when review() was requested
 $result->supervised;      // bool - Whether supervision was used
 ```
 
@@ -12425,6 +12406,7 @@ In **Chapter 20: Building Multi-Agent Systems**, we'll explore:
 - Delegation provides more structure than handoff or pipeline patterns
 
 Continue to [Chapter 20: Evaluation Framework](./article.part20.md) →
+
 # Chapter 20: Evaluation Framework
 
 **Learning Objectives:**
@@ -13099,6 +13081,7 @@ This evaluation provides quantifiable metrics for accuracy, tone, and response l
 ---
 
 The evaluation framework transforms agent development from guesswork into engineering. With systematic testing, clear metrics, and reproducible results, you can iterate confidently and deploy with certainty.
+
 # Chapter 21: Testing Strategies
 
 ## Why Testing Matters for AI Agents
@@ -13659,6 +13642,7 @@ Testing AI agents requires a balanced approach: unit test the framework logic wi
 - Document behavior through clear, readable test names
 
 In the next chapter, we'll explore OpenTelemetry integration for monitoring agents in production, giving you visibility into LLM interactions, tool executions, and performance metrics.
+
 # Chapter 22: OpenTelemetry Integration
 
 In previous chapters, we've explored how to build sophisticated agent systems with memory, tools, and orchestration. But once your agent is running in production, how do you understand what's actually happening? How do you debug performance issues, track down errors, or optimize expensive LLM calls?
@@ -14170,6 +14154,7 @@ In this chapter, we've explored Pagent's OpenTelemetry integration:
 Observability transforms your agent from a black box into a well-understood system. You can see exactly what your agent is doing, identify performance bottlenecks, track costs, and debug errors with rich contextual information.
 
 In the next chapter, we'll explore debugging and monitoring techniques that build on this telemetry foundation, including token usage tracking, cost calculation, and performance profiling.
+
 # Chapter 23: Debugging and Monitoring
 
 Building LLM agents is one thing. Understanding how they behave in production is another. When your agent makes unexpected decisions, consumes more tokens than anticipated, or takes too long to respond, you need visibility into what's happening. This chapter explores Pagent's debugging and monitoring capabilities, from simple statistics tracking to comprehensive distributed tracing.
@@ -15082,6 +15067,7 @@ In **Chapter 24: Testing LLM Agents**, we'll explore:
 - Track costs by feature to inform capacity and pricing decisions
 
 Continue to [Chapter 24: Laravel and Symfony Integration](./article.part24.md) →
+
 # Chapter 24: Laravel and Symfony Integration
 
 Pagent is intentionally framework-agnostic - there are no built-in Laravel service providers, Symfony bundles, or framework-specific packages. This design choice keeps Pagent lightweight and portable, but it also means you'll need to integrate it manually with your framework of choice.
@@ -15944,6 +15930,7 @@ $response = $agent->prompt('Hello');
 You've learned how to integrate Pagent with Laravel and Symfony, creating clean, maintainable architectures that leverage framework strengths while keeping agent logic portable.
 
 In the next chapter, we'll explore custom middleware - building your own middleware to add rate limiting, caching, logging, and other cross-cutting concerns to your agent interactions.
+
 # Chapter 25: Custom Middleware
 
 In Chapter 24, we explored workflow patterns and orchestration. But what if you need to intercept and modify every agent interaction? What if you want to add logging, metrics collection, rate limiting, or caching to all your LLM calls without cluttering your business logic? What if you need an audit trail of every prompt and response that flows through your system?
@@ -16437,6 +16424,7 @@ Middleware provides a clean, composable way to add cross-cutting concerns to you
 The key insight is that middleware operates on the request/response cycle - transforming inputs before they reach the LLM and transforming outputs before they reach your code. This separation of concerns keeps your business logic clean while adding powerful capabilities through composition.
 
 In the next chapter, we'll explore performance optimization techniques - including how to use middleware to implement efficient caching strategies, reduce token usage, and minimize API latency. You'll learn how to make your agents faster and more cost-effective in production.
+
 # Chapter 26: Performance Optimization
 
 **Learning Objectives:**
@@ -17081,6 +17069,7 @@ This agent achieves:
 ---
 
 Performance optimization is an ongoing process. Start with built-in features like context windowing and schema caching, add custom caching middleware as needed, and use telemetry to identify bottlenecks. With these techniques, you can build agents that scale efficiently and deliver responsive user experiences while controlling costs.
+
 # Chapter 27: Production Deployment
 
 **Learning Objectives:**
@@ -18003,6 +17992,7 @@ Before deploying to production, verify:
 ---
 
 Production deployment transforms your agent from experiment to service. With proper configuration, security, observability, and error handling, you can deploy agents that are reliable, scalable, and maintainable. In the next chapter, we'll explore building complex multi-agent systems that coordinate to solve sophisticated problems.
+
 # Chapter 28: Building Complex Systems
 
 **Learning Objectives:**
@@ -18575,6 +18565,7 @@ $result = $delegation
             'supervised' => $result->supervised,
         ]);
     })
+    ->review()
     ->execute();
 
 echo "Manager review: {$result->manager_review}\n";

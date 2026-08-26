@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pagent\Streaming;
 
 use Generator;
-use RuntimeException;
 
 use function json_decode;
 use function str_starts_with;
@@ -15,7 +14,7 @@ use function trim;
 /**
  * Parses Server-Sent Events from OpenAI's streaming API
  */
-final class OpenAIStreamParser
+final class OpenAIStreamParser implements StreamParser
 {
     private string $accumulatedText = '';
 
@@ -66,7 +65,9 @@ final class OpenAIStreamParser
                     $reason = json_last_error() === JSON_ERROR_NONE
                         ? 'expected a JSON object'
                         : json_last_error_msg();
-                    throw new RuntimeException('Failed to parse SSE data: '.$reason);
+                    yield StreamChunk::error('Failed to parse SSE data: '.$reason);
+
+                    return;
                 }
 
                 $reportedFinishReason = $chunk['choices'][0]['finish_reason'] ?? null;

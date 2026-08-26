@@ -4,15 +4,57 @@ declare(strict_types=1);
 
 namespace Pagent\Tools;
 
-use RuntimeException;
+use Pagent\Exceptions\ConfigurationException;
+use Pagent\Exceptions\RuntimeException;
 
+/**
+ * Read file contents.
+ *
+ * By default reads are confined to the current working directory. Pass an
+ * explicit baseDir to confine to a different directory, or allowAnyPath: true
+ * to explicitly allow reading anywhere on the filesystem.
+ */
 final class FileRead extends Tool
 {
     public function __construct(
         private ?string $baseDir = null,
         private ?int $maxSize = null,
+        bool $allowAnyPath = false,
     ) {
         $this->maxSize = $maxSize ?? 10 * 1024 * 1024; // 10MB default
+        $this->baseDir = self::resolveBaseDir($baseDir, $allowAnyPath);
+    }
+
+    /**
+     * Shared baseDir policy for the file tools: default to getcwd(),
+     * allow unrestricted access only via an explicit allowAnyPath: true.
+     */
+    public static function resolveBaseDir(?string $baseDir, bool $allowAnyPath): ?string
+    {
+        if ($allowAnyPath) {
+            if ($baseDir !== null) {
+                throw new ConfigurationException(
+                    'baseDir and allowAnyPath: true are mutually exclusive. '
+                    .'Pass a baseDir to confine access, or allowAnyPath: true for unrestricted access.'
+                );
+            }
+
+            return null;
+        }
+
+        if ($baseDir !== null) {
+            return $baseDir;
+        }
+
+        $cwd = getcwd();
+        if ($cwd === false) {
+            throw new ConfigurationException(
+                'Cannot determine the current working directory for the default baseDir. '
+                .'Pass an explicit baseDir or allowAnyPath: true.'
+            );
+        }
+
+        return $cwd;
     }
 
     public function name(): string
@@ -77,24 +119,31 @@ final class FileRead extends Tool
 
     private function resolvePath(string $path): string
     {
-        // If baseDir is set, resolve relative to it
-        if ($this->baseDir !== null) {
-            $fullPath = $this->baseDir.DIRECTORY_SEPARATOR.$path;
+        if ($this->baseDir === null) {
+            // allowAnyPath mode - no confinement
+            $fullPath = $path;
+            $realBaseDir = null;
+        } else {
             $realBaseDir = realpath($this->baseDir);
 
             if ($realBaseDir === false) {
                 throw new RuntimeException('Invalid base directory');
             }
-        } else {
-            $fullPath = $path;
-            $realBaseDir = null;
+
+            // Absolute paths are used as-is (still checked for containment below);
+            // relative paths resolve against baseDir.
+            $fullPath = str_starts_with($path, DIRECTORY_SEPARATOR)
+                ? $path
+                : $realBaseDir.DIRECTORY_SEPARATOR.$path;
         }
 
         // Normalize the path first (before checking if it exists)
         $normalizedPath = $this->normalizePath($fullPath);
 
         // If baseDir is set, check for path traversal before checking existence
-        if ($realBaseDir !== null && ! str_starts_with($normalizedPath, $realBaseDir)) {
+        if ($realBaseDir !== null
+            && $normalizedPath !== $realBaseDir
+            && ! str_starts_with($normalizedPath, $realBaseDir.DIRECTORY_SEPARATOR)) {
             throw new RuntimeException("Path traversal detected: {$path}");
         }
 

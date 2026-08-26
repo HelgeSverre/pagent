@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Pagent\Agent;
 use Pagent\Orchestration\Delegation;
+use Pagent\Orchestration\DelegationResult;
 use Pagent\Registry;
 
 test('it creates delegation', function (): void {
@@ -39,12 +40,58 @@ test('it delegates task to worker', function (): void {
         ->to('worker')
         ->execute();
 
-    expect($result)->toBeObject()
+    expect($result)->toBeInstanceOf(DelegationResult::class)
         ->and($result->task)->toBe('Write a function')
+        ->and($result->workerAgent)->toBe('worker')
+        ->and($result->managerAgent)->toBe('manager')
+        ->and($result->output)->toBeString()
+        ->and($result->reviewed)->toBeFalse()
         ->and($result->worker)->toBe('worker')
         ->and($result->manager)->toBe('manager')
-        ->and($result->worker_output)->toBeString()
-        ->and($result->manager_review)->toBeString();
+        ->and($result->worker_output)->toBe($result->workerOutput)
+        ->and($result->manager_review)->toBe('')
+        ->and($result->supervised)->toBeFalse();
+});
+
+test('it supports opt-in manager review', function (): void {
+    $mockProvider = mock();
+    $managerAgent = new Agent('manager');
+    $managerAgent->provider($mockProvider);
+    Registry::set('manager', $managerAgent);
+
+    $workerAgent = new Agent('worker');
+    $workerAgent->provider($mockProvider);
+    Registry::set('worker', $workerAgent);
+
+    $result = \agent('manager')->delegate('Task')
+        ->to('worker')
+        ->review()
+        ->execute();
+
+    expect($result->reviewed)->toBeTrue()
+        ->and($result->output)->toBeString()
+        ->and($result->managerReview)->toBe($result->output)
+        ->and($result->manager_review)->toBe($result->output)
+        ->and($result->worker_output)->toBe($result->workerOutput);
+});
+
+test('it does not pollute registered agent histories', function (): void {
+    $mockProvider = mock();
+    $managerAgent = new Agent('manager');
+    $managerAgent->provider($mockProvider);
+    Registry::set('manager', $managerAgent);
+
+    $workerAgent = new Agent('worker');
+    $workerAgent->provider($mockProvider);
+    Registry::set('worker', $workerAgent);
+
+    \agent('manager')->delegate('Task')
+        ->to('worker')
+        ->review()
+        ->execute();
+
+    expect($workerAgent->messages)->toBeEmpty()
+        ->and($managerAgent->messages)->toBeEmpty();
 });
 
 test('it supports supervision', function (): void {
@@ -70,6 +117,7 @@ test('it supports supervision', function (): void {
         ->execute();
 
     expect($supervised)->toBeTrue()
+        ->and($result->output)->toBeString()
         ->and($result->supervised)->toBeTrue();
 });
 

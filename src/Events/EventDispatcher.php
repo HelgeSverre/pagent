@@ -15,6 +15,23 @@ use Closure;
 final class EventDispatcher
 {
     /**
+     * Stable identities per live listener object, shared across dispatchers.
+     *
+     * A WeakMap keyed by the listener object guarantees: the same object gets
+     * the same id in every dispatcher (cross-scope dedup keeps working), and
+     * a freed object's entry vanishes so a new object can never inherit its
+     * id (unlike spl_object_hash/spl_object_id, which PHP reuses after GC).
+     *
+     * @var \WeakMap<object, string>|null
+     */
+    private static ?\WeakMap $identities = null;
+
+    /**
+     * Monotonic counter backing the stable identities.
+     */
+    private static int $nextIdentity = 0;
+
+    /**
      * Registered listeners by event name.
      *
      * @var array<string, array<int, array{listener: EventListener, priority: int, id: string, delivery_id: string}>>
@@ -229,6 +246,12 @@ final class EventDispatcher
      */
     private function listenerId(Closure|EventListener $listener): string
     {
-        return ($listener instanceof Closure ? 'closure:' : 'listener:').spl_object_hash($listener);
+        $identities = self::$identities ??= new \WeakMap;
+
+        if (! isset($identities[$listener])) {
+            $identities[$listener] = 'listener#'.++self::$nextIdentity;
+        }
+
+        return $identities[$listener];
     }
 }

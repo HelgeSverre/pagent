@@ -13,11 +13,15 @@ use OpenTelemetry\SDK\Resource\ResourceInfoFactory;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use OpenTelemetry\SemConv\ResourceAttributes;
+use Pagent\Exceptions\InvalidArgumentException;
 use Pagent\Observability\Exporters\ConsoleExporter;
 use Pagent\Observability\Exporters\ExporterInterface;
+use Pagent\Observability\Exporters\InMemoryExporter;
 use Pagent\Observability\Exporters\JaegerExporter;
 use Pagent\Observability\Exporters\OTLPExporter;
 use Pagent\Observability\Exporters\ZipkinExporter;
+use Psr\Log\LoggerInterface;
+use Throwable;
 
 final class TelemetryManager
 {
@@ -52,9 +56,16 @@ final class TelemetryManager
             'service_version' => '0.7.0',
             'exporter' => 'console',
             'sampling_rate' => 1.0,
+            // Workflow/tool bodies may contain credentials or personal data.
+            // Content export is therefore explicit rather than implied by tracing.
+            'capture_content' => false,
         ], $config);
 
         $this->enabled = (bool) $this->config['enabled'];
+
+        if (isset($this->config['logger']) && ! $this->config['logger'] instanceof LoggerInterface) {
+            throw new InvalidArgumentException('Telemetry logger must implement Psr\\Log\\LoggerInterface');
+        }
 
         if ($this->enabled) {
             $this->setupTracerProvider();
@@ -80,6 +91,32 @@ final class TelemetryManager
     public function isEnabled(): bool
     {
         return $this->enabled;
+    }
+
+    /**
+     * Return content for a span only when explicitly enabled. An optional
+     * content_redactor callable can scrub the value before it leaves process.
+     */
+    public function contentForSpan(mixed $value): ?string
+    {
+        if (($this->config['capture_content'] ?? false) !== true) {
+            return null;
+        }
+
+        $content = is_string($value)
+            ? $value
+            : (json_encode($value) ?: get_debug_type($value));
+        $redactor = $this->config['content_redactor'] ?? null;
+        if (is_callable($redactor)) {
+            try {
+                $redacted = $redactor($content);
+                $content = is_string($redacted) ? $redacted : '[redacted]';
+            } catch (Throwable) {
+                $content = '[redacted]';
+            }
+        }
+
+        return mb_substr($content, 0, 1000);
     }
 
     public function startSpan(string $name, array $attributes = []): Span|NullSpan
@@ -135,10 +172,15 @@ final class TelemetryManager
 
     public function startToolSpan(string $toolName, array $arguments, array $attributes = []): Span|NullSpan
     {
+        $serialized = json_encode($arguments) ?: get_debug_type($arguments);
         $defaultAttributes = [
             'tool.name' => $toolName,
-            'tool.arguments' => json_encode($arguments, JSON_THROW_ON_ERROR),
+            'tool.arguments.size' => strlen($serialized),
         ];
+        $content = $this->contentForSpan($arguments);
+        if ($content !== null) {
+            $defaultAttributes['tool.arguments'] = $content;
+        }
 
         return $this->startSpan(
             'tool.execute',
@@ -243,14 +285,28 @@ final class TelemetryManager
 
         return match ($exporterType) {
             'console' => new ConsoleExporter($this->config['verbose'] ?? false),
+            'memory', 'inmemory' => $this->createInMemoryExporter(),
             'otlp' => new OTLPExporter($this->config['otlp'] ?? []),
             'jaeger' => new JaegerExporter($this->config['jaeger'] ?? []),
             'zipkin' => new ZipkinExporter(array_merge(
                 $this->config['zipkin'] ?? [],
                 ['service_name' => $this->config['service_name']]
-            )),
-            default => throw new \InvalidArgumentException("Unknown exporter: {$exporterType}"),
+            ), logger: $this->config['logger'] ?? null),
+            default => throw new InvalidArgumentException("Unknown exporter: {$exporterType}"),
         };
+    }
+
+    private function createInMemoryExporter(): ExporterInterface
+    {
+        $exporter = $this->config['inmemory']['instance'] ?? null;
+        if ($exporter === null) {
+            return new InMemoryExporter;
+        }
+        if (! $exporter instanceof ExporterInterface) {
+            throw new InvalidArgumentException('inmemory.instance must implement ExporterInterface');
+        }
+
+        return $exporter;
     }
 
     public static function reset(): void

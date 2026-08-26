@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Pagent\Tool;
 
 use Closure;
-use Pagent\Contracts\ToolInterface;
+use Pagent\Contracts\ToolInterface as ToolContract;
 use ReflectionFunction;
 use ReflectionNamedType;
 
-final readonly class Tool implements ToolInterface
+final readonly class Tool implements ToolContract
 {
     /**
      * @param  ToolArgument[]  $arguments
@@ -69,6 +69,16 @@ final readonly class Tool implements ToolInterface
     public function execute(array $arguments): mixed
     {
         ToolValidator::validate($this, $arguments);
+
+        if ($this->arguments !== []) {
+            // Drop hallucinated extra keys so the named-argument spread does
+            // not fatal with "Unknown named parameter" mid-conversation.
+            $declared = array_flip(array_map(
+                static fn (ToolArgument $arg): string => $arg->name,
+                $this->arguments,
+            ));
+            $arguments = array_intersect_key($arguments, $declared);
+        }
 
         return ($this->callable)(...$arguments);
     }

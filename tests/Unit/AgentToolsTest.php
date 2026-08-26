@@ -27,7 +27,7 @@ test('it executes tool by name', function (): void {
         fn (int $a, int $b) => $a + $b,
     );
 
-    $result = $agent->executeTool('add', [10, 5]);
+    $result = $agent->executeTool('add', ['a' => 10, 'b' => 5]);
 
     expect($result)->toBe(15);
 });
@@ -49,9 +49,9 @@ test('it supports multiple tools', function (): void {
     $tools = $agent->getTools();
 
     expect($tools)->toHaveCount(3)
-        ->and($agent->executeTool('add', [2, 3]))->toBe(5)
-        ->and($agent->executeTool('multiply', [4, 5]))->toBe(20)
-        ->and($agent->executeTool('greet', ['World']))->toBe('Hello, World!');
+        ->and($agent->executeTool('add', ['a' => 2, 'b' => 3]))->toBe(5)
+        ->and($agent->executeTool('multiply', ['a' => 4, 'b' => 5]))->toBe(20)
+        ->and($agent->executeTool('greet', ['name' => 'World']))->toBe('Hello, World!');
 });
 
 test('it chains tool configuration', function (): void {

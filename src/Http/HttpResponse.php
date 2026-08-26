@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pagent\Http;
 
-use UnexpectedValueException;
+use Pagent\Exceptions\UnexpectedValueException;
 
 final readonly class HttpResponse
 {

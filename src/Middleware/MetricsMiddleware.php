@@ -7,6 +7,7 @@ namespace Pagent\Middleware;
 use Pagent\Contracts\Middleware;
 
 use function array_column;
+use function array_pop;
 use function array_sum;
 use function count;
 use function microtime;
@@ -17,19 +18,26 @@ final class MetricsMiddleware implements Middleware
 {
     private array $metrics = [];
 
-    private ?float $startTime = null;
+    /**
+     * Stack of start times so nested/interleaved rounds are timed correctly.
+     *
+     * @var array<int, float>
+     */
+    private array $startTimes = [];
 
     public function before(string $message, array $options): array
     {
-        $this->startTime = microtime(true);
+        $this->startTimes[] = microtime(true);
 
         return $options;
     }
 
     public function after(object $response): object
     {
-        if ($this->startTime !== null) {
-            $duration = microtime(true) - $this->startTime;
+        $startTime = array_pop($this->startTimes);
+
+        if ($startTime !== null) {
+            $duration = microtime(true) - $startTime;
 
             $this->metrics[] = [
                 'timestamp' => time(),

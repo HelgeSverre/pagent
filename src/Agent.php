@@ -39,6 +39,8 @@ use Pagent\Events\Events\Tool\ToolErrorEvent;
 use Pagent\Events\Events\Tool\ToolExecutedEvent;
 use Pagent\Events\Events\Tool\ToolExecutingEvent;
 use Pagent\Exceptions\GuardException;
+use Pagent\Exceptions\InvalidArgumentException;
+use Pagent\Exceptions\RuntimeException;
 use Pagent\Guards\LegacyGuardAdapter;
 use Pagent\Memory\Adapters\FileAdapter;
 use Pagent\Memory\Adapters\NullAdapter;
@@ -55,7 +57,6 @@ use Pagent\Tool\ToolSchemaSerializer;
 use Pagent\Usage\Storage\UsageStorage;
 use Pagent\Usage\UsageData;
 use Pagent\Usage\UsageTracker;
-use RuntimeException;
 use Throwable;
 
 use function array_filter;
@@ -74,6 +75,7 @@ use function json_decode;
 use function json_encode;
 use function levenshtein;
 use function sprintf;
+use function str_replace;
 use function strlen;
 use function strtolower;
 use function ucfirst;
@@ -175,7 +177,7 @@ final class Agent
     public function temperature(float $temperature): self
     {
         if ($temperature < 0.0 || $temperature > 2.0) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 sprintf('Temperature must be between 0.0 and 2.0, got %.2f', $temperature)
             );
         }
@@ -188,7 +190,7 @@ final class Agent
     public function maxTokens(int $maxTokens): self
     {
         if ($maxTokens < 1) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 sprintf('Max tokens must be at least 1, got %d', $maxTokens)
             );
         }
@@ -780,9 +782,21 @@ final class Agent
             return $this;
         }
 
-        $fqcn = 'Pagent\\Guards\\'.ucfirst($guard).'Guard';
-        if (! class_exists($fqcn)) {
-            throw new RuntimeException("Guard class '{$fqcn}' not found");
+        // Explicit map: ucfirst()-based class guessing could never resolve
+        // PIIGuard ('pii' -> 'PiiGuard') or snake_case names.
+        $map = [
+            'pii' => Guards\PIIGuard::class,
+            'promptinjection' => Guards\PromptInjectionGuard::class,
+            'contentfilter' => Guards\ContentFilterGuard::class,
+        ];
+
+        $key = str_replace(['_', '-'], '', strtolower($guard));
+        $fqcn = $map[$key] ?? null;
+
+        if ($fqcn === null) {
+            throw new RuntimeException(
+                "Unknown guard '{$guard}'. Available: ".implode(', ', array_keys($map)),
+            );
         }
 
         $this->guards[] = new $fqcn;
@@ -924,10 +938,45 @@ final class Agent
     }
 
     /**
+     * Replace this agent's conversation history with an externally prepared
+     * context (e.g. a handoff transcript). Encapsulated so orchestration code
+     * does not have to reach into the message array directly.
+     *
+     * @param  array<int, array{role: string, content: string|array}>  $messages
+     */
+    public function adoptContext(array $messages): self
+    {
+        if ($this->turnInProgress) {
+            throw new RuntimeException('Cannot adopt a context while a turn is in progress.');
+        }
+
+        $previousMessages = $this->messages;
+        $previousSessionLoaded = $this->sessionLoaded;
+        $this->messages = $messages;
+        // An explicitly adopted context is authoritative. Do not replace it
+        // with a lazy session load on the next prompt.
+        $this->sessionLoaded = true;
+
+        try {
+            $committed = false;
+            $this->saveMemory($committed);
+        } catch (Throwable $exception) {
+            $this->messages = $previousMessages;
+            $this->sessionLoaded = $previousSessionLoaded;
+
+            throw $exception;
+        }
+
+        return $this;
+    }
+
+    /**
      * Export conversation history as JSON string.
      */
     public function exportConversation(): string
     {
+        $this->loadMemory();
+
         return json_encode([
             'agent' => $this->name,
             'messages' => $this->messages,
@@ -946,9 +995,7 @@ final class Agent
             throw new RuntimeException('Invalid conversation data format');
         }
 
-        $this->messages = $data['messages'];
-
-        return $this;
+        return $this->adoptContext($data['messages']);
     }
 
     /**
@@ -956,6 +1003,8 @@ final class Agent
      */
     public function getStats(): array
     {
+        $this->loadMemory();
+
         $totalMessages = count($this->messages);
         $userMessages = count(array_filter($this->messages, fn ($m) => $m['role'] === 'user'));
         $assistantMessages = count(array_filter($this->messages, fn ($m) => $m['role'] === 'assistant'));
@@ -987,6 +1036,8 @@ final class Agent
      */
     public function hasMessages(): bool
     {
+        $this->loadMemory();
+
         return ! empty($this->messages);
     }
 
@@ -995,6 +1046,8 @@ final class Agent
      */
     public function messageCount(): int
     {
+        $this->loadMemory();
+
         return count($this->messages);
     }
 
@@ -1005,6 +1058,8 @@ final class Agent
      */
     public function getMessages(): array
     {
+        $this->loadMemory();
+
         return $this->messages;
     }
 
@@ -1015,6 +1070,8 @@ final class Agent
      */
     public function getLastMessage(): ?array
     {
+        $this->loadMemory();
+
         if (empty($this->messages)) {
             return null;
         }
@@ -1027,6 +1084,8 @@ final class Agent
      */
     public function getLastAssistantMessage(): ?string
     {
+        $this->loadMemory();
+
         for ($i = count($this->messages) - 1; $i >= 0; $i--) {
             if ($this->messages[$i]['role'] === 'assistant') {
                 $content = $this->messages[$i]['content'];
@@ -1043,6 +1102,8 @@ final class Agent
      */
     public function getLastUserMessage(): ?string
     {
+        $this->loadMemory();
+
         for ($i = count($this->messages) - 1; $i >= 0; $i--) {
             if ($this->messages[$i]['role'] === 'user') {
                 $content = $this->messages[$i]['content'];
@@ -1564,13 +1625,15 @@ final class Agent
             ));
 
             $response = $this->provider->prompt($message, $options);
+            $responseProvider = $this->responseString($response, 'provider', $providerName);
+            $responseModel = $this->responseString($response, 'model', $model);
 
             // Fire after LLM response event
             $duration = (microtime(true) - $startTime) * 1000; // Convert to milliseconds
             $this->fireEvent(new AfterLLMResponseEvent(
                 $this,
-                $providerName,
-                $model,
+                $responseProvider,
+                $responseModel,
                 (array) $response,
                 $duration
             ));
@@ -1604,13 +1667,15 @@ final class Agent
             $response = $this->provider->prompt($message, $options);
 
             $this->addLLMSpanAttributes($llmSpan, $response);
+            $responseProvider = $this->responseString($response, 'provider', $providerName);
+            $responseModel = $this->responseString($response, 'model', $model);
 
             // Fire after LLM response event
             $duration = (microtime(true) - $startTime) * 1000; // Convert to milliseconds
             $this->fireEvent(new AfterLLMResponseEvent(
                 $this,
-                $providerName,
-                $model,
+                $responseProvider,
+                $responseModel,
                 (array) $response,
                 $duration
             ));
@@ -1795,6 +1860,14 @@ final class Agent
         $data = (array) $response;
 
         return is_string($data['content'] ?? null) ? $data['content'] : '';
+    }
+
+    private function responseString(object $response, string $property, string $fallback): string
+    {
+        $data = (array) $response;
+        $value = $data[$property] ?? null;
+
+        return is_string($value) && $value !== '' ? $value : $fallback;
     }
 
     private function getProviderProtocol(): string

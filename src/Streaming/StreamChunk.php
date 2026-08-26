@@ -22,7 +22,15 @@ final class StreamChunk
      */
     public function isText(): bool
     {
-        return $this->type === 'text' || $this->type === 'content_block_delta';
+        return $this->type === 'text';
+    }
+
+    /**
+     * Check if this is a thinking (extended reasoning) chunk
+     */
+    public function isThinking(): bool
+    {
+        return $this->type === 'thinking_delta';
     }
 
     /**
@@ -38,7 +46,7 @@ final class StreamChunk
      */
     public function isStart(): bool
     {
-        return $this->type === 'message_start' || $this->type === 'start';
+        return $this->type === 'start';
     }
 
     /**
@@ -46,7 +54,7 @@ final class StreamChunk
      */
     public function isEnd(): bool
     {
-        return $this->type === 'message_stop' || $this->type === 'done' || $this->isComplete;
+        return $this->type === 'done' || $this->isComplete;
     }
 
     /**

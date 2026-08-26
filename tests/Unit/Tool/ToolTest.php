@@ -25,9 +25,30 @@ test('it executes tool callable', function (): void {
         fn (int $a, int $b) => $a + $b,
     );
 
-    $result = $tool->execute([5, 3]);
+    $result = $tool->execute(['a' => 5, 'b' => 3]);
 
     expect($result)->toBe(8);
+});
+
+test('it ignores hallucinated extra keys during execution', function (): void {
+    $tool = Tool::fromClosure(
+        'add',
+        'Add two numbers',
+        fn (int $a, int $b) => $a + $b,
+    );
+
+    expect($tool->execute(['a' => 5, 'b' => 3, 'unit' => 'metric']))->toBe(8);
+});
+
+test('it still fails validation for missing required keys', function (): void {
+    $tool = Tool::fromClosure(
+        'add',
+        'Add two numbers',
+        fn (int $a, int $b) => $a + $b,
+    );
+
+    expect(fn () => $tool->execute(['a' => 5, 'extra' => 1]))
+        ->toThrow(RuntimeException::class, 'missing required argument: b');
 });
 
 test('it generates anthropic schema', function (): void {

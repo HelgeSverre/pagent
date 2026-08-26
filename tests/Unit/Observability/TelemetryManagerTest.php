@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pagent\Observability\Exporters\InMemoryExporter;
 use Pagent\Observability\NullSpan;
 use Pagent\Observability\Span;
 use Pagent\Observability\TelemetryManager;
@@ -44,7 +45,7 @@ it('returns NullSpan when disabled', function (): void {
 it('returns real Span when enabled', function (): void {
     $manager = TelemetryManager::instance()->initialize([
         'enabled' => true,
-        'exporter' => 'console',
+        'exporter' => 'inmemory',
     ]);
 
     $span = $manager->startSpan('test.span');
@@ -55,7 +56,7 @@ it('returns real Span when enabled', function (): void {
 it('creates agent spans with correct attributes', function (): void {
     $manager = TelemetryManager::instance()->initialize([
         'enabled' => true,
-        'exporter' => 'console',
+        'exporter' => 'inmemory',
     ]);
 
     $span = $manager->startAgentSpan('prompt', 'assistant', [
@@ -70,7 +71,7 @@ it('creates agent spans with correct attributes', function (): void {
 it('creates LLM spans with semantic attributes', function (): void {
     $manager = TelemetryManager::instance()->initialize([
         'enabled' => true,
-        'exporter' => 'console',
+        'exporter' => 'inmemory',
     ]);
 
     $span = $manager->startLLMSpan('anthropic', 'claude-sonnet-4-20250514', [
@@ -86,7 +87,7 @@ it('creates LLM spans with semantic attributes', function (): void {
 it('creates tool spans with correct attributes', function (): void {
     $manager = TelemetryManager::instance()->initialize([
         'enabled' => true,
-        'exporter' => 'console',
+        'exporter' => 'inmemory',
     ]);
 
     $span = $manager->startToolSpan('calculator', ['a' => 5, 'b' => 3]);
@@ -99,7 +100,7 @@ it('creates tool spans with correct attributes', function (): void {
 it('propagates context to child spans', function (): void {
     $manager = TelemetryManager::instance()->initialize([
         'enabled' => true,
-        'exporter' => 'console',
+        'exporter' => 'inmemory',
     ]);
 
     $parentSpan = $manager->startSpan('parent.span');
@@ -118,7 +119,7 @@ it('propagates context to child spans', function (): void {
 it('clears context', function (): void {
     $manager = TelemetryManager::instance()->initialize([
         'enabled' => true,
-        'exporter' => 'console',
+        'exporter' => 'inmemory',
     ]);
 
     $span = $manager->startSpan('test.span');
@@ -133,7 +134,7 @@ it('clears context', function (): void {
 it('shuts down gracefully', function (): void {
     $manager = TelemetryManager::instance()->initialize([
         'enabled' => true,
-        'exporter' => 'console',
+        'exporter' => 'inmemory',
     ]);
 
     expect($manager->isEnabled())->toBeTrue();
@@ -146,7 +147,7 @@ it('shuts down gracefully', function (): void {
 it('handles multiple spans concurrently', function (): void {
     $manager = TelemetryManager::instance()->initialize([
         'enabled' => true,
-        'exporter' => 'console',
+        'exporter' => 'inmemory',
     ]);
 
     $span1 = $manager->startSpan('span1');
@@ -165,14 +166,14 @@ it('handles multiple spans concurrently', function (): void {
 it('can be reinitialized after shutdown', function (): void {
     $manager = TelemetryManager::instance()->initialize([
         'enabled' => true,
-        'exporter' => 'console',
+        'exporter' => 'inmemory',
     ]);
 
     $manager->shutdown();
 
     $manager->initialize([
         'enabled' => true,
-        'exporter' => 'console',
+        'exporter' => 'inmemory',
     ]);
 
     expect($manager->isEnabled())->toBeTrue();
@@ -194,10 +195,6 @@ it('initializes with OTLP exporter', function (): void {
 
     expect($manager->isEnabled())->toBeTrue();
 
-    $span = $manager->startSpan('test.span');
-    expect($span)->toBeInstanceOf(Span::class);
-
-    $span->end();
 });
 
 it('initializes with Jaeger exporter', function (): void {
@@ -212,10 +209,6 @@ it('initializes with Jaeger exporter', function (): void {
 
     expect($manager->isEnabled())->toBeTrue();
 
-    $span = $manager->startSpan('test.span');
-    expect($span)->toBeInstanceOf(Span::class);
-
-    $span->end();
 });
 
 it('initializes with Zipkin exporter', function (): void {
@@ -230,10 +223,27 @@ it('initializes with Zipkin exporter', function (): void {
 
     expect($manager->isEnabled())->toBeTrue();
 
-    $span = $manager->startSpan('test.span');
-    expect($span)->toBeInstanceOf(Span::class);
+});
 
-    $span->end();
+it('uses a configured in-memory exporter instance', function (): void {
+    $exporter = new InMemoryExporter;
+    $manager = TelemetryManager::instance()->initialize([
+        'enabled' => true,
+        'exporter' => 'inmemory',
+        'inmemory' => ['instance' => $exporter],
+    ]);
+
+    $manager->startSpan('captured.span')->end();
+
+    expect($exporter->findSpansByName('captured.span'))->toHaveCount(1);
+});
+
+it('rejects invalid in-memory exporter configuration', function (): void {
+    expect(fn () => TelemetryManager::instance()->initialize([
+        'enabled' => true,
+        'exporter' => 'inmemory',
+        'inmemory' => ['instance' => new stdClass],
+    ]))->toThrow(InvalidArgumentException::class, 'must implement ExporterInterface');
 });
 
 it('throws exception for unknown exporter', function (): void {

@@ -18,6 +18,12 @@ final class FakeTransport implements McpTransport
 
     private int $requestIndex = 0;
 
+    /** @var (callable(array<string, mixed>): void)|null */
+    private $notificationHandler = null;
+
+    /** @var array<int, array<string, mixed>> Notifications to emit before the next response */
+    private array $pendingNotifications = [];
+
     /**
      * Queue a response for the next sendRequest() call.
      *
@@ -43,11 +49,35 @@ final class FakeTransport implements McpTransport
         return $this->connected;
     }
 
+    /**
+     * Queue a server notification to be delivered before the next response,
+     * mimicking a real transport that receives notifications mid-request.
+     *
+     * @param  array<string, mixed>  $notification
+     */
+    public function queueNotification(array $notification): void
+    {
+        $this->pendingNotifications[] = $notification;
+    }
+
+    public function setNotificationHandler(?callable $handler): void
+    {
+        $this->notificationHandler = $handler;
+    }
+
     public function sendRequest(array $request): array
     {
         if (! $this->connected) {
             throw new \RuntimeException('Not connected');
         }
+
+        // Deliver pending server notifications first, as a real read loop would
+        foreach ($this->pendingNotifications as $notification) {
+            if ($this->notificationHandler !== null) {
+                ($this->notificationHandler)($notification);
+            }
+        }
+        $this->pendingNotifications = [];
 
         if (! isset($this->requestResponses[$this->requestIndex])) {
             throw new \RuntimeException('No response queued for request');

@@ -145,9 +145,23 @@ if (! function_exists('evaluate')) {
     }
 }
 
+if (! function_exists('workflow')) {
+    /**
+     * Create a workflow pipeline — the canonical API for sequential
+     * agent/transform steps with per-step results and metadata.
+     */
+    function workflow(string $name): Pagent\Workflow\Pipeline
+    {
+        return Pagent\Workflow\Pipeline::create($name);
+    }
+}
+
 if (! function_exists('pipeline')) {
     /**
      * Create a pipeline for sequential agent execution.
+     *
+     * This returns the legacy orchestration facade for backwards
+     * compatibility; prefer workflow() for new code.
      */
     function pipeline(string $name): Pipeline
     {

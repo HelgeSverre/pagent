@@ -13,6 +13,13 @@ use Throwable;
 final class CurlTransport implements HttpClientInterface
 {
     /**
+     * @param  string|null  $provider  Telemetry provider label; falls back to guessing from the URL host when unset.
+     */
+    public function __construct(
+        private readonly ?string $provider = null,
+    ) {}
+
+    /**
      * @param  array<string, string>  $headers
      * @param  array<string, mixed>|string|null  $json
      * @param  array<string, mixed>  $options
@@ -455,7 +462,7 @@ final class CurlTransport implements HttpClientInterface
         }
 
         return $telemetry->startLLMSpan(
-            provider: $this->extractProvider($url),
+            provider: $this->provider ?? $this->extractProvider($url),
             model: $model ?? 'unknown',
             attributes: [
                 'http.method' => $method,

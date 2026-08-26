@@ -10,6 +10,7 @@ use Pagent\Events\Events\LLM\AfterLLMResponseEvent;
 use Pagent\Mcp\McpClient;
 use Pagent\Mcp\McpToolAdapter;
 use Pagent\ProviderCapabilities;
+use Pagent\Response;
 use Pagent\Usage\UsageTracker;
 use Tests\Unit\Mcp\Transports\FakeTransport;
 
@@ -160,6 +161,45 @@ test('identified third-party providers receive their declared identity and tool 
     expect($providerIds)->toBe(['opencode'])
         ->and($provider->options['tools'][0]['type'])->toBe('function')
         ->and($provider->options['tools'][0]['function']['name'])->toBe('lookup');
+});
+
+test('response events report the model and provider that actually served the request', function (): void {
+    $provider = new class implements IdentifiedProvider
+    {
+        public function prompt(string $message, array $options = []): object
+        {
+            return new Response(
+                content: 'ok',
+                model: 'actual-model',
+                provider: 'actual-gateway',
+                usage: ['prompt_tokens' => 4, 'completion_tokens' => 2],
+            );
+        }
+
+        public function providerId(): string
+        {
+            return 'configured-gateway';
+        }
+
+        public function capabilities(): ProviderCapabilities
+        {
+            return new ProviderCapabilities;
+        }
+    };
+
+    $seen = null;
+    $agent = (new Agent('actual-response'))->provider($provider)->model('requested-model');
+    $agent->on('after_llm_response', function (AfterLLMResponseEvent $event) use (&$seen): void {
+        $seen = $event;
+    });
+
+    $response = $agent->prompt('hello');
+
+    expect($seen->provider)->toBe('actual-gateway')
+        ->and($seen->model)->toBe('actual-model')
+        ->and($response->usage['input_tokens'])->toBe(4)
+        ->and($response->usage['output_tokens'])->toBe(2)
+        ->and($response->usage['total_tokens'])->toBe(6);
 });
 
 test('global usage tracking receives each real agent provider response exactly once', function (): void {

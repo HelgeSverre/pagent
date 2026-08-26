@@ -6,11 +6,15 @@ namespace Pagent\Orchestration;
 
 use Closure;
 use Pagent\Agent;
+use Pagent\Exceptions\RuntimeException;
 use Pagent\Registry;
 use Pagent\Workflow\Pipeline as WorkflowPipeline;
-use RuntimeException;
+use Pagent\Workflow\StepResult;
+use Pagent\Workflow\WorkflowException;
+use Pagent\Workflow\WorkflowResult;
 use Throwable;
 
+use function count;
 use function is_string;
 use function json_encode;
 use function resolveAgent;
@@ -28,7 +32,10 @@ final class Pipeline
 
     private ?Closure $errorHandler = null;
 
-    private array $results = [];
+    private ?WorkflowResult $workflowResult = null;
+
+    /** @var list<StepResult> */
+    private array $lastSteps = [];
 
     public function __construct(
         private readonly string $name,
@@ -44,6 +51,11 @@ final class Pipeline
         return $this;
     }
 
+    /**
+     * Register an error handler invoked as ($exception, $completedStages, $agentName).
+     * The handler's return value becomes the result of run() for the failed
+     * pipeline; run() does not rethrow when a handler is set.
+     */
     public function onError(Closure $handler): self
     {
         $this->errorHandler = $handler;
@@ -53,11 +65,12 @@ final class Pipeline
 
     public function run(mixed $input): mixed
     {
-        $this->results = [];
+        $this->workflowResult = null;
+        $this->lastSteps = [];
         $workflow = WorkflowPipeline::create($this->name);
 
         foreach ($this->stages as $index => $stage) {
-            $agentName = is_string($stage['agent']) ? $stage['agent'] : $stage['agent']->getName();
+            $agentName = $this->stageAgentName($index);
 
             $workflow->operation(
                 "stage_{$index}",
@@ -70,17 +83,8 @@ final class Pipeline
                     $stageInput = $stage['transform']
                         ? ($stage['transform'])($previous)
                         : $this->promptInput($previous);
-                    $response = $agent->prompt($stageInput);
 
-                    $this->results[] = [
-                        'stage' => $index,
-                        'agent' => $agentName,
-                        'input' => $stageInput,
-                        'output' => $response->content,
-                        'response' => $response,
-                    ];
-
-                    return $response;
+                    return $agent->prompt($stageInput);
                 },
                 $stage['agent'] instanceof Agent ? $stage['agent'] : Registry::get($stage['agent']),
                 $agentName,
@@ -88,25 +92,59 @@ final class Pipeline
         }
 
         try {
-            return $workflow->run($input)->final;
+            $result = $workflow->run($input);
+            $this->workflowResult = $result;
+            $this->lastSteps = $result->steps;
+
+            return $result->final;
         } catch (Throwable $exception) {
-            if ($this->errorHandler !== null) {
-                return ($this->errorHandler)($exception, count($this->results), $this->failedAgentName());
+            $original = $exception;
+            if ($exception instanceof WorkflowException) {
+                $this->lastSteps = $exception->partialResults;
+                $original = $exception->getPrevious() ?? $exception;
             }
 
-            $stage = count($this->results);
-            $agentName = $this->failedAgentName();
+            $stage = count($this->lastSteps);
+            $agentName = $this->stageAgentName($stage);
+
+            if ($this->errorHandler !== null) {
+                return ($this->errorHandler)($original, $stage, $agentName);
+            }
 
             throw new RuntimeException(
-                "Pipeline '{$this->name}' failed at stage {$stage} (agent: {$agentName}): {$exception->getMessage()}",
-                previous: $exception,
+                "Pipeline '{$this->name}' failed at stage {$stage} (agent: {$agentName}): {$original->getMessage()}",
+                previous: $original,
             );
         }
     }
 
+    /**
+     * Per-stage results of the most recent run() (including completed stages
+     * of a failed run), derived from the workflow step results.
+     */
     public function getResults(): array
     {
-        return $this->results;
+        $results = [];
+
+        foreach ($this->lastSteps as $index => $step) {
+            $results[] = [
+                'stage' => $index,
+                'agent' => $step->agent,
+                'input' => $step->input,
+                'output' => $step->output,
+                'response' => $step->response,
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * The full WorkflowResult of the last successful run(), or null.
+     */
+    public function getWorkflowResult(): ?WorkflowResult
+    {
+        return $this->workflowResult;
     }
 
     public function getName(): string
@@ -119,9 +157,9 @@ final class Pipeline
         return is_string($value) ? $value : json_encode($value, JSON_THROW_ON_ERROR);
     }
 
-    private function failedAgentName(): string
+    private function stageAgentName(int $index): string
     {
-        $stage = $this->stages[count($this->results)] ?? null;
+        $stage = $this->stages[$index] ?? null;
 
         if ($stage === null) {
             return 'unknown';

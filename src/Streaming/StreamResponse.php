@@ -6,8 +6,9 @@ namespace Pagent\Streaming;
 
 use Closure;
 use Generator;
-use LogicException;
-use RuntimeException;
+use Pagent\Exceptions\LogicException;
+use Pagent\Exceptions\RuntimeException;
+use Pagent\Usage\UsageNormalizer;
 use Throwable;
 
 /**
@@ -289,7 +290,8 @@ final class StreamResponse
 
         if ($chunk->isEnd()) {
             $this->sawTerminalChunk = true;
-            $this->usage = $chunk->getMetadata('usage');
+            $usage = $chunk->getMetadata('usage');
+            $this->usage = UsageNormalizer::normalize(is_array($usage) ? $usage : null);
             $this->stopReason = $chunk->getMetadata('stop_reason', $chunk->getMetadata('finish_reason'));
         }
     }

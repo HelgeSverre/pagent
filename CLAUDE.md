@@ -23,7 +23,7 @@
 
 ## Architecture
 
-- **PHP 8.3+** library for LLM interaction with Pest-inspired fluent API
+- **PHP 8.4+** library for LLM interaction with Pest-inspired fluent API
 - **src/**: Core code with PSR-4 autoloading (`Pagent\` namespace)
   - `Agent.php`, `AgentBuilder.php`, `Registry.php`: Core agent management
   - `functions.php`: Global helper functions (`agent()`, `anthropic()`, `openai()`, `mock()`)
@@ -34,7 +34,7 @@
 
 ## Code Style
 
-- **PHP 8.3** features, strict types (`declare(strict_types=1);` on every file)
+- **PHP 8.4** features, strict types (`declare(strict_types=1);` on every file)
 - **PER preset** with Laravel Pint, strict comparison, final classes, Yoda style
 - **Imports**: Fully qualified with alpha sorting, global namespace imports enabled
 - **Spacing**: Concat with spaces (`'hello' . 'world'`), not operator with space

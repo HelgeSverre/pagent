@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pagent\Contracts;
 
-use InvalidArgumentException;
-use RuntimeException;
+use Pagent\Exceptions\InvalidArgumentException;
+use Pagent\Exceptions\RuntimeException;
 
 /**
  * Memory interface for persistent conversation storage
@@ -69,6 +69,9 @@ interface Memory
      * Prune old messages from a session
      *
      * Keeps the most recent N messages. System messages should be preserved.
+     *
+     * @deprecated Use ContextManager for token-aware pruning instead; message-count
+     *             pruning is unaware of tool-call pairing and token budgets.
      *
      * @param  string  $sessionId  Unique session identifier
      * @param  int  $maxMessages  Maximum number of messages to keep

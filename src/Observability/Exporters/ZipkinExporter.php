@@ -11,6 +11,8 @@ use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\Psr18Client;
 use Throwable;
 
@@ -26,15 +28,21 @@ final class ZipkinExporter implements ExporterInterface
 
     private readonly string $serviceName;
 
-    public function __construct(array $config = [])
-    {
+    private readonly LoggerInterface $logger;
+
+    public function __construct(
+        array $config = [],
+        ?ClientInterface $client = null,
+        ?LoggerInterface $logger = null,
+    ) {
         $this->endpoint = $config['endpoint'] ?? 'http://localhost:9411/api/v2/spans';
         $this->serviceName = $config['service_name'] ?? 'pagent';
 
         $psr18Client = new Psr18Client;
-        $this->client = $psr18Client;
+        $this->client = $client ?? $psr18Client;
         $this->requestFactory = $psr18Client;
         $this->streamFactory = $psr18Client;
+        $this->logger = $logger ?? new NullLogger;
     }
 
     public function export(iterable $spans, ?CancellationInterface $cancellation = null): FutureInterface
@@ -61,7 +69,9 @@ final class ZipkinExporter implements ExporterInterface
 
             return new CompletedFuture($success);
         } catch (Throwable $e) {
-            error_log("Failed to export spans to Zipkin: {$e->getMessage()}");
+            $this->logger->warning('Failed to export spans to Zipkin', [
+                'exception' => $e,
+            ]);
 
             return new CompletedFuture(false);
         }

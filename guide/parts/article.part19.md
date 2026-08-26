@@ -6,7 +6,7 @@ This chapter explores Pagent's built-in delegation system. You'll learn how to d
 
 ## Understanding the Delegation Pattern
 
-Delegation in Pagent follows a manager-worker model. A manager agent receives a high-level task, identifies work that can be delegated, assigns it to a specialized worker agent, and reviews the results before synthesizing a final response.
+Delegation in Pagent follows a manager-worker model. A manager agent receives a high-level task and assigns it to a specialized worker agent. The worker result is returned directly unless `review()` is enabled, avoiding a hidden second provider call.
 
 ### Real-World Analogy
 
@@ -95,6 +95,7 @@ $worker = agent('backend-developer')
 // Delegate a task
 $result = $manager->delegate('Implement a JWT authentication middleware')
     ->to('backend-developer')
+    ->review()
     ->execute();
 
 // Inspect the result
@@ -109,50 +110,11 @@ echo "Manager Review:\n{$result->manager_review}\n";
 When you call `execute()`, the delegation follows this sequence:
 
 ```php
-// From src/Orchestration/Delegation.php:59-101
-public function execute(): object
-{
-    if (! isset($this->worker)) {
-        throw new RuntimeException('No worker agent assigned for delegation');
-    }
-
-    // Worker executes the task
-    $workerResponse = $this->worker->prompt($this->task);
-
-    // Supervisor reviews if provided
-    if ($this->supervisor) {
-        $review = ($this->supervisor)($workerResponse->content, $this->task);
-
-        if ($review === false) {
-            throw new RuntimeException("Supervisor rejected worker output");
-        }
-
-        if (is_string($review)) {
-            // Supervisor provided feedback, ask worker to revise
-            $workerResponse = $this->worker->prompt("Please revise based on this feedback: {$review}");
-        }
-    }
-
-    // Manager reviews the result
-    $managerPrompt = "Task: {$this->task}\n\nWorker ({$this->worker->getName()}) completed it with:\n{$workerResponse->content}\n\nProvide a brief summary.";
-    $managerReview = $this->manager->prompt($managerPrompt);
-
-    $result = (object) [
-        'task' => $this->task,
-        'worker' => $this->worker->getName(),
-        'worker_output' => $workerResponse->content,
-        'manager' => $this->manager->getName(),
-        'manager_review' => $managerReview->content,
-        'supervised' => $this->supervisor !== null,
-    ];
-
-    // Call completion callback if provided
-    if ($this->onComplete) {
-        ($this->onComplete)($result);
-    }
-
-    return $result;
-}
+$result = $manager->delegate('Implement JWT authentication')
+    ->to('backend-developer')
+    ->supervise($qualityCheck) // optional validation/revision callback
+    ->review()                 // optional manager summary/provider call
+    ->execute();
 ```
 
 The execution flow:
@@ -161,7 +123,7 @@ The execution flow:
 2. **Execute** - Worker agent processes the task via `prompt()`
 3. **Supervise** (optional) - Supervisor callback reviews worker output
 4. **Revise** (if needed) - Worker revises based on supervisor feedback
-5. **Review** - Manager agent reviews the final worker output
+5. **Review** (optional) - Manager agent summarizes the final worker output only when `review()` is enabled
 6. **Package** - Results are wrapped in a result object
 7. **Callback** (optional) - onComplete handler is invoked
 
@@ -557,7 +519,7 @@ $result->task;            // string - Original task description
 $result->worker;          // string - Worker agent name
 $result->worker_output;   // string - Worker's response content
 $result->manager;         // string - Manager agent name
-$result->manager_review;  // string - Manager's review/summary
+$result->manager_review;  // string - Manager's review/summary when review() was requested
 $result->supervised;      // bool - Whether supervision was used
 ```
 

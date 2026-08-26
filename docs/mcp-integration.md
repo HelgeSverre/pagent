@@ -22,7 +22,7 @@ use Pagent\Mcp\Transports\StdioTransport;
 
 // 1. Create transport to MCP server
 $transport = new StdioTransport(
-    command: 'npx @modelcontextprotocol/server-filesystem /tmp'
+    command: ['npx', '-y', '@modelcontextprotocol/server-filesystem', '/tmp']
 );
 
 // 2. Create and connect client
@@ -56,12 +56,19 @@ For MCP servers that run as local processes:
 use Pagent\Mcp\Transports\StdioTransport;
 
 $transport = new StdioTransport(
-    command: 'npx @modelcontextprotocol/server-filesystem /path/to/dir',
+    command: ['npx', '-y', '@modelcontextprotocol/server-filesystem', '/path/to/dir'],
     cwd: __DIR__,           // Working directory (optional)
-    env: [],                // Environment variables (optional)
+    env: [],                // Augments/overrides the inherited environment (optional)
     timeoutMs: 30000        // Timeout in milliseconds (default: 30000)
 );
 ```
+
+Argv arrays are passed directly to the child process and never interpreted by
+a shell. Legacy command strings are safely tokenized for compatibility and
+reject shell operators. If a trusted command genuinely requires pipes or
+redirection, opt in explicitly with
+`StdioTransport::fromShellCommand($command)`; never pass user-controlled input
+to that factory.
 
 **Use cases:**
 
@@ -288,7 +295,7 @@ npm install -g @modelcontextprotocol/server-filesystem
 
 ```php
 $transport = new StdioTransport(
-    command: 'npx @modelcontextprotocol/server-filesystem /allowed/directory'
+    command: ['npx', '-y', '@modelcontextprotocol/server-filesystem', '/allowed/directory']
 );
 ```
 
@@ -302,7 +309,7 @@ npm install -g @modelcontextprotocol/server-github
 
 ```php
 $transport = new StdioTransport(
-    command: 'npx @modelcontextprotocol/server-github',
+    command: ['npx', '-y', '@modelcontextprotocol/server-github'],
     env: ['GITHUB_TOKEN' => $token]
 );
 ```
@@ -317,7 +324,7 @@ npm install -g @modelcontextprotocol/server-memory
 
 ```php
 $transport = new StdioTransport(
-    command: 'npx @modelcontextprotocol/server-memory'
+    command: ['npx', '-y', '@modelcontextprotocol/server-memory']
 );
 ```
 
@@ -331,7 +338,7 @@ npm install -g @modelcontextprotocol/server-brave-search
 
 ```php
 $transport = new StdioTransport(
-    command: 'npx @modelcontextprotocol/server-brave-search',
+    command: ['npx', '-y', '@modelcontextprotocol/server-brave-search'],
     env: ['BRAVE_API_KEY' => $apiKey]
 );
 ```
@@ -376,7 +383,7 @@ use Pagent\Events\Events\Mcp\McpToolCalledEvent;
 
 // Setup
 $transport = new StdioTransport(
-    command: 'npx @modelcontextprotocol/server-filesystem /home/user/documents'
+    command: ['npx', '-y', '@modelcontextprotocol/server-filesystem', '/home/user/documents']
 );
 
 $client = new McpClient($transport, 'my-app', '1.0.0');

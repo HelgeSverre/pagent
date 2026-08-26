@@ -8,6 +8,7 @@ use Pagent\Mcp\Exceptions\McpConnectionException;
 use Pagent\Mcp\Exceptions\McpProtocolException;
 use Pagent\Mcp\Exceptions\McpTimeoutException;
 use Pagent\Mcp\McpTransport;
+use Throwable;
 
 /**
  * HTTP with Server-Sent Events (SSE) transport for MCP.
@@ -27,6 +28,9 @@ final class HttpSseTransport implements McpTransport
     private array $responseBuffer = [];
 
     private string $sseBuffer = '';
+
+    /** @var (callable(array<string, mixed>): void)|null */
+    private $notificationHandler = null;
 
     /** @var resource|false|null */
     private $sseHandle = null;
@@ -91,7 +95,13 @@ final class HttpSseTransport implements McpTransport
         $this->connected = true;
 
         // Wait for the endpoint event from the server
-        $this->waitForEndpointEvent();
+        try {
+            $this->waitForEndpointEvent();
+        } catch (Throwable $exception) {
+            $this->disconnect();
+
+            throw $exception;
+        }
     }
 
     /**
@@ -151,6 +161,12 @@ final class HttpSseTransport implements McpTransport
 
         // Wait for response from SSE stream
         return $this->waitForResponse($requestId);
+    }
+
+    /** @param (callable(array<string, mixed>): void)|null $handler */
+    public function setNotificationHandler(?callable $handler): void
+    {
+        $this->notificationHandler = $handler;
     }
 
     public function sendNotification(array $notification): void
@@ -348,8 +364,18 @@ final class HttpSseTransport implements McpTransport
             $message = json_decode($jsonData, true, 512, JSON_THROW_ON_ERROR);
 
             if (is_array($message) && isset($message['jsonrpc']) && $message['jsonrpc'] === '2.0') {
+                // Messages without an id are server notifications, not responses
+                if (! array_key_exists('id', $message) || $message['id'] === null) {
+                    if ($this->notificationHandler !== null) {
+                        ($this->notificationHandler)($message);
+                    }
+
+                    return;
+                }
+
                 // Store response indexed by request ID
-                $id = $message['id'] ?? 'notification';
+                /** @var int|string $id */
+                $id = $message['id'];
                 $this->responseBuffer[$id] = $message;
             }
         }

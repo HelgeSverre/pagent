@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Pagent\Contracts\Provider;
+use Pagent\Exceptions\ConfigurationException;
 use Pagent\Tools\DataExtract;
 
 // Mock provider for unit tests - avoids needing API keys
@@ -188,4 +189,40 @@ test('it returns parsed data on valid JSON', function () {
     expect($result)->toHaveKey('data');
     expect($result)->toHaveKey('schema');
     expect($result['data'])->toBe(['name' => 'John Doe', 'age' => 30]);
+});
+
+test('it throws ConfigurationException when no provider and no OpenAI key', function () {
+    $backupEnv = $_ENV['OPENAI_API_KEY'] ?? null;
+    $backupGetenv = getenv('OPENAI_API_KEY');
+    unset($_ENV['OPENAI_API_KEY']);
+    putenv('OPENAI_API_KEY');
+
+    try {
+        expect(fn () => new DataExtract)
+            ->toThrow(ConfigurationException::class, 'OPENAI_API_KEY');
+    } finally {
+        if ($backupEnv !== null) {
+            $_ENV['OPENAI_API_KEY'] = $backupEnv;
+        }
+        if ($backupGetenv !== false) {
+            putenv('OPENAI_API_KEY='.$backupGetenv);
+        }
+    }
+});
+
+test('it throws when provider response has no string content', function () {
+    $provider = new class implements Provider
+    {
+        public function prompt(string $message, array $options = []): object
+        {
+            return (object) ['model' => 'mock'];
+        }
+    };
+
+    $tool = new DataExtract($provider);
+
+    expect(fn () => $tool->execute([
+        'text' => 'test',
+        'schema' => ['type' => 'object', 'properties' => ['a' => ['type' => 'string']]],
+    ]))->toThrow(RuntimeException::class, 'did not contain string content');
 });

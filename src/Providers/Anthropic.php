@@ -9,75 +9,48 @@ use Pagent\Contracts\StreamingProvider;
 use Pagent\Http\CurlTransport;
 use Pagent\Http\HttpClientInterface;
 use Pagent\ProviderCapabilities;
+use Pagent\Providers\Concerns\ResolvesProviderConfig;
+use Pagent\Response;
 use Pagent\Streaming\AnthropicStreamParser;
 use Pagent\Streaming\StreamResponse;
-use Pagent\Tool\ToolCallArgumentNormalizer;
-use RuntimeException;
 
-use function getenv;
-use function json_decode;
+use function in_array;
+use function rtrim;
 
 final class Anthropic implements IdentifiedProvider, StreamingProvider
 {
+    use ResolvesProviderConfig;
+
     private string $apiKey;
 
-    private string $baseUrl = 'https://api.anthropic.com/v1';
+    private string $baseUrl;
+
+    private int $timeout;
 
     private HttpClientInterface $httpClient;
 
     public function __construct(array $config = [], ?HttpClientInterface $httpClient = null)
     {
-        $this->apiKey = $config['api_key'] ?? $_ENV['ANTHROPIC_API_KEY'] ?? getenv('ANTHROPIC_API_KEY') ?: '';
-        if (empty($this->apiKey)) {
-            throw new RuntimeException('Anthropic API key not configured');
-        }
-
-        $this->httpClient = $httpClient ?? new CurlTransport;
+        $this->apiKey = $this->resolveApiKey($config, 'ANTHROPIC_API_KEY', 'Anthropic');
+        $this->baseUrl = rtrim($config['base_url'] ?? 'https://api.anthropic.com/v1', '/');
+        $this->timeout = $config['timeout'] ?? 30;
+        $this->httpClient = $httpClient ?? new CurlTransport($this->providerId());
     }
 
-    public function prompt(string $message, array $options = []): object
+    public function prompt(string $message, array $options = []): Response
     {
-        $messages = $options['messages'] ?? [['role' => 'user', 'content' => $message]];
-        $system = $options['system'] ?? null;
+        $body = $this->buildBody($message, $options, stream: false);
 
-        // Build request body
-        $body = [
-            'model' => $options['model'] ?? 'claude-sonnet-4-6',
-            'messages' => $messages,
-            'max_tokens' => $options['max_tokens'] ?? 1024,
-        ];
-
-        if ($system) {
-            $body['system'] = $system;
-        }
-
-        if (isset($options['temperature'])) {
-            $body['temperature'] = $options['temperature'];
-        }
-
-        // Add tools if provided
-        if (isset($options['tools']) && ! empty($options['tools'])) {
-            $body['tools'] = $options['tools'];
-        }
-
-        // Make API call using HttpClient
         $response = $this->httpClient->requestJson(
             method: 'POST',
             url: $this->baseUrl.'/messages',
-            headers: [
-                'Content-Type' => 'application/json',
-                'x-api-key' => $this->apiKey,
-                'anthropic-version' => '2023-06-01',
-            ],
+            headers: $this->headers(),
             json: $body,
-            options: ['timeout' => 30]
+            options: ['timeout' => $this->timeout]
         );
 
         if (! $response->isSuccessful()) {
-            $data = $response->json();
-            $type = $data['error']['type'] ?? 'Unknown type';
-            $error = $data['error']['message'] ?? 'Unknown error';
-            throw new RuntimeException("Anthropic API error: {$type} {$error}");
+            $this->throwApiError($response, 'Anthropic');
         }
 
         $data = $response->json();
@@ -90,28 +63,26 @@ final class Anthropic implements IdentifiedProvider, StreamingProvider
             if ($block['type'] === 'text') {
                 $content .= $block['text'];
             } elseif ($block['type'] === 'tool_use') {
-                $name = is_string($block['name'] ?? null) ? $block['name'] : 'unknown';
-                $toolCalls[] = [
-                    'id' => $block['id'],
-                    'name' => $name,
-                    'arguments' => ToolCallArgumentNormalizer::normalize(
-                        $block['input'] ?? null,
-                        "Anthropic tool '{$name}'",
-                    ),
-                ];
+                $toolCalls[] = $this->normalizeToolCall(
+                    $block['id'] ?? null,
+                    $block['name'] ?? null,
+                    $block['input'] ?? null,
+                    'Anthropic',
+                );
             }
         }
 
-        return (object) [
-            'content' => $content,
-            'model' => $data['model'] ?? $body['model'],
-            'tokens' => ($data['usage']['input_tokens'] ?? 0) + ($data['usage']['output_tokens'] ?? 0),
-            'provider' => 'anthropic',
-            'usage' => $data['usage'] ?? null,
-            'stop_reason' => $data['stop_reason'] ?? null,
-            'tool_calls' => $toolCalls,
-            'raw_content' => $data['content'] ?? [],
-        ];
+        return new Response(
+            content: $content,
+            model: $data['model'] ?? $body['model'],
+            tokens: ($data['usage']['input_tokens'] ?? 0) + ($data['usage']['output_tokens'] ?? 0),
+            provider: 'anthropic',
+            usage: $data['usage'] ?? null,
+            stop_reason: $data['stop_reason'] ?? null,
+            tool_calls: $toolCalls,
+            raw_content: $data['content'] ?? [],
+            raw: $data,
+        );
     }
 
     /**
@@ -119,53 +90,20 @@ final class Anthropic implements IdentifiedProvider, StreamingProvider
      */
     public function streamPrompt(string $message, array $options = []): StreamResponse
     {
-        $messages = $options['messages'] ?? [['role' => 'user', 'content' => $message]];
-        $system = $options['system'] ?? null;
+        $body = $this->buildBody($message, $options, stream: true);
 
-        // Build request body
-        $body = [
-            'model' => $options['model'] ?? 'claude-sonnet-4-6',
-            'messages' => $messages,
-            'max_tokens' => $options['max_tokens'] ?? 1024,
-            'stream' => true, // Enable streaming
-        ];
-
-        if ($system) {
-            $body['system'] = $system;
-        }
-
-        if (isset($options['temperature'])) {
-            $body['temperature'] = $options['temperature'];
-        }
-
-        // Add tools if provided
-        if (isset($options['tools']) && ! empty($options['tools'])) {
-            $body['tools'] = $options['tools'];
-        }
-
-        // Make streaming API call using HttpClient
         $transport = $this->httpClient->streamJson(
             method: 'POST',
             url: $this->baseUrl.'/messages',
-            headers: [
-                'Content-Type' => 'application/json',
-                'x-api-key' => $this->apiKey,
-                'anthropic-version' => '2023-06-01',
-            ],
+            headers: $this->headers(),
             json: $body,
             options: ['timeout' => 0]
         );
 
-        if (! ($transport->status() >= 200 && $transport->status() < 300)) {
-            $content = $transport->getContent();
-            $data = json_decode($content, true);
-            $type = $data['error']['type'] ?? 'Unknown type';
-            $error = $data['error']['message'] ?? 'Unknown error';
-            throw new RuntimeException("Anthropic API error: {$type} {$error}");
-        }
+        $this->ensureStreamSuccessful($transport, 'Anthropic');
 
         $parser = new AnthropicStreamParser;
-        $model = $body['model'];
+        $model = is_string($body['model']) ? $body['model'] : 'unknown';
 
         return new StreamResponse(
             stream: $parser->parse($transport->chunks(), $model),
@@ -191,5 +129,51 @@ final class Anthropic implements IdentifiedProvider, StreamingProvider
             protocol: 'anthropic-messages',
             toolProtocol: 'anthropic',
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    private function buildBody(string $message, array $options, bool $stream): array
+    {
+        $body = [
+            'model' => $options['model'] ?? 'claude-sonnet-4-6',
+            'messages' => $options['messages'] ?? [['role' => 'user', 'content' => $message]],
+            'max_tokens' => $options['max_tokens'] ?? 1024,
+        ];
+
+        if (isset($options['system'])) {
+            $body['system'] = $options['system'];
+        }
+
+        if (! empty($options['tools'])) {
+            $body['tools'] = $options['tools'];
+        }
+
+        // Pass through additional Anthropic-specific options (e.g. top_p, top_k, stop_sequences)
+        foreach ($options as $key => $value) {
+            if (! in_array($key, ['messages', 'system', 'model', 'max_tokens', 'tools', 'stream'], true)) {
+                $body[$key] = $value;
+            }
+        }
+
+        if ($stream) {
+            $body['stream'] = true;
+        }
+
+        return $body;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function headers(): array
+    {
+        return [
+            'Content-Type' => 'application/json',
+            'x-api-key' => $this->apiKey,
+            'anthropic-version' => '2023-06-01',
+        ];
     }
 }

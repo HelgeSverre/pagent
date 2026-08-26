@@ -51,11 +51,6 @@ parameters:
         - '#Function Pest\\.*#'
         - '#Call to an undefined function (test|it|describe|expect|beforeEach|afterEach)#'
 
-        # Spatie Ray debugging - conditional class loading
-        -
-            message: '#Call to method .* on an unknown class Spatie\\.*Ray#'
-            path: src/Providers/*.php
-
         # Allow dynamic provider instantiation patterns
         - '#Parameter \$provider of class.*expects.*LLMProvider.*object given#'
         - '#Property.*\$provider.*does not accept object#'

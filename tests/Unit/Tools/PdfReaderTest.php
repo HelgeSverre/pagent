@@ -20,7 +20,7 @@ test('pdf reader throws when path missing', function () {
 });
 
 test('pdf reader throws when file not found', function () {
-    $tool = new PdfReader;
+    $tool = new PdfReader(allowAnyPath: true);
 
     expect(fn () => $tool->execute(['path' => '/nonexistent.pdf']))
         ->toThrow(RuntimeException::class, 'File not found');
@@ -39,7 +39,7 @@ test('pdf reader prevents path traversal', function () {
 // ========================================
 
 test('it validates pdftotext is installed', function () {
-    $tool = new PdfReader(pdftotextPath: '/nonexistent/pdftotext');
+    $tool = new PdfReader(pdftotextPath: '/nonexistent/pdftotext', allowAnyPath: true);
 
     $tempDir = sys_get_temp_dir();
     $tempFile = $tempDir.'/fake.pdf';
@@ -61,7 +61,7 @@ test('it throws on corrupted PDF files', function () {
     $tempFile = sys_get_temp_dir().'/corrupted.pdf';
     file_put_contents($tempFile, 'Not a real PDF content');
 
-    $tool = new PdfReader;
+    $tool = new PdfReader(allowAnyPath: true);
 
     expect(fn () => $tool->execute(['path' => $tempFile]))
         ->toThrow(RuntimeException::class);
@@ -73,7 +73,7 @@ test('it enforces file size limits', function () {
     $tempFile = sys_get_temp_dir().'/large.pdf';
     file_put_contents($tempFile, str_repeat('x', 2000));
 
-    $tool = new PdfReader(maxSize: 1000);
+    $tool = new PdfReader(maxSize: 1000, allowAnyPath: true);
 
     expect(fn () => $tool->execute(['path' => $tempFile]))
         ->toThrow(RuntimeException::class, 'File too large');
@@ -85,7 +85,7 @@ test('it accepts files within maxSize', function () {
     $tempFile = sys_get_temp_dir().'/small.pdf';
     file_put_contents($tempFile, str_repeat('x', 500));
 
-    $tool = new PdfReader(maxSize: 1000);
+    $tool = new PdfReader(maxSize: 1000, allowAnyPath: true);
 
     // Will fail on pdftotext, but should pass size check
     try {
@@ -116,7 +116,7 @@ test('it returns extracted text with correct metadata', function () {
         $this->markTestSkipped('Sample PDF fixture not found');
     }
 
-    $tool = new PdfReader;
+    $tool = new PdfReader(allowAnyPath: true);
     $result = $tool->execute(['path' => $pdfPath]);
 
     expect($result)->toBeArray()

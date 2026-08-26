@@ -148,9 +148,9 @@ describe('Agent Telemetry Integration', function () {
 
         $toolSpan = $toolSpans[0];
         expect($toolSpan->getAttributes()->get('tool.name'))->toBe('calculate');
-
-        $arguments = json_decode($toolSpan->getAttributes()->get('tool.arguments'), true);
-        expect($arguments)->toBe(['x' => 5, 'y' => 3]);
+        expect($toolSpan->getAttributes()->get('tool.arguments'))->toBeNull();
+        expect($toolSpan->getAttributes()->get('tool.arguments.size'))
+            ->toBe(13);
     });
 
     it('tracks memory operations', function () {

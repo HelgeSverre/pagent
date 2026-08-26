@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Pagent\Agent;
 use Pagent\Events\Events\LLM\AfterLLMResponseEvent;
 use Pagent\Events\Events\Stream\StreamCompletedEvent;
+use Pagent\Exceptions\ConfigurationException;
 use Pagent\Usage\Storage\InMemoryUsageStorage;
 use Pagent\Usage\UsageTracker;
 
@@ -81,6 +82,28 @@ test('tracker handles AfterLLMResponseEvent and records usage', function () {
         ->and($records[0]->outputTokens)->toBe(500)
         ->and($records[0]->totalTokens)->toBe(1500)
         ->and($records[0]->cost)->toBeGreaterThan(0);
+});
+
+test('tracker accepts provider-native prompt and completion token keys', function () {
+    $tracker = new UsageTracker;
+    $agent = (new Agent('native-usage'))->provider(mock());
+
+    $tracker->handle(new AfterLLMResponseEvent(
+        $agent,
+        'openai',
+        'gpt-4o-2024-11-20',
+        ['usage' => [
+            'prompt_tokens' => 1_000_000,
+            'completion_tokens' => 500_000,
+            'total_tokens' => 1_500_000,
+        ]],
+        1.0,
+    ));
+
+    $record = $tracker->getAll()[0];
+    expect($record->inputTokens)->toBe(1_000_000)
+        ->and($record->outputTokens)->toBe(500_000)
+        ->and($record->cost)->toBe(7.5);
 });
 
 test('tracker handles AfterLLMResponseEvent with cached tokens', function () {
@@ -524,4 +547,47 @@ test('tracker ignores StreamCompletedEvent when track_streaming is disabled', fu
 
     // Should not track because track_streaming is disabled
     expect($tracker->getAll())->toBeEmpty();
+});
+
+test('global tracker throws when reconfigured without reset', function () {
+    UsageTracker::global();
+
+    expect(fn () => UsageTracker::global(['track_llm' => false]))
+        ->toThrow(ConfigurationException::class, 'resetGlobal');
+});
+
+test('global tracker accepts config on first call after reset', function () {
+    UsageTracker::global();
+    UsageTracker::resetGlobal();
+
+    $tracker = UsageTracker::global(['track_streaming' => false]);
+
+    expect($tracker->listensTo())->not->toContain('stream_completed');
+});
+
+test('tracker records null cost for unknown models and exposes unpriced count', function () {
+    $tracker = new UsageTracker;
+    $agent = new Agent('unknown-model-agent');
+    $agent->provider(mock());
+
+    $event = new AfterLLMResponseEvent(
+        $agent,
+        'anthropic',
+        'claude-99-fictional',
+        [
+            'usage' => [
+                'input_tokens' => 1_000_000,
+                'output_tokens' => 1_000_000,
+            ],
+        ],
+        100.0
+    );
+    $tracker->handle($event);
+
+    $records = $tracker->getAll();
+
+    expect($records)->toHaveCount(1)
+        ->and($records[0]->cost)->toBeNull()
+        ->and($tracker->getTotalCost())->toBe(0.0)
+        ->and($tracker->getUnpricedCount())->toBe(1);
 });

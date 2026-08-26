@@ -7,6 +7,7 @@ namespace Pagent\Observability\Exporters;
 use OpenTelemetry\Contrib\Otlp\OtlpHttpTransportFactory;
 use OpenTelemetry\Contrib\Otlp\SpanExporter as OtlpSpanExporter;
 use OpenTelemetry\SDK\Common\Future\CancellationInterface;
+use OpenTelemetry\SDK\Common\Future\CompletedFuture;
 use OpenTelemetry\SDK\Common\Future\FutureInterface;
 
 final class OTLPExporter implements ExporterInterface
@@ -35,7 +36,12 @@ final class OTLPExporter implements ExporterInterface
 
     public function export(iterable $spans, ?CancellationInterface $cancellation = null): FutureInterface
     {
-        return $this->exporter->export($spans, $cancellation);
+        $batch = is_array($spans) ? $spans : iterator_to_array($spans, false);
+        if ($batch === []) {
+            return new CompletedFuture(true);
+        }
+
+        return $this->exporter->export($batch, $cancellation);
     }
 
     public function shutdown(?CancellationInterface $cancellation = null): bool

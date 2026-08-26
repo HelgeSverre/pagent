@@ -6,6 +6,11 @@ namespace Pagent;
 
 use Pagent\Contracts\Provider;
 
+/**
+ * @deprecated Agent is itself fully fluent and agent() registers immediately;
+ * this magic __call proxy adds no behavior. Use agent($name)->... directly.
+ * Kept for backwards compatibility with defineAgent()-style configuration code.
+ */
 final class AgentBuilder
 {
     private Agent $agent;

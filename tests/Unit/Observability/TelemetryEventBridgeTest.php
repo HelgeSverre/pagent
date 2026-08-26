@@ -24,6 +24,7 @@ use Pagent\Events\Events\Stream\StreamStartedEvent;
 use Pagent\Events\Events\Tool\ToolErrorEvent;
 use Pagent\Events\Events\Tool\ToolExecutedEvent;
 use Pagent\Events\Events\Tool\ToolExecutingEvent;
+use Pagent\Exceptions\ConfigurationException;
 use Pagent\Mcp\McpClient;
 use Pagent\Mcp\Transports\StdioTransport;
 use Pagent\Observability\Exporters\InMemoryExporter;
@@ -764,4 +765,70 @@ test('bridge span keys use client object ID', function () {
 
     $spans = $this->exporter->getSpans();
     expect($spans)->toHaveCount(2);
+});
+
+test('bridge skips spans for agents with telemetry disabled', function () {
+    $bridge = new TelemetryEventBridge;
+    $agentInstance = new Agent('telemetry-disabled-agent');
+    $agentInstance->provider(mock())->telemetry(false);
+
+    $beforeEvent = new BeforeLLMRequestEvent($agentInstance, 'anthropic', 'claude-3-opus', []);
+    $bridge->handle($beforeEvent);
+
+    expect($bridge->getActiveSpanCount())->toBe(0);
+
+    TelemetryManager::instance()->shutdown();
+    expect($this->exporter->getSpans())->toHaveCount(0);
+});
+
+test('bridge keeps separate spans for same-named agent instances', function () {
+    $bridge = new TelemetryEventBridge;
+
+    $agentA = new Agent('twin-agent');
+    $agentA->provider(mock())->telemetry(true);
+    $agentB = new Agent('twin-agent');
+    $agentB->provider(mock())->telemetry(true);
+
+    $bridge->handle(new BeforeLLMRequestEvent($agentA, 'anthropic', 'claude-3-opus', []));
+    $bridge->handle(new BeforeLLMRequestEvent($agentB, 'anthropic', 'claude-3-opus', []));
+
+    // Same name, different instances: two active spans, no clobbering
+    expect($bridge->getActiveSpanCount())->toBe(2);
+
+    $bridge->handle(new AfterLLMResponseEvent($agentA, 'anthropic', 'claude-3-opus', [], 1.0));
+    $bridge->handle(new AfterLLMResponseEvent($agentB, 'anthropic', 'claude-3-opus', [], 2.0));
+
+    expect($bridge->getActiveSpanCount())->toBe(0);
+
+    TelemetryManager::instance()->shutdown();
+    expect($this->exporter->getSpans())->toHaveCount(2);
+});
+
+test('bridge ends and evicts stale span when a start event repeats without an end', function () {
+    $bridge = new TelemetryEventBridge;
+    $agentInstance = new Agent('repeat-start-agent');
+    $agentInstance->provider(mock())->telemetry(true);
+
+    $bridge->handle(new BeforeLLMRequestEvent($agentInstance, 'anthropic', 'claude-3-opus', []));
+    $bridge->handle(new BeforeLLMRequestEvent($agentInstance, 'anthropic', 'claude-3-opus', []));
+
+    // The orphaned first span was ended and evicted, not leaked
+    expect($bridge->getActiveSpanCount())->toBe(1);
+
+    $bridge->handle(new AfterLLMResponseEvent($agentInstance, 'anthropic', 'claude-3-opus', [], 1.0));
+
+    expect($bridge->getActiveSpanCount())->toBe(0);
+
+    TelemetryManager::instance()->shutdown();
+    expect($this->exporter->getSpans())->toHaveCount(2);
+});
+
+test('global bridge throws when reconfigured without reset', function () {
+    TelemetryEventBridge::resetGlobal();
+    TelemetryEventBridge::global();
+
+    expect(fn () => TelemetryEventBridge::global(['trace_llm' => false]))
+        ->toThrow(ConfigurationException::class, 'resetGlobal');
+
+    TelemetryEventBridge::resetGlobal();
 });

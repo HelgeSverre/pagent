@@ -46,7 +46,6 @@
     "phpstan/phpstan": "^1.12.34",
     "psr/http-client": "^1.0",
     "psr/http-factory": "^1.0",
-    "spatie/ray": "^1.42",
     "swaggest/json-schema": "^0.12.43",
     "symfony/http-client": "^8.1",
     "symfony/process": "^8.1",
@@ -67,10 +66,10 @@
     }
   },
   "scripts": {
-    "test": "vendor/bin/pest --exclude-group=live --exclude-group=external",
-    "test:coverage": "vendor/bin/pest --coverage --min=80 --exclude-group=live --exclude-group=external",
-    "test:unit": "vendor/bin/pest --testsuite=Unit --exclude-group=live --exclude-group=external",
-    "test:integration": "vendor/bin/pest --testsuite=Integration --exclude-group=live --exclude-group=external",
+    "test": "vendor/bin/pest --compact --exclude-group=live --exclude-group=external",
+    "test:coverage": "vendor/bin/pest --compact --coverage --min=80 --exclude-group=live --exclude-group=external",
+    "test:unit": "vendor/bin/pest --compact --testsuite=Unit --exclude-group=live --exclude-group=external",
+    "test:integration": "vendor/bin/pest --compact --testsuite=Integration --exclude-group=live --exclude-group=external",
     "test:live": "vendor/bin/pest --group=live",
     "test:external": "vendor/bin/pest --group=external",
     "test:observability": "vendor/bin/pest tests/Integration/Observability --group=external",

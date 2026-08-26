@@ -26,11 +26,18 @@ arch('contracts are interfaces')
 
 arch('exceptions extend base exception')
     ->expect('Pagent\Exceptions')
-    ->toExtend(Exception::class);
+    ->toExtend(Exception::class)
+    ->ignoring('Pagent\Exceptions\PagentException');
+
+arch('framework exceptions share the public catch boundary')
+    ->expect('Pagent\Exceptions')
+    ->toImplement('Pagent\Exceptions\PagentException')
+    ->ignoring('Pagent\Exceptions\PagentException');
 
 arch('providers implement provider contract')
     ->expect('Pagent\Providers')
-    ->toImplement('Pagent\Contracts\Provider');
+    ->toImplement('Pagent\Contracts\Provider')
+    ->ignoring('Pagent\Providers\Concerns');
 
 arch('guards implement guard contract')
     ->expect('Pagent\Guards')
@@ -48,7 +55,13 @@ arch('tools extend base tool class')
 arch('no usage of env helper in library code')
     ->expect('Pagent')
     ->not->toUse(['env', 'getenv'])
-    ->ignoring('Pagent\Providers');
+    ->ignoring([
+        'Pagent\Providers',
+        'Pagent\Tools\DataExtract',
+        // A process transport must inherit the real OS environment before
+        // applying its explicit child-process overrides.
+        'Pagent\Mcp\Transports\StdioTransport',
+    ]);
 
 arch('no global state manipulation')
     ->expect('Pagent')

@@ -54,7 +54,7 @@ echo "Output: {$response->content}\n\n";
 echo "[Tool Execution Spans Above]\n";
 echo "Each tool execution creates a tool.execute span with:\n";
 echo "  - tool.name: The tool function name\n";
-echo "  - tool.arguments: JSON-encoded arguments\n";
+echo "  - tool.arguments.size: JSON-encoded argument size\n";
 echo "  - tool.result_type: Return value type (bool, int, string, etc.)\n";
 echo "  - Duration and status\n\n";
 
@@ -221,7 +221,7 @@ echo "  Total workflow duration visible in parent agent.prompt span\n\n";
 
 echo "Key points:\n";
 echo "- Every tool execution creates a tool.execute span\n";
-echo "- Spans include tool.name and tool.arguments attributes\n";
+echo "- Spans include tool.name and tool.arguments.size attributes\n";
 echo "- tool.result_type shows the return value type\n";
 echo "- Errors are captured in tool.error attribute\n";
 echo "- Duration tracking helps identify slow tools\n";

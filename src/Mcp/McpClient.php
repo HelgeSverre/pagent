@@ -60,6 +60,13 @@ final class McpClient
         ?EventDispatcher $eventDispatcher = null,
     ) {
         $this->eventDispatcher = $eventDispatcher ?? new EventDispatcher;
+
+        // Notification delivery is an optional transport capability, composed
+        // with the client when available rather than imposed on every adapter.
+        $registerNotificationHandler = [$this->transport, 'setNotificationHandler'];
+        if (is_callable($registerNotificationHandler)) {
+            $registerNotificationHandler($this->handleNotification(...));
+        }
     }
 
     /**

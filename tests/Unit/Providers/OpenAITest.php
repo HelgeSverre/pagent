@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Pagent\Exceptions\ApiException;
+use Pagent\Exceptions\ConfigurationException;
 use Pagent\Http\HttpClientInterface;
 use Pagent\Http\HttpResponse;
 use Pagent\Http\StreamTransport;
@@ -9,7 +11,7 @@ use Pagent\Providers\OpenAI;
 
 it('requires api key', function (): void {
     expect(fn () => new OpenAI(['api_key' => '']))
-        ->toThrow(RuntimeException::class, 'OpenAI API key not configured');
+        ->toThrow(ConfigurationException::class, 'OpenAI API key not configured');
 });
 
 it('accepts api key in config', function (): void {
@@ -78,8 +80,15 @@ test('it throws on 429 rate limit', function (): void {
 
     $provider = new OpenAI(['api_key' => 'test-key'], $mockHttp);
 
-    expect(fn () => $provider->prompt('test'))
-        ->toThrow(RuntimeException::class, 'Rate limit reached');
+    try {
+        $provider->prompt('test');
+        $this->fail('Expected ApiException');
+    } catch (ApiException $e) {
+        expect($e->getMessage())->toContain('Rate limit reached')
+            ->and($e->provider)->toBe('openai')
+            ->and($e->statusCode)->toBe(429)
+            ->and($e->isRetryable())->toBeTrue();
+    }
 });
 
 test('it throws on 500 server error', function (): void {
@@ -171,4 +180,49 @@ test('streaming requests include usage metadata by default', function (): void {
 
     expect($mockHttp->capturedJson['stream_options']['include_usage'])->toBeTrue()
         ->and($response->getUsage()['total_tokens'] ?? null)->toBe(3);
+});
+
+test('tool-only responses normalize null content without failing', function (): void {
+    $mockHttp = new class implements HttpClientInterface
+    {
+        public function requestJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): HttpResponse
+        {
+            return new HttpResponse(
+                status: 200,
+                headers: [],
+                body: json_encode([
+                    'model' => 'gpt-test',
+                    'choices' => [[
+                        'message' => [
+                            'content' => null,
+                            'tool_calls' => [[
+                                'id' => 'call_1',
+                                'function' => [
+                                    'name' => 'weather',
+                                    'arguments' => '{"city":"Oslo"}',
+                                ],
+                            ]],
+                        ],
+                        'finish_reason' => 'tool_calls',
+                    ]],
+                    'usage' => ['total_tokens' => 4],
+                ], JSON_THROW_ON_ERROR),
+                info: [],
+            );
+        }
+
+        public function streamJson(string $method, string $url, array $headers = [], array|string|null $json = null, array $options = []): StreamTransport
+        {
+            throw new RuntimeException('Not implemented');
+        }
+    };
+
+    $response = (new OpenAI(['api_key' => 'test-key'], $mockHttp))->prompt('test');
+
+    expect($response->content)->toBe('')
+        ->and($response->tool_calls)->toBe([[
+            'id' => 'call_1',
+            'name' => 'weather',
+            'arguments' => ['city' => 'Oslo'],
+        ]]);
 });

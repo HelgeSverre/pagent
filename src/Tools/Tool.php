@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Pagent\Tools;
 
-use InvalidArgumentException;
-use Pagent\Contracts\ToolInterface;
+use Pagent\Contracts\ToolInterface as ToolContract;
+use Pagent\Exceptions\InvalidArgumentException;
+use Pagent\Exceptions\RuntimeException;
 use Pagent\Tool\ToolSchemaSerializer;
-use RuntimeException;
 
-abstract class Tool implements ToolInterface
+abstract class Tool implements ToolContract
 {
     abstract public function name(): string;
 

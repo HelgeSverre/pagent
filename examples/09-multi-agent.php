@@ -88,12 +88,12 @@ echo "Manager delegates task to developer...\n\n";
 
 $result = $manager->delegate('Write a PHP function that adds two numbers')
     ->to('developer')
-    ->to('silly')
     ->supervise(function ($output, $task): bool {
         echo "  [Supervisor] Reviewing work...\n";
 
         return str_contains($output, 'function');
     })
+    ->review()
     ->onComplete(function ($result): void {
         echo "  Status: Task complete\n";
     })

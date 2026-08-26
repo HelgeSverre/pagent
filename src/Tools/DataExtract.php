@@ -5,9 +5,18 @@ declare(strict_types=1);
 namespace Pagent\Tools;
 
 use Pagent\Contracts\Provider;
+use Pagent\Exceptions\ConfigurationException;
+use Pagent\Exceptions\RuntimeException;
 use Pagent\Providers\OpenAI;
-use RuntimeException;
 
+/**
+ * Extract structured data from text via an LLM with JSON-schema output.
+ *
+ * NOTE: When no provider is passed, this tool defaults to the OpenAI provider
+ * with the 'gpt-4o-mini' model, which requires an OPENAI_API_KEY. Apps using
+ * other providers (e.g. Anthropic-only setups) must pass a Provider explicitly;
+ * the provider must support OpenAI-style 'response_format' structured output.
+ */
 final class DataExtract extends Tool
 {
     private Provider $provider;
@@ -16,7 +25,22 @@ final class DataExtract extends Tool
         ?Provider $provider = null,
         private string $model = 'gpt-4o-mini',
     ) {
+        if ($provider === null && ! self::hasOpenAiKey()) {
+            throw new ConfigurationException(
+                'DataExtract defaults to the OpenAI provider (gpt-4o-mini), but no OPENAI_API_KEY '
+                .'is configured. Either set OPENAI_API_KEY or pass a Provider explicitly: '
+                .'new DataExtract(provider: $yourProvider, model: ...).'
+            );
+        }
+
         $this->provider = $provider ?? new OpenAI;
+    }
+
+    private static function hasOpenAiKey(): bool
+    {
+        $key = $_ENV['OPENAI_API_KEY'] ?? getenv('OPENAI_API_KEY');
+
+        return is_string($key) && $key !== '';
     }
 
     public function name(): string
@@ -65,7 +89,7 @@ final class DataExtract extends Tool
         // Build prompt
         $prompt = $instructions."\n\nText to analyze:\n".$text;
 
-        // Call OpenAI with structured output
+        // Call the provider with structured output
         $response = $this->provider->prompt($prompt, [
             'model' => $this->model,
             'response_format' => [
@@ -78,8 +102,13 @@ final class DataExtract extends Tool
             ],
         ]);
 
-        // Parse response
-        $data = json_decode($response->content, true);
+        // Parse response via its typed shape (Response exposes a public string $content)
+        $content = $response->content ?? null;
+        if (! is_string($content)) {
+            throw new RuntimeException('Provider response did not contain string content');
+        }
+
+        $data = json_decode($content, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new RuntimeException('Failed to parse extracted data: '.json_last_error_msg());

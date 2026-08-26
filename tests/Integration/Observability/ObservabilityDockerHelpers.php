@@ -122,10 +122,8 @@ class ObservabilityDockerHelpers
 
         exec("{$composeCmd} -f ".self::COMPOSE_FILE.' down -v 2>&1', $output, $returnCode);
 
-        // Don't throw on error - cleanup is best effort
-        if ($returnCode !== 0) {
-            echo 'Warning: Failed to stop services: '.implode("\n", $output)."\n";
-        }
+        // Cleanup is best effort. The command output remains available to a
+        // debugger through $output without contaminating the test runner.
     }
 
     /**

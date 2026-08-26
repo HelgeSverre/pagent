@@ -187,7 +187,7 @@ echo $finalAdvice->content;
 
 ## Pattern 2: Delegation
 
-**Delegation** implements a manager-worker pattern where a manager agent assigns tasks to worker agents and reviews their output. Unlike handoffs, delegation maintains the manager as the primary agent and creates a structured workflow.
+**Delegation** implements a manager-worker pattern where a manager agent assigns tasks to worker agents. Unlike handoffs, delegation maintains the manager as the primary agent and creates a structured workflow. Worker output is returned directly by default; manager review is explicit because it costs another provider call.
 
 ### Basic Delegation
 
@@ -209,6 +209,7 @@ $researcher = agent('researcher')
 // Manager delegates research task
 $result = $manager->delegate('Research the history of PHP')
     ->to('researcher')
+    ->review()
     ->execute();
 
 echo "Task: {$result->task}\n";
@@ -223,7 +224,7 @@ The result object contains:
 - `worker` - Name of the worker agent
 - `worker_output` - The worker's response
 - `manager` - Name of the manager agent
-- `manager_review` - Manager's summary/review
+- `manager_review` - Manager's summary/review when `review()` was requested; otherwise an empty compatibility value
 - `supervised` - Whether supervision was enabled
 
 ### Delegation with Supervision

@@ -5,11 +5,35 @@ declare(strict_types=1);
 use Pagent\Mcp\Exceptions\McpConnectionException;
 use Pagent\Mcp\Exceptions\McpProtocolException;
 use Pagent\Mcp\McpClient;
+use Pagent\Mcp\McpTransport;
 use Tests\Unit\Mcp\Transports\FakeTransport;
 
 beforeEach(function () {
     $this->transport = new FakeTransport;
     $this->client = new McpClient($this->transport, 'test-client', '1.0.0');
+});
+
+test('third-party transports are not required to implement notification registration', function (): void {
+    $transport = new class implements McpTransport
+    {
+        public function connect(): void {}
+
+        public function disconnect(): void {}
+
+        public function isConnected(): bool
+        {
+            return false;
+        }
+
+        public function sendRequest(array $request): array
+        {
+            return [];
+        }
+
+        public function sendNotification(array $notification): void {}
+    };
+
+    expect(new McpClient($transport))->toBeInstanceOf(McpClient::class);
 });
 
 test('connect performs initialization handshake', function () {
@@ -1023,4 +1047,38 @@ test('callTool handles various server error codes', function () {
         ]);
         $this->client->connect();
     }
+});
+
+test('transport notifications reach the progress callback and do not corrupt responses', function () {
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'protocolVersion' => '2024-11-05',
+            'capabilities' => ['tools' => []],
+        ],
+    ]);
+    $this->client->connect();
+
+    $received = [];
+    $this->client->setProgressCallback(function ($token, $progress, $total) use (&$received): void {
+        $received[] = [$token, $progress, $total];
+    });
+
+    // Notification arrives before the tools/list response on the wire
+    $this->transport->queueNotification([
+        'jsonrpc' => '2.0',
+        'method' => 'notifications/progress',
+        'params' => ['progressToken' => 'tok', 'progress' => 5, 'total' => 10],
+    ]);
+    $this->transport->queueResponse([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => ['tools' => [['name' => 'demo']]],
+    ]);
+
+    $tools = $this->client->discoverTools();
+
+    expect($tools)->toBe([['name' => 'demo']])
+        ->and($received)->toBe([['tok', 5, 10]]);
 });

@@ -549,6 +549,7 @@ new Report(EvaluationResult $result)
 // Evaluator methods
 ->dataset(Dataset|string $dataset): self
 ->metric(string $name, Metric|callable $metric): self
+->stateful(bool $stateful = true): self // opt in to conversation carry-over between rows
 ->run(): EvaluationResult
 
 // Result methods

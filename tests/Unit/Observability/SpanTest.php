@@ -9,7 +9,7 @@ beforeEach(function (): void {
     TelemetryManager::reset();
     TelemetryManager::instance()->initialize([
         'enabled' => true,
-        'exporter' => 'console',
+        'exporter' => 'inmemory',
     ]);
 });
 

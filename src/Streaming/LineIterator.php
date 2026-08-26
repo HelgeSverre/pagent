@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagent\Streaming;
 
 use Generator;
-use InvalidArgumentException;
+use Pagent\Exceptions\InvalidArgumentException;
 
 /**
  * Turns a blocking stream resource or incremental byte chunks into complete

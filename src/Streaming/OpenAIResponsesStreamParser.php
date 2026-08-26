@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagent\Streaming;
 
 use Generator;
-use RuntimeException;
+use Pagent\Exceptions\RuntimeException;
 
 use function explode;
 use function is_array;
@@ -17,7 +17,7 @@ use function trim;
 /**
  * Parses Server-Sent Events emitted by the OpenAI Responses protocol.
  */
-final class OpenAIResponsesStreamParser
+final class OpenAIResponsesStreamParser implements StreamParser
 {
     private string $accumulatedText = '';
 
@@ -39,29 +39,18 @@ final class OpenAIResponsesStreamParser
         $this->usage = [];
         $this->started = false;
         $this->toolCalls = [];
-        $buffer = '';
 
-        foreach (LineIterator::from($stream) as $line) {
-            $buffer .= $line;
-            if (trim($line) !== '') {
-                continue;
+        foreach (SseEventIterator::from($stream) as $buffer) {
+            try {
+                $event = $this->parseEvent($buffer);
+            } catch (RuntimeException $e) {
+                yield StreamChunk::error($e->getMessage());
+
+                return;
             }
 
-            $event = $this->parseEvent($buffer);
-            $buffer = '';
             if ($event !== null) {
-                foreach ($this->handleEvent($event, $model) as $chunk) {
-                    yield $chunk;
-                }
-            }
-        }
-
-        if (trim($buffer) !== '') {
-            $event = $this->parseEvent($buffer);
-            if ($event !== null) {
-                foreach ($this->handleEvent($event, $model) as $chunk) {
-                    yield $chunk;
-                }
+                yield from $this->handleEvent($event, $model);
             }
         }
     }

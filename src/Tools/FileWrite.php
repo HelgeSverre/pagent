@@ -4,15 +4,24 @@ declare(strict_types=1);
 
 namespace Pagent\Tools;
 
-use RuntimeException;
+use Pagent\Exceptions\RuntimeException;
 
+/**
+ * Write content to files.
+ *
+ * By default writes are confined to the current working directory. Pass an
+ * explicit baseDir to confine to a different directory, or allowAnyPath: true
+ * to explicitly allow writing anywhere on the filesystem.
+ */
 final class FileWrite extends Tool
 {
     public function __construct(
         private ?string $baseDir = null,
         private ?int $maxSize = null,
+        bool $allowAnyPath = false,
     ) {
         $this->maxSize = $maxSize ?? 10 * 1024 * 1024; // 10MB default
+        $this->baseDir = FileRead::resolveBaseDir($baseDir, $allowAnyPath);
     }
 
     public function name(): string
@@ -87,26 +96,40 @@ final class FileWrite extends Tool
                 throw new RuntimeException('Invalid base directory');
             }
 
-            // Build full path from base + relative path
-            $fullPath = $realBaseDir.DIRECTORY_SEPARATOR.ltrim($path, DIRECTORY_SEPARATOR);
+            // Absolute paths are used as-is (still checked for containment below);
+            // relative paths resolve against baseDir.
+            $fullPath = str_starts_with($path, DIRECTORY_SEPARATOR)
+                ? $path
+                : $realBaseDir.DIRECTORY_SEPARATOR.$path;
 
-            // Normalize it
-            $normalizedPath = $this->normalizePath($fullPath, exists: false);
+            // Normalize the lexical path first, then resolve the deepest
+            // existing ancestor. Resolving only dirname($path) is insufficient:
+            // base/link/new/file can escape through base/link when `new` does
+            // not exist yet and link points outside the base directory.
+            $normalizedPath = $this->normalizePath($fullPath);
+            $normalizedPath = $this->resolveExistingAncestor($normalizedPath);
 
             // Check for path traversal
-            if (! str_starts_with($normalizedPath, $realBaseDir)) {
+            if ($normalizedPath !== $realBaseDir
+                && ! str_starts_with($normalizedPath, $realBaseDir.DIRECTORY_SEPARATOR)) {
                 throw new RuntimeException("Path traversal detected: {$path}");
             }
 
             return $normalizedPath;
         }
 
-        // No baseDir - normalize absolute path
-        return $this->normalizePath($path, exists: false);
+        // No baseDir (allowAnyPath) - normalize absolute path
+        return $this->normalizePath($path);
     }
 
-    private function normalizePath(string $path, bool $exists = true): string
+    private function normalizePath(string $path): string
     {
+        // Resolve symlinks when the target already exists
+        $real = realpath($path);
+        if ($real !== false) {
+            return $real;
+        }
+
         // Manual normalization (works for non-existent paths too)
         $parts = explode(DIRECTORY_SEPARATOR, $path);
         $normalized = [];
@@ -122,6 +145,38 @@ final class FileWrite extends Tool
             }
         }
 
-        return DIRECTORY_SEPARATOR.implode(DIRECTORY_SEPARATOR, $normalized);
+        $result = DIRECTORY_SEPARATOR.implode(DIRECTORY_SEPARATOR, $normalized);
+
+        return $result;
+    }
+
+    /**
+     * Resolve the closest existing ancestor and append the not-yet-created
+     * suffix. This exposes symlink escapes even when several trailing path
+     * components do not exist yet.
+     */
+    private function resolveExistingAncestor(string $path): string
+    {
+        $ancestor = $path;
+        $suffix = [];
+
+        while (! file_exists($ancestor) && ! is_link($ancestor)) {
+            $parent = dirname($ancestor);
+            if ($parent === $ancestor) {
+                break;
+            }
+
+            array_unshift($suffix, basename($ancestor));
+            $ancestor = $parent;
+        }
+
+        $resolvedAncestor = realpath($ancestor);
+        if ($resolvedAncestor === false) {
+            throw new RuntimeException("Cannot resolve path ancestor: {$ancestor}");
+        }
+
+        return $suffix === []
+            ? $resolvedAncestor
+            : $resolvedAncestor.DIRECTORY_SEPARATOR.implode(DIRECTORY_SEPARATOR, $suffix);
     }
 }

@@ -27,11 +27,19 @@ pest()->group('live')->in(
     'Integration/Streaming',
 );
 
+// Paid provider calls: the @group docblocks inside these files do not
+// register with Pest, so bind the group here — --exclude-group=api must
+// actually keep the suite offline.
+pest()->group('api')->in(
+    'Integration/ProviderFeaturesTest.php',
+    'Integration/RealAPITest.php',
+    'Integration/Streaming',
+);
+
 pest()->group('external')->in(
     'Integration/Observability',
     'Integration/Mcp/McpHttpIntegrationTest.php',
     'Unit/Http/CurlTransportTest.php',
-    'Unit/Tools/WebFetchTest.php',
 );
 
 if (file_exists(__DIR__.'/../.env')) {
@@ -189,8 +197,6 @@ function hasOllamaAvailable(): bool
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    ray($response)->green()->label('Ollama /api/version response');
-
     return $response !== false && $httpCode === 200;
 }
 
@@ -217,8 +223,6 @@ function hasOllamaModel(string $model): bool
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-
-    ray()->json($response)->green()->label('Ollama /api/tags response');
 
     if ($response === false || $httpCode !== 200) {
         return false;

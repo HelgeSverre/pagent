@@ -145,6 +145,33 @@ $response = openai()->prompt('Return a JSON object with a status field.', [
 ]);
 ```
 
+Retry transient API and connection failures with the capability-preserving
+decorator factory. Completed requests are retried; streams are delegated once
+so partially emitted output is never replayed:
+
+```php
+use Pagent\Providers\OpenAI;
+use Pagent\Providers\RetryingProvider;
+
+$provider = RetryingProvider::wrap(new OpenAI, maxAttempts: 3);
+```
+
+Framework-defined failures share one catch boundary while retaining their
+standard PHP parents (`RuntimeException`, `InvalidArgumentException`, and so on):
+
+```php
+use Pagent\Exceptions\PagentException;
+
+try {
+    $response = agent('writer')->prompt('Draft an outline.');
+} catch (PagentException $exception) {
+    // Provider, configuration, lifecycle, tool, and workflow failures.
+}
+```
+
+Exceptions thrown by application callbacks or third-party dependencies are not
+rewritten and may propagate unchanged.
+
 OpenCode supports chat-completions, Responses, and Messages model protocols. The
 provider defaults to chat-completions; choose a protocol globally, per model, or
 per prompt when the selected OpenCode model requires it. The default model ID
@@ -389,6 +416,10 @@ $result = evaluate('test-support')
 
 echo $result->getAverageScore('status');
 ```
+
+Each dataset row uses a fresh conversation by default and the registered agent
+definition is never mutated. For datasets that intentionally model a multi-turn
+conversation, opt in with `->stateful()`.
 
 See the [evaluation example](examples/07-evaluation.php), the
 [progressive evaluation example](examples/08-evaluation-progressive.php), and the

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pagent\Observability;
 
+use Pagent\Agent;
 use Pagent\Events\Event;
 use Pagent\Events\EventListener;
 use Pagent\Events\EventManager;
@@ -28,6 +29,7 @@ use Pagent\Events\Events\Tool\ToolErrorEvent;
 use Pagent\Events\Events\Tool\ToolExecutedEvent;
 use Pagent\Events\Events\Tool\ToolExecutingEvent;
 use Pagent\Events\EventSubscription;
+use Pagent\Exceptions\ConfigurationException;
 
 use function microtime;
 
@@ -78,7 +80,7 @@ final class TelemetryEventBridge implements EventListener
     /**
      * Active spans indexed by operation key.
      *
-     * Format: ['llm:{agent_name}:{timestamp}' => ['span' => Span, 'started_at' => float]]
+     * Format: ['llm:{agent_name}#{spl_object_id}' => ['span' => Span, 'started_at' => float]]
      *
      * @var array<string, array{span: Span|NullSpan, started_at: float}>
      */
@@ -119,6 +121,12 @@ final class TelemetryEventBridge implements EventListener
      */
     public static function global(array $config = []): self
     {
+        if (self::$globalInstance !== null && $config !== []) {
+            throw new ConfigurationException(
+                'TelemetryEventBridge::global() was already initialized; call TelemetryEventBridge::resetGlobal() before passing a new config.'
+            );
+        }
+
         $instance = self::$globalInstance ??= new self($config);
 
         self::registerGlobalInstance($instance);
@@ -199,17 +207,9 @@ final class TelemetryEventBridge implements EventListener
             return;
         }
 
-        // Skip if agent has telemetry disabled (if agent property exists)
-        if (property_exists($event, 'agent') && method_exists($event->agent, 'isPropertyAccessible')) {
-            // Check if we can safely access telemetryEnabled
-            try {
-                $reflection = new \ReflectionProperty($event->agent, 'telemetryEnabled');
-                if (! $reflection->getValue($event->agent)) {
-                    return;
-                }
-            } catch (\ReflectionException) {
-                // Property doesn't exist or not accessible, continue
-            }
+        // Skip if the agent behind this event has telemetry disabled
+        if (property_exists($event, 'agent') && $event->agent instanceof Agent && ! $event->agent->telemetryEnabled) {
+            return;
         }
 
         // Route to appropriate handler based on event type
@@ -262,7 +262,7 @@ final class TelemetryEventBridge implements EventListener
             ]
         );
 
-        $this->storeSpan('llm', $event->agent->getName(), $span);
+        $this->storeSpan('llm', $this->agentKey($event->agent), $span);
     }
 
     /**
@@ -270,7 +270,7 @@ final class TelemetryEventBridge implements EventListener
      */
     private function handleAfterLLMResponse(AfterLLMResponseEvent $event): void
     {
-        $spanData = $this->retrieveSpan('llm', $event->agent->getName());
+        $spanData = $this->retrieveSpan('llm', $this->agentKey($event->agent));
 
         if ($spanData === null) {
             return;
@@ -336,7 +336,7 @@ final class TelemetryEventBridge implements EventListener
             $event->parameters
         );
 
-        $this->storeSpan('tool', $event->agent->getName(), $span);
+        $this->storeSpan('tool', $this->agentKey($event->agent), $span);
     }
 
     /**
@@ -344,7 +344,7 @@ final class TelemetryEventBridge implements EventListener
      */
     private function handleToolExecuted(ToolExecutedEvent $event): void
     {
-        $spanData = $this->retrieveSpan('tool', $event->agent->getName());
+        $spanData = $this->retrieveSpan('tool', $this->agentKey($event->agent));
 
         if ($spanData === null) {
             return;
@@ -365,7 +365,7 @@ final class TelemetryEventBridge implements EventListener
      */
     private function handleToolError(ToolErrorEvent $event): void
     {
-        $spanData = $this->retrieveSpan('tool', $event->agent->getName());
+        $spanData = $this->retrieveSpan('tool', $this->agentKey($event->agent));
 
         if ($spanData === null) {
             return;
@@ -398,7 +398,7 @@ final class TelemetryEventBridge implements EventListener
             ]
         );
 
-        $this->storeSpan('guard', $event->agent->getName(), $span);
+        $this->storeSpan('guard', $this->agentKey($event->agent), $span);
     }
 
     /**
@@ -406,7 +406,7 @@ final class TelemetryEventBridge implements EventListener
      */
     private function handleGuardPassed(GuardPassedEvent $event): void
     {
-        $spanData = $this->retrieveSpan('guard', $event->agent->getName());
+        $spanData = $this->retrieveSpan('guard', $this->agentKey($event->agent));
 
         if ($spanData === null) {
             return;
@@ -424,7 +424,7 @@ final class TelemetryEventBridge implements EventListener
      */
     private function handleGuardViolated(GuardViolatedEvent $event): void
     {
-        $spanData = $this->retrieveSpan('guard', $event->agent->getName());
+        $spanData = $this->retrieveSpan('guard', $this->agentKey($event->agent));
 
         if ($spanData === null) {
             return;
@@ -443,7 +443,7 @@ final class TelemetryEventBridge implements EventListener
      */
     private function handleGuardFallback(GuardFallbackEvent $event): void
     {
-        $spanData = $this->retrieveSpan('guard', $event->agent->getName());
+        $spanData = $this->retrieveSpan('guard', $this->agentKey($event->agent));
 
         if ($spanData === null) {
             return;
@@ -473,7 +473,7 @@ final class TelemetryEventBridge implements EventListener
             $event->namespace
         );
 
-        $this->storeSpan('memory', $event->agent->getName(), $span);
+        $this->storeSpan('memory', $this->agentKey($event->agent), $span);
     }
 
     /**
@@ -481,7 +481,7 @@ final class TelemetryEventBridge implements EventListener
      */
     private function handleMemoryLoaded(MemoryLoadedEvent $event): void
     {
-        $spanData = $this->retrieveSpan('memory', $event->agent->getName());
+        $spanData = $this->retrieveSpan('memory', $this->agentKey($event->agent));
 
         if ($spanData === null) {
             return;
@@ -511,7 +511,7 @@ final class TelemetryEventBridge implements EventListener
             $event->model
         );
 
-        $this->storeSpan('stream', $event->agent->getName(), $span);
+        $this->storeSpan('stream', $this->agentKey($event->agent), $span);
     }
 
     /**
@@ -519,7 +519,7 @@ final class TelemetryEventBridge implements EventListener
      */
     private function handleStreamCompleted(StreamCompletedEvent $event): void
     {
-        $spanData = $this->retrieveSpan('stream', $event->agent->getName());
+        $spanData = $this->retrieveSpan('stream', $this->agentKey($event->agent));
 
         if ($spanData === null) {
             return;
@@ -684,15 +684,34 @@ final class TelemetryEventBridge implements EventListener
     }
 
     /**
+     * Build a span key segment that is unique per live agent instance.
+     *
+     * Includes spl_object_id so same-named agents do not share spans.
+     */
+    private function agentKey(Agent $agent): string
+    {
+        return $agent->getName().'#'.spl_object_id($agent);
+    }
+
+    /**
      * Store an active span for later retrieval.
      *
+     * If a span is already active under the same key (e.g. a start event that
+     * never saw its matching end), it is ended and evicted first so it cannot
+     * leak or be silently clobbered.
+     *
      * @param  string  $type  Operation type (e.g., 'llm', 'tool', 'memory')
-     * @param  string  $agentName  Name of the agent
+     * @param  string  $ownerKey  Owner identity (agent key or client id)
      * @param  Span|NullSpan  $span  The span to store
      */
-    private function storeSpan(string $type, string $agentName, Span|NullSpan $span): void
+    private function storeSpan(string $type, string $ownerKey, Span|NullSpan $span): void
     {
-        $key = $this->makeSpanKey($type, $agentName);
+        $key = $this->makeSpanKey($type, $ownerKey);
+
+        if (isset($this->activeSpans[$key])) {
+            $this->activeSpans[$key]['span']->end();
+            unset($this->activeSpans[$key]);
+        }
 
         $this->activeSpans[$key] = [
             'span' => $span,
@@ -704,12 +723,12 @@ final class TelemetryEventBridge implements EventListener
      * Retrieve and remove an active span.
      *
      * @param  string  $type  Operation type
-     * @param  string  $agentName  Name of the agent
+     * @param  string  $ownerKey  Owner identity (agent key or client id)
      * @return array{span: Span|NullSpan, started_at: float}|null
      */
-    private function retrieveSpan(string $type, string $agentName): ?array
+    private function retrieveSpan(string $type, string $ownerKey): ?array
     {
-        $key = $this->makeSpanKey($type, $agentName);
+        $key = $this->makeSpanKey($type, $ownerKey);
 
         if (! isset($this->activeSpans[$key])) {
             return null;
@@ -722,16 +741,17 @@ final class TelemetryEventBridge implements EventListener
     }
 
     /**
-     * Create a unique key for storing spans.
+     * Create the storage key for a span: "{type}:{ownerKey}".
      *
-     * Uses current timestamp to allow multiple concurrent operations.
+     * The owner key embeds spl_object_id of the agent (or MCP client), so
+     * distinct instances with the same name cannot collide.
      *
      * @param  string  $type  Operation type
-     * @param  string  $agentName  Agent name
+     * @param  string  $ownerKey  Owner identity (agent key or client id)
      */
-    private function makeSpanKey(string $type, string $agentName): string
+    private function makeSpanKey(string $type, string $ownerKey): string
     {
-        return "{$type}:{$agentName}";
+        return "{$type}:{$ownerKey}";
     }
 
     /**

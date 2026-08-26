@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pagent\Tool;
 
-use RuntimeException;
+use Pagent\Exceptions\RuntimeException;
 
 /**
  * Normalizes provider tool-call arguments at every response boundary.

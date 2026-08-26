@@ -67,6 +67,35 @@ test('file write prevents path traversal', function () {
     ]))->toThrow(RuntimeException::class, 'Path traversal detected');
 });
 
+test('file write prevents traversal through a symlinked ancestor of a new directory', function () {
+    if (! function_exists('symlink')) {
+        $this->markTestSkipped('symlink is unavailable');
+    }
+
+    $outside = sys_get_temp_dir().'/pagent_outside_'.uniqid();
+    mkdir($outside);
+    $link = $this->tempDir.'/escape';
+
+    if (! @symlink($outside, $link)) {
+        rmdir($outside);
+        $this->markTestSkipped('symlink creation is unavailable');
+    }
+
+    try {
+        $tool = new FileWrite(baseDir: $this->tempDir);
+
+        expect(fn () => $tool->execute([
+            'path' => 'escape/new/file.txt',
+            'content' => 'must stay confined',
+        ]))->toThrow(RuntimeException::class, 'Path traversal detected');
+
+        expect(file_exists($outside.'/new/file.txt'))->toBeFalse();
+    } finally {
+        unlink($link);
+        rmdir($outside);
+    }
+});
+
 test('file write throws when content too large', function () {
     $tool = new FileWrite(baseDir: $this->tempDir, maxSize: 100);
 

@@ -7,7 +7,14 @@ namespace Pagent\Usage;
 /**
  * Calculate LLM usage costs based on provider pricing models.
  *
- * Pricing data as of January 2025.
+ * The built-in pricing table is a point-in-time convenience (January 2025
+ * pricing) and WILL drift out of date. Override or extend it via the
+ * `pricing` config (constructor argument / UsageTracker `pricing` key) for
+ * anything you rely on. Unknown provider/model combinations return null so
+ * "unknown" is distinguishable from "free" ($0.00).
+ *
+ * Anthropic cache creation tokens (`cache_creation_input_tokens`) are priced
+ * at 1.25x the input rate.
  */
 final class PricingCalculator
 {
@@ -34,19 +41,20 @@ final class PricingCalculator
      * @param  string  $provider  Provider name (anthropic, openai, etc.)
      * @param  string  $model  Model name
      * @param  array<string, mixed>  $usage  Usage data from provider response
-     * @return float Cost in USD
+     * @return float|null Cost in USD, or null when pricing for the provider/model is unknown
      */
-    public function calculate(string $provider, string $model, array $usage): float
+    public function calculate(string $provider, string $model, array $usage): ?float
     {
         $provider = strtolower($provider);
         $model = $this->normalizeModelName($model);
+        $usage = UsageNormalizer::normalize($usage) ?? [];
 
         // Get pricing for this provider/model
         $modelPricing = $this->getPricingForModel($provider, $model);
 
         if ($modelPricing === null) {
-            // Unknown model - return 0 cost
-            return 0.0;
+            // Unknown model - cost cannot be determined
+            return null;
         }
 
         /** @var int $inputTokens */
@@ -55,6 +63,8 @@ final class PricingCalculator
         $outputTokens = is_numeric($usage['output_tokens'] ?? null) ? (int) $usage['output_tokens'] : 0;
         /** @var int $cachedInputTokens */
         $cachedInputTokens = is_numeric($usage['cache_read_input_tokens'] ?? null) ? (int) $usage['cache_read_input_tokens'] : 0;
+        /** @var int $cacheCreationTokens */
+        $cacheCreationTokens = is_numeric($usage['cache_creation_input_tokens'] ?? null) ? (int) $usage['cache_creation_input_tokens'] : 0;
 
         // Calculate base cost (input + output)
         $inputCost = ($inputTokens / 1_000_000) * $modelPricing['input'];
@@ -66,7 +76,10 @@ final class PricingCalculator
             $cachedCost = ($cachedInputTokens / 1_000_000) * $modelPricing['cached_input'];
         }
 
-        return $inputCost + $outputCost + $cachedCost;
+        // Cache creation (cache writes) is billed at 1.25x the input rate
+        $cacheCreationCost = ($cacheCreationTokens / 1_000_000) * $modelPricing['input'] * 1.25;
+
+        return $inputCost + $outputCost + $cachedCost + $cacheCreationCost;
     }
 
     /**
@@ -148,11 +161,6 @@ final class PricingCalculator
                     'output' => 1.25, // $1.25 per MTok
                     'cached_input' => 0.03, // $0.03 per MTok
                 ],
-                'default' => [
-                    'input' => 3.00,
-                    'output' => 15.00,
-                    'cached_input' => 0.30,
-                ],
             ],
             'openai' => [
                 'gpt-4o-2024-11-20' => [
@@ -175,11 +183,10 @@ final class PricingCalculator
                     'input' => 3.00,  // $3 per MTok
                     'output' => 12.00, // $12 per MTok
                 ],
-                'default' => [
-                    'input' => 2.50,
-                    'output' => 10.00,
-                ],
             ],
+            // ollama/mock keep a 'default' entry: local/test models are
+            // genuinely free regardless of model name, unlike paid providers
+            // where a default would be a confidently wrong guess.
             'ollama' => [
                 'default' => [
                     'input' => 0.0,  // Free for local models

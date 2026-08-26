@@ -33,15 +33,15 @@ EventManager::instance()->on(
 
 ## Lifecycle events
 
-| Category | Events | Useful fields |
-| --- | --- | --- |
-| Agent | `BeforePromptEvent`, `AfterPromptEvent`, `ContextPrunedEvent` | agent, message, response, tokens saved |
-| Provider | `BeforeLLMRequestEvent`, `AfterLLMResponseEvent` | provider, model, request payload/response data, duration |
-| Tool | `ToolExecutingEvent`, `ToolExecutedEvent`, `ToolErrorEvent` | tool name, parameters, result/error, duration |
-| Guard | `GuardCheckingEvent`, `GuardPassedEvent`, `GuardViolatedEvent`, `GuardFallbackEvent` | guard name, checked content, reason |
-| Memory | `MemoryLoadingEvent`, `MemoryLoadedEvent`, `MemorySavingEvent`, `MemorySavedEvent` | key, value, namespace |
-| Stream | `StreamStartedEvent`, `StreamChunkEvent`, `StreamCompletedEvent` | provider, model, delivered text chunks, usage |
-| MCP | connection, discovery, tool call events | client/server and tool details |
+| Category | Events                                                                               | Useful fields                                            |
+| -------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| Agent    | `BeforePromptEvent`, `AfterPromptEvent`, `ContextPrunedEvent`                        | agent, message, response, tokens saved                   |
+| Provider | `BeforeLLMRequestEvent`, `AfterLLMResponseEvent`                                     | provider, model, request payload/response data, duration |
+| Tool     | `ToolExecutingEvent`, `ToolExecutedEvent`, `ToolErrorEvent`                          | tool name, parameters, result/error, duration            |
+| Guard    | `GuardCheckingEvent`, `GuardPassedEvent`, `GuardViolatedEvent`, `GuardFallbackEvent` | guard name, checked content, reason                      |
+| Memory   | `MemoryLoadingEvent`, `MemoryLoadedEvent`, `MemorySavingEvent`, `MemorySavedEvent`   | key, value, namespace                                    |
+| Stream   | `StreamStartedEvent`, `StreamChunkEvent`, `StreamCompletedEvent`                     | provider, model, delivered text chunks, usage            |
+| MCP      | connection, discovery, tool call events                                              | client/server and tool details                           |
 
 Provider events are emitted for every provider round, including a round after a
 tool call. `AfterPromptEvent` is emitted only when the complete turn has been

@@ -39,7 +39,7 @@ describe('Anthropic-specific features', function (): void {
 
         $start = microtime(true);
         $response = $anthropic->prompt('Say yes or no', [
-            'model' => 'claude-3-haiku-20240307',
+            'model' => 'claude-3-5-haiku-20241022',
             'max_tokens' => 10,
             'temperature' => 0,
         ]);

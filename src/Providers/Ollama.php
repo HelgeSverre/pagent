@@ -9,17 +9,22 @@ use Pagent\Contracts\StreamingProvider;
 use Pagent\Http\CurlTransport;
 use Pagent\Http\HttpClientInterface;
 use Pagent\ProviderCapabilities;
+use Pagent\Providers\Concerns\ResolvesProviderConfig;
+use Pagent\Response;
 use Pagent\Streaming\OllamaStreamParser;
 use Pagent\Streaming\StreamResponse;
-use Pagent\Tool\ToolCallArgumentNormalizer;
-use RuntimeException;
 
+use function array_key_exists;
 use function array_unshift;
 use function getenv;
-use function json_decode;
+use function in_array;
+use function is_array;
+use function rtrim;
 
 final class Ollama implements IdentifiedProvider, StreamingProvider
 {
+    use ResolvesProviderConfig;
+
     /** @var list<string> */
     private const MODEL_OPTION_KEYS = [
         'seed', 'num_predict', 'top_k', 'top_p', 'min_p', 'typical_p',
@@ -48,45 +53,13 @@ final class Ollama implements IdentifiedProvider, StreamingProvider
         // Remove trailing slash from base URL
         $this->baseUrl = rtrim($this->baseUrl, '/');
 
-        $this->httpClient = $httpClient ?? new CurlTransport;
+        $this->httpClient = $httpClient ?? new CurlTransport($this->providerId());
     }
 
-    public function prompt(string $message, array $options = []): object
+    public function prompt(string $message, array $options = []): Response
     {
-        $messages = $options['messages'] ?? [];
+        $body = $this->buildBody($message, $options, stream: false);
 
-        // Add system message if provided (Ollama handles system messages like OpenAI)
-        if (isset($options['system'])) {
-            array_unshift($messages, ['role' => 'system', 'content' => $options['system']]);
-        }
-
-        // If no messages provided, use the prompt
-        if (empty($messages)) {
-            $messages = [['role' => 'user', 'content' => $message]];
-        }
-
-        // Build request body
-        $body = [
-            'model' => $options['model'] ?? 'qwen3:8b',
-            'messages' => $messages,
-            'stream' => false,
-        ];
-
-        $this->applyModelOptions($body, $options);
-
-        // Add tools if provided
-        if (! empty($options['tools'])) {
-            $body['tools'] = $options['tools'];
-        }
-
-        // Pass through additional Ollama-specific options
-        foreach ($options as $key => $value) {
-            if (! in_array($key, ['messages', 'system', 'model', 'temperature', 'max_tokens', 'tools', 'options', ...self::MODEL_OPTION_KEYS], true)) {
-                $body[$key] = $value;
-            }
-        }
-
-        // Make API call using HttpClient
         $response = $this->httpClient->requestJson(
             method: 'POST',
             url: $this->baseUrl.'/api/chat',
@@ -98,37 +71,27 @@ final class Ollama implements IdentifiedProvider, StreamingProvider
         );
 
         if (! $response->isSuccessful()) {
-            $data = $response->json();
-            $error = $data['error'] ?? 'Unknown error';
-            throw new RuntimeException("Ollama API error: {$error}");
+            $this->throwApiError($response, 'Ollama');
         }
 
         $data = $response->json();
 
         // Check if the response has an error field (even with 200 status)
         if (isset($data['error'])) {
-            throw new RuntimeException("Ollama API error: {$data['error']}");
+            throw $this->apiException($data, $response->status, 'Ollama');
         }
 
-        $message = $data['message'] ?? [];
+        $responseMessage = $data['message'] ?? [];
         $toolCalls = [];
 
         // Extract tool calls if present
-        if (isset($message['tool_calls'])) {
-            foreach ($message['tool_calls'] as $toolCall) {
-                $name = is_string($toolCall['function']['name'] ?? null)
-                    ? $toolCall['function']['name']
-                    : 'unknown';
-
-                $toolCalls[] = [
-                    'id' => $toolCall['id'] ?? uniqid('call_'),
-                    'name' => $name,
-                    'arguments' => ToolCallArgumentNormalizer::normalize(
-                        $toolCall['function']['arguments'] ?? null,
-                        "Ollama tool '{$name}'",
-                    ),
-                ];
-            }
+        foreach ($responseMessage['tool_calls'] ?? [] as $toolCall) {
+            $toolCalls[] = $this->normalizeToolCall(
+                $toolCall['id'] ?? null,
+                $toolCall['function']['name'] ?? null,
+                $toolCall['function']['arguments'] ?? null,
+                'Ollama',
+            );
         }
 
         // Calculate total tokens from Ollama's token counts
@@ -136,19 +99,20 @@ final class Ollama implements IdentifiedProvider, StreamingProvider
         $completionTokens = $data['eval_count'] ?? 0;
         $totalTokens = $promptTokens + $completionTokens;
 
-        return (object) [
-            'content' => $message['content'] ?? '',
-            'model' => $data['model'] ?? $body['model'],
-            'tokens' => $totalTokens,
-            'provider' => 'ollama',
-            'usage' => [
+        return new Response(
+            content: $responseMessage['content'] ?? '',
+            model: $data['model'] ?? $body['model'],
+            tokens: $totalTokens,
+            provider: 'ollama',
+            usage: [
                 'prompt_tokens' => $promptTokens,
                 'completion_tokens' => $completionTokens,
                 'total_tokens' => $totalTokens,
             ],
-            'finish_reason' => $data['done'] ? 'stop' : null,
-            'tool_calls' => $toolCalls,
-        ];
+            finish_reason: ($data['done'] ?? false) === true ? 'stop' : null,
+            tool_calls: $toolCalls,
+            raw: $data,
+        );
     }
 
     /**
@@ -156,40 +120,8 @@ final class Ollama implements IdentifiedProvider, StreamingProvider
      */
     public function streamPrompt(string $message, array $options = []): StreamResponse
     {
-        $messages = $options['messages'] ?? [];
+        $body = $this->buildBody($message, $options, stream: true);
 
-        // Add system message if provided
-        if (isset($options['system'])) {
-            array_unshift($messages, ['role' => 'system', 'content' => $options['system']]);
-        }
-
-        // If no messages provided, use the prompt
-        if (empty($messages)) {
-            $messages = [['role' => 'user', 'content' => $message]];
-        }
-
-        // Build request body
-        $body = [
-            'model' => $options['model'] ?? 'qwen3:8b',
-            'messages' => $messages,
-            'stream' => true, // Enable streaming
-        ];
-
-        $this->applyModelOptions($body, $options);
-
-        // Add tools if provided
-        if (! empty($options['tools'])) {
-            $body['tools'] = $options['tools'];
-        }
-
-        // Pass through additional Ollama-specific options
-        foreach ($options as $key => $value) {
-            if (! in_array($key, ['messages', 'system', 'model', 'temperature', 'max_tokens', 'tools', 'options', ...self::MODEL_OPTION_KEYS], true)) {
-                $body[$key] = $value;
-            }
-        }
-
-        // Make streaming API call using HttpClient
         $transport = $this->httpClient->streamJson(
             method: 'POST',
             url: $this->baseUrl.'/api/chat',
@@ -200,15 +132,10 @@ final class Ollama implements IdentifiedProvider, StreamingProvider
             options: ['timeout' => 0]
         );
 
-        if (! ($transport->status() >= 200 && $transport->status() < 300)) {
-            $content = $transport->getContent();
-            $data = json_decode($content, true);
-            $error = $data['error'] ?? 'Unknown error';
-            throw new RuntimeException("Ollama API error: {$error}");
-        }
+        $this->ensureStreamSuccessful($transport, 'Ollama');
 
         $parser = new OllamaStreamParser;
-        $model = $body['model'];
+        $model = is_string($body['model']) ? $body['model'] : 'unknown';
 
         return new StreamResponse(
             stream: $parser->parse($transport->chunks(), $model),
@@ -235,6 +162,47 @@ final class Ollama implements IdentifiedProvider, StreamingProvider
             protocol: 'ollama-chat',
             toolProtocol: 'openai',
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    private function buildBody(string $message, array $options, bool $stream): array
+    {
+        $messages = is_array($options['messages'] ?? null) ? $options['messages'] : [];
+
+        // Add system message if provided (Ollama handles system messages like OpenAI)
+        if (isset($options['system'])) {
+            array_unshift($messages, ['role' => 'system', 'content' => $options['system']]);
+        }
+
+        // If no messages provided, use the prompt
+        if (empty($messages)) {
+            $messages = [['role' => 'user', 'content' => $message]];
+        }
+
+        $body = [
+            'model' => $options['model'] ?? 'qwen3:8b',
+            'messages' => $messages,
+            'stream' => $stream,
+        ];
+
+        $this->applyModelOptions($body, $options);
+
+        // Add tools if provided
+        if (! empty($options['tools'])) {
+            $body['tools'] = $options['tools'];
+        }
+
+        // Pass through additional Ollama-specific options
+        foreach ($options as $key => $value) {
+            if (! in_array($key, ['messages', 'system', 'model', 'temperature', 'max_tokens', 'tools', 'options', 'stream', ...self::MODEL_OPTION_KEYS], true)) {
+                $body[$key] = $value;
+            }
+        }
+
+        return $body;
     }
 
     /**

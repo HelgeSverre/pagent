@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Pagent\Evaluation\Dataset;
+use Pagent\Exceptions\ConfigurationException;
 
 test('it creates dataset from array', function (): void {
     $dataset = Dataset::fromArray([
@@ -59,4 +60,19 @@ test('it maps dataset', function (): void {
     $mapped = $dataset->map(fn ($item) => ['input' => mb_strtoupper($item['input'])]);
 
     expect($mapped->items()[0]['input'])->toBe('HELLO');
+});
+
+test('it rejects json items without a string input', function (): void {
+    $json = __DIR__.'/../../Fixtures/bad_dataset.json';
+    file_put_contents($json, json_encode([
+        ['input' => 'valid'],
+        ['expected' => 'no input here'],
+    ]));
+
+    try {
+        expect(fn () => Dataset::fromJson($json))
+            ->toThrow(ConfigurationException::class, 'index 1');
+    } finally {
+        unlink($json);
+    }
 });

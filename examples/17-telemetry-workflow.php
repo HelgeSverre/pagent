@@ -100,7 +100,7 @@ echo "[Telemetry Output Above]\n";
 echo "You should see tool.execute spans within the fact-checker step\n";
 echo "Tool spans show:\n";
 echo "  - tool.name attribute\n";
-echo "  - tool.arguments (JSON encoded)\n";
+echo "  - tool.arguments.size (raw arguments require capture_content)\n";
 echo "  - tool.result_type\n";
 echo "  - Duration and status\n\n";
 

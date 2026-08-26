@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagent\Streaming;
 
 use Generator;
-use RuntimeException;
+use Pagent\Exceptions\RuntimeException;
 
 use function explode;
 use function json_decode;
@@ -16,7 +16,7 @@ use function trim;
 /**
  * Parses Server-Sent Events from Anthropic's streaming API
  */
-final class AnthropicStreamParser
+final class AnthropicStreamParser implements StreamParser
 {
     private array $currentMessage = [];
 
@@ -35,30 +35,18 @@ final class AnthropicStreamParser
         $this->currentMessage = [];
         $this->contentBlocks = [];
         $this->accumulatedText = '';
-        $buffer = '';
 
-        foreach (LineIterator::from($stream) as $line) {
-            $buffer .= $line;
-
-            // SSE events are separated by double newlines
-            if (trim($line) === '') {
+        foreach (SseEventIterator::from($stream) as $buffer) {
+            try {
                 $event = $this->parseEvent($buffer);
-                $buffer = '';
+            } catch (RuntimeException $e) {
+                yield StreamChunk::error($e->getMessage());
 
-                if ($event !== null) {
-                    foreach ($this->handleEvent($event, $model) as $chunk) {
-                        yield $chunk;
-                    }
-                }
+                return;
             }
-        }
 
-        if (trim($buffer) !== '') {
-            $event = $this->parseEvent($buffer);
             if ($event !== null) {
-                foreach ($this->handleEvent($event, $model) as $chunk) {
-                    yield $chunk;
-                }
+                yield from $this->handleEvent($event, $model);
             }
         }
     }
@@ -83,8 +71,11 @@ final class AnthropicStreamParser
                 $data = trim(substr($line, 5));
                 $event['data'] = json_decode($data, true);
 
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    throw new RuntimeException('Failed to parse SSE data: '.json_last_error_msg());
+                if (json_last_error() !== JSON_ERROR_NONE || ! is_array($event['data'])) {
+                    $reason = json_last_error() === JSON_ERROR_NONE
+                        ? 'expected a JSON object'
+                        : json_last_error_msg();
+                    throw new RuntimeException('Failed to parse SSE data: '.$reason);
                 }
             }
         }

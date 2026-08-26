@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pagent\Middleware;
 
 use Pagent\Contracts\Middleware;
-use RuntimeException;
+use Pagent\Exceptions\RuntimeException;
 
 use function array_filter;
 use function count;

@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Pagent\Providers;
 
 use Generator;
-use InvalidArgumentException;
 use Pagent\Contracts\IdentifiedProvider;
 use Pagent\Contracts\StreamingProvider;
+use Pagent\Exceptions\InvalidArgumentException;
 use Pagent\ProviderCapabilities;
+use Pagent\Response;
 use Pagent\Streaming\StreamChunk;
 use Pagent\Streaming\StreamResponse;
 
@@ -27,7 +28,7 @@ final class Mock implements IdentifiedProvider, StreamingProvider
         $this->setChunkSize((int) ($config['chunk_size'] ?? 10));
     }
 
-    public function prompt(string $message, array $options = []): object
+    public function prompt(string $message, array $options = []): Response
     {
         // Check for predefined response
         $response = $this->responses[$message] ?? "Mock response to: {$message}";
@@ -35,17 +36,17 @@ final class Mock implements IdentifiedProvider, StreamingProvider
         $inputTokens = mb_strlen($message);
         $outputTokens = mb_strlen($response);
 
-        return (object) [
-            'content' => $response,
-            'model' => 'mock',
-            'tokens' => $inputTokens + $outputTokens,
-            'provider' => 'mock',
-            'usage' => [
+        return new Response(
+            content: $response,
+            model: 'mock',
+            tokens: $inputTokens + $outputTokens,
+            provider: 'mock',
+            usage: [
                 'input_tokens' => $inputTokens,
                 'output_tokens' => $outputTokens,
                 'total_tokens' => $inputTokens + $outputTokens,
             ],
-        ];
+        );
     }
 
     public function streamPrompt(string $message, array $options = []): StreamResponse

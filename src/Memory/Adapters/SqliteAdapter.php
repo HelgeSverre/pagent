@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pagent\Memory\Adapters;
 
-use InvalidArgumentException;
 use Pagent\Contracts\Memory;
+use Pagent\Exceptions\InvalidArgumentException;
+use Pagent\Exceptions\RuntimeException;
 use PDO;
 use PDOException;
-use RuntimeException;
 
 use function array_slice;
 use function count;

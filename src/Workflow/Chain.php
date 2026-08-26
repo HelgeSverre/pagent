@@ -7,10 +7,15 @@ namespace Pagent\Workflow;
 use Pagent\Agent;
 use Pagent\Contracts\Provider;
 
+/**
+ * Thin alias for {@see Pipeline} with auto-generated step names.
+ *
+ * @deprecated Use \Pagent\Workflow\Pipeline and name your steps explicitly.
+ */
 final class Chain
 {
     /** @var array<Agent|Provider> */
-    protected array $steps = [];
+    private array $steps = [];
 
     private string $name = 'unnamed-chain';
 
@@ -38,17 +43,12 @@ final class Chain
 
     public function run(mixed $input): WorkflowResult
     {
-        /** @var list<WorkflowStep> $steps */
-        $steps = [];
+        $pipeline = Pipeline::create($this->name);
 
         foreach ($this->steps as $index => $agent) {
-            $steps[] = WorkflowStep::agent(
-                "step_{$index}",
-                $agent,
-                $agent instanceof Agent ? $agent->getName() : "agent_{$index}",
-            );
+            $pipeline->step("step_{$index}", $agent);
         }
 
-        return WorkflowExecutor::run($this->name, 'chain', $steps, $input);
+        return $pipeline->run($input);
     }
 }

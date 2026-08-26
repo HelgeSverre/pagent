@@ -45,7 +45,7 @@ describe('Report', function () {
 
         expect($html)->toContain('<meta charset="UTF-8">')
             ->and($html)->toContain('Test Agent 🤖 with émojis &amp; symbols ★')
-            ->and($html)->toContain('🩸 Test Agent 🤖 with émojis &amp; symbols ★ - Evaluation Report');
+            ->and($html)->toContain('Test Agent 🤖 with émojis &amp; symbols ★ - Evaluation Report');
     });
 
     it('preserves emojis in body content', function () {
@@ -70,7 +70,21 @@ describe('Report', function () {
             ->and($html)->toContain('It is sunny ☀️')
             ->and($html)->toContain('Sunny weather 🌞')
             ->and($html)->toContain('Evaluation Report')
-            ->and($html)->toContain('🩸 Agent - Evaluation Report');
+            ->and($html)->toContain('Agent - Evaluation Report');
+    });
+
+    it('supports a custom report title', function () {
+        $result = new EvaluationResult(
+            agentName: 'Agent',
+            results: [],
+            metrics: [],
+            datasetSize: 0
+        );
+
+        $html = (new Report($result, 'My Custom Title'))->toHtml();
+
+        expect($html)->toContain('My Custom Title')
+            ->and($html)->not->toContain('Agent - Evaluation Report');
     });
 
     it('generates valid HTML structure', function () {

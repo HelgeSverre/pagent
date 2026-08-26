@@ -4,16 +4,25 @@ declare(strict_types=1);
 
 namespace Pagent\Tools;
 
-use RuntimeException;
+use Pagent\Exceptions\RuntimeException;
 
+/**
+ * Extract text from PDF files.
+ *
+ * By default reads are confined to the current working directory. Pass an
+ * explicit baseDir to confine to a different directory, or allowAnyPath: true
+ * to explicitly allow reading anywhere on the filesystem.
+ */
 final class PdfReader extends Tool
 {
     public function __construct(
         private ?string $baseDir = null,
         private ?int $maxSize = null,
         private string $pdftotextPath = 'pdftotext',
+        bool $allowAnyPath = false,
     ) {
         $this->maxSize = $maxSize ?? 50 * 1024 * 1024; // 50MB default
+        $this->baseDir = FileRead::resolveBaseDir($baseDir, $allowAnyPath);
     }
 
     public function name(): string
@@ -110,10 +119,16 @@ final class PdfReader extends Tool
                 throw new RuntimeException('Invalid base directory');
             }
 
-            $fullPath = $realBaseDir.DIRECTORY_SEPARATOR.ltrim($path, DIRECTORY_SEPARATOR);
+            // Absolute paths are used as-is (still checked for containment below);
+            // relative paths resolve against baseDir.
+            $fullPath = str_starts_with($path, DIRECTORY_SEPARATOR)
+                ? $path
+                : $realBaseDir.DIRECTORY_SEPARATOR.$path;
+
             $normalizedPath = $this->normalizePath($fullPath);
 
-            if (! str_starts_with($normalizedPath, $realBaseDir)) {
+            if ($normalizedPath !== $realBaseDir
+                && ! str_starts_with($normalizedPath, $realBaseDir.DIRECTORY_SEPARATOR)) {
                 throw new RuntimeException("Path traversal detected: {$path}");
             }
 

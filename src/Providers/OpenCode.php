@@ -4,28 +4,28 @@ declare(strict_types=1);
 
 namespace Pagent\Providers;
 
-use InvalidArgumentException;
-use LogicException;
 use Pagent\Contracts\IdentifiedProvider;
 use Pagent\Contracts\StreamingProvider;
+use Pagent\Exceptions\InvalidArgumentException;
+use Pagent\Exceptions\LogicException;
 use Pagent\Http\CurlTransport;
 use Pagent\Http\HttpClientInterface;
 use Pagent\ProviderCapabilities;
+use Pagent\Providers\Concerns\ResolvesProviderConfig;
+use Pagent\Response;
 use Pagent\Streaming\AnthropicStreamParser;
 use Pagent\Streaming\OpenAIResponsesStreamParser;
 use Pagent\Streaming\OpenAIStreamParser;
+use Pagent\Streaming\StreamParser;
 use Pagent\Streaming\StreamResponse;
 use Pagent\Tool\ToolCallArgumentNormalizer;
-use RuntimeException;
 
 use function array_filter;
 use function array_key_last;
 use function array_map;
 use function array_unshift;
-use function getenv;
 use function implode;
 use function is_array;
-use function json_decode;
 use function json_encode;
 use function str_replace;
 
@@ -37,6 +37,8 @@ use function str_replace;
  */
 final class OpenCode implements IdentifiedProvider, StreamingProvider
 {
+    use ResolvesProviderConfig;
+
     private const PROTOCOL_CHAT_COMPLETIONS = 'chat-completions';
 
     private const PROTOCOL_RESPONSES = 'responses';
@@ -60,10 +62,7 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
 
     public function __construct(array $config = [], ?HttpClientInterface $httpClient = null)
     {
-        $this->apiKey = $config['api_key'] ?? $_ENV['OPENCODE_API_KEY'] ?? getenv('OPENCODE_API_KEY') ?: '';
-        if (empty($this->apiKey)) {
-            throw new RuntimeException('OpenCode API key not configured');
-        }
+        $this->apiKey = $this->resolveApiKey($config, 'OPENCODE_API_KEY', 'OpenCode');
 
         $this->gateway = $config['gateway'] ?? 'zen';
         if (! in_array($this->gateway, ['zen', 'go'], true)) {
@@ -78,10 +77,10 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
         $this->timeout = $config['timeout'] ?? 30;
         $this->protocol = $this->normalizeProtocol($config['protocol'] ?? self::PROTOCOL_CHAT_COMPLETIONS);
         $this->modelProtocols = $this->normalizeModelProtocols($config['model_protocols'] ?? []);
-        $this->httpClient = $httpClient ?? new CurlTransport;
+        $this->httpClient = $httpClient ?? new CurlTransport($this->providerId());
     }
 
-    public function prompt(string $message, array $options = []): object
+    public function prompt(string $message, array $options = []): Response
     {
         $request = $this->buildRequest($message, $options);
         $model = $this->requestModel($request);
@@ -95,7 +94,7 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
         );
 
         if (! $response->isSuccessful()) {
-            throw new RuntimeException('OpenCode API error: '.$this->errorMessage($response->json()));
+            $this->throwApiError($response, 'OpenCode');
         }
 
         return $this->normalizeResponse($response->json(), $model, $request['protocol']);
@@ -117,17 +116,9 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
             options: ['timeout' => 0],
         );
 
-        if (! ($transport->status() >= 200 && $transport->status() < 300)) {
-            $data = json_decode($transport->getContent(), true);
-            throw new RuntimeException('OpenCode API error: '.$this->errorMessage(is_array($data) ? $data : []));
-        }
+        $this->ensureStreamSuccessful($transport, 'OpenCode');
 
-        $parser = match ($request['protocol']) {
-            self::PROTOCOL_CHAT_COMPLETIONS => new OpenAIStreamParser,
-            self::PROTOCOL_RESPONSES => new OpenAIResponsesStreamParser,
-            self::PROTOCOL_MESSAGES => new AnthropicStreamParser,
-            default => throw new LogicException('Unsupported OpenCode protocol'),
-        };
+        $parser = $this->parserFor($request['protocol']);
 
         return new StreamResponse(
             stream: $parser->parse($transport->chunks(), $model),
@@ -371,7 +362,17 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
         );
     }
 
-    private function normalizeResponse(array $data, string $model, string $protocol): object
+    private function parserFor(string $protocol): StreamParser
+    {
+        return match ($protocol) {
+            self::PROTOCOL_CHAT_COMPLETIONS => new OpenAIStreamParser,
+            self::PROTOCOL_RESPONSES => new OpenAIResponsesStreamParser,
+            self::PROTOCOL_MESSAGES => new AnthropicStreamParser,
+            default => throw new LogicException('Unsupported OpenCode protocol'),
+        };
+    }
+
+    private function normalizeResponse(array $data, string $model, string $protocol): Response
     {
         return match ($protocol) {
             self::PROTOCOL_CHAT_COMPLETIONS => $this->normalizeChatCompletionsResponse($data, $model),
@@ -381,22 +382,17 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
         };
     }
 
-    private function normalizeChatCompletionsResponse(array $data, string $model): object
+    private function normalizeChatCompletionsResponse(array $data, string $model): Response
     {
         $message = $data['choices'][0]['message'] ?? [];
         $toolCalls = [];
         foreach ($message['tool_calls'] ?? [] as $toolCall) {
-            $name = is_string($toolCall['function']['name'] ?? null)
-                ? $toolCall['function']['name']
-                : 'unknown';
-            $toolCalls[] = [
-                'id' => $toolCall['id'] ?? '',
-                'name' => $name,
-                'arguments' => ToolCallArgumentNormalizer::normalize(
-                    $toolCall['function']['arguments'] ?? null,
-                    "OpenCode tool '{$name}'",
-                ),
-            ];
+            $toolCalls[] = $this->normalizeToolCall(
+                $toolCall['id'] ?? null,
+                $toolCall['function']['name'] ?? null,
+                $toolCall['function']['arguments'] ?? null,
+                'OpenCode',
+            );
         }
 
         return $this->response(
@@ -405,10 +401,11 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
             $data['usage'] ?? null,
             $data['choices'][0]['finish_reason'] ?? null,
             $toolCalls,
+            $data,
         );
     }
 
-    private function normalizeResponsesResponse(array $data, string $model): object
+    private function normalizeResponsesResponse(array $data, string $model): Response
     {
         $content = ! isset($data['output']) || $data['output'] === []
             ? ($data['output_text'] ?? '')
@@ -441,10 +438,11 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
             $data['usage'] ?? null,
             $data['status'] ?? ($data['incomplete_details']['reason'] ?? null),
             $toolCalls,
+            $data,
         );
     }
 
-    private function normalizeMessagesResponse(array $data, string $model): object
+    private function normalizeMessagesResponse(array $data, string $model): Response
     {
         $content = '';
         $toolCalls = [];
@@ -467,23 +465,28 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
             $data['usage'] ?? null,
             $data['stop_reason'] ?? null,
             $toolCalls,
+            $data,
         );
     }
 
-    /** @param array<string, mixed>|null $usage */
-    private function response(string $content, string $model, ?array $usage, ?string $finishReason, array $toolCalls): object
+    /**
+     * @param  array<string, mixed>|null  $usage
+     * @param  array<string, mixed>  $raw
+     */
+    private function response(string $content, string $model, ?array $usage, ?string $finishReason, array $toolCalls, array $raw): Response
     {
         $tokens = $usage['total_tokens'] ?? (($usage['input_tokens'] ?? 0) + ($usage['output_tokens'] ?? 0));
 
-        return (object) [
-            'content' => $content,
-            'model' => $model,
-            'tokens' => $tokens,
-            'provider' => 'opencode',
-            'usage' => $usage,
-            'finish_reason' => $finishReason,
-            'tool_calls' => $toolCalls,
-        ];
+        return new Response(
+            content: $content,
+            model: $model,
+            tokens: is_int($tokens) ? $tokens : 0,
+            provider: 'opencode',
+            usage: $usage,
+            finish_reason: $finishReason,
+            tool_calls: $toolCalls,
+            raw: $raw,
+        );
     }
 
     private function resolveProtocol(string $model, array $options): string
@@ -589,19 +592,6 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
         }
 
         return $model;
-    }
-
-    private function errorMessage(array $data): string
-    {
-        $error = $data['error'] ?? null;
-        if (is_array($error) && is_string($error['message'] ?? null)) {
-            return $error['message'];
-        }
-        if (is_string($error)) {
-            return $error;
-        }
-
-        return 'Unknown error';
     }
 
     private function defaultModel(): string

@@ -205,6 +205,19 @@ test('search tool validates document structure', function () {
         ->toThrow(RuntimeException::class, "missing required 'id' field");
 });
 
+test('search tool safely indexes document fields that require SQL identifier quoting', function () {
+    $tool = SearchTool::fromDocuments([[
+        'id' => 1,
+        'select' => 'reserved keyword',
+        'display name' => 'quoted field searchable',
+    ]], returnContent: true);
+
+    $result = $tool->execute(['query' => 'searchable']);
+
+    expect($result['hits'])->toBe(1)
+        ->and($result['results'][0]['document']['display name'])->toBe('quoted field searchable');
+});
+
 test('search tool has correct metadata', function () {
     $tool = new SearchTool(
         documents: [['id' => 1, 'content' => 'test']],
@@ -335,4 +348,96 @@ test('searchDocuments helper returns content by default', function () {
 
     // returnContent should be true by default
     expect($result['results'][0])->toHaveKey('document');
+});
+
+test('search tool cleans up its temp files on destruct', function () {
+    $tool = new SearchTool(documents: [['id' => 1, 'content' => 'cleanup test']]);
+    $tool->execute(['query' => 'cleanup']);
+
+    $prop = new ReflectionProperty($tool, 'tempFiles');
+    $files = $prop->getValue($tool);
+
+    expect($files)->not->toBeEmpty();
+    foreach ($files as $file) {
+        expect(file_exists($file))->toBeTrue();
+    }
+
+    unset($tool);
+    gc_collect_cycles();
+
+    foreach ($files as $file) {
+        expect(file_exists($file))->toBeFalse();
+    }
+});
+
+test('fromDocuments factory creates a working tool', function () {
+    $tool = SearchTool::fromDocuments([['id' => 1, 'content' => 'factory test']], returnContent: true);
+
+    $result = $tool->execute(['query' => 'factory']);
+
+    expect($result['hits'])->toBeGreaterThan(0);
+    expect($result['results'][0])->toHaveKey('document');
+});
+
+test('fromPaths factory creates a working tool', function () {
+    file_put_contents($this->tempDir.'/doc.txt', 'searchable path factory content');
+
+    $tool = SearchTool::fromPaths([$this->tempDir]);
+
+    $result = $tool->execute(['query' => 'factory']);
+
+    expect($result['hits'])->toBeGreaterThan(0);
+});
+
+test('fromIndex factory creates a working tool', function () {
+    // Build an index in a persistent storage dir first
+    $builder = new SearchTool(
+        documents: [['id' => 1, 'content' => 'prebuilt index content']],
+        storage: $this->tempDir
+    );
+    $builder->execute(['query' => 'prebuilt']);
+
+    $indexFile = null;
+    foreach (scandir($this->tempDir) as $file) {
+        if (str_ends_with($file, '.index')) {
+            $indexFile = $this->tempDir.'/'.$file;
+        }
+    }
+
+    expect($indexFile)->not->toBeNull();
+
+    $tool = SearchTool::fromIndex($indexFile);
+    $result = $tool->execute(['query' => 'prebuilt']);
+
+    expect($result['hits'])->toBeGreaterThan(0);
+});
+
+test('user-provided storage keeps its index files after destruct', function () {
+    $tool = new SearchTool(
+        documents: [['id' => 1, 'content' => 'persistent storage']],
+        storage: $this->tempDir
+    );
+    $tool->execute(['query' => 'persistent']);
+    unset($tool);
+    gc_collect_cycles();
+
+    $indexFiles = array_filter(scandir($this->tempDir), fn ($f) => str_ends_with($f, '.index'));
+
+    expect($indexFiles)->not->toBeEmpty();
+});
+
+test('indexing does not write progress output to the caller', function () {
+    $tool = SearchTool::fromDocuments([
+        ['id' => 1, 'content' => 'quiet indexing'],
+    ]);
+
+    ob_start();
+    try {
+        $result = $tool->execute(['query' => 'quiet']);
+    } finally {
+        $output = ob_get_clean();
+    }
+
+    expect($result['hits'])->toBe(1)
+        ->and($output)->toBe('');
 });

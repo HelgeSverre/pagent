@@ -32,7 +32,7 @@ echo "  npm install -g @modelcontextprotocol/server-filesystem\n\n";
 /*
 // 1. Create stdio transport to MCP server process
 $transport = new StdioTransport(
-    command: 'npx -y @modelcontextprotocol/server-filesystem /tmp',
+    command: ['npx', '-y', '@modelcontextprotocol/server-filesystem', '/tmp'],
     cwd: __DIR__,
     timeoutMs: 30000
 );
@@ -139,7 +139,7 @@ echo "  - Example: context7, cloud-based tools\n\n";
 echo <<<'PHP'
 // Stdio: Local process
 $stdioTransport = new StdioTransport(
-    command: 'npx @modelcontextprotocol/server-filesystem /tmp'
+    command: ['npx', '-y', '@modelcontextprotocol/server-filesystem', '/tmp']
 );
 
 // HTTP/SSE: Remote server

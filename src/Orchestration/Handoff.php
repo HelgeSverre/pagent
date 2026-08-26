@@ -5,13 +5,21 @@ declare(strict_types=1);
 namespace Pagent\Orchestration;
 
 use Pagent\Agent;
-use RuntimeException;
+use Pagent\Exceptions\RuntimeException;
 
+use function is_string;
 use function json_encode;
 use function resolveAgent;
+use function str_starts_with;
 
 final class Handoff
 {
+    /**
+     * Marks the injected handoff-context message so a later handoff to the
+     * same agent replaces it instead of appending another transcript dump.
+     */
+    private const CONTEXT_MARKER = "[handoff-context]\n";
+
     private Agent $fromAgent;
 
     private Agent $toAgent;
@@ -51,10 +59,10 @@ final class Handoff
             throw new RuntimeException('No target agent specified for handoff');
         }
 
-        // Transfer conversation history
-        $contextMessage = "Previous conversation with {$this->fromAgent->getName()}:\n\n";
+        // Build the transferred transcript
+        $contextMessage = self::CONTEXT_MARKER."Previous conversation with {$this->fromAgent->getName()}:\n\n";
 
-        foreach ($this->fromAgent->messages as $message) {
+        foreach ($this->fromAgent->getMessages() as $message) {
             $role = $message['role'];
             $content = is_string($message['content']) ? $message['content'] : json_encode($message['content']);
             $contextMessage .= "[{$role}]: {$content}\n";
@@ -64,11 +72,24 @@ final class Handoff
             $contextMessage .= "\nHandoff reason: {$this->reason}\n";
         }
 
-        // Add context to new agent
-        $this->toAgent->messages[] = [
+        // Keep the target's own conversation, but replace any previously
+        // transferred transcript instead of accumulating duplicates.
+        $context = [];
+
+        foreach ($this->toAgent->getMessages() as $message) {
+            if (is_string($message['content']) && str_starts_with($message['content'], self::CONTEXT_MARKER)) {
+                continue;
+            }
+
+            $context[] = $message;
+        }
+
+        $context[] = [
             'role' => 'user',
             'content' => $contextMessage,
         ];
+
+        $this->toAgent->adoptContext($context);
 
         return $this->toAgent;
     }

@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
+use Pagent\Exceptions\ConfigurationException;
 use Pagent\Tools\Bash;
 
 test('bash executes simple command', function () {
-    $tool = new Bash;
+    $tool = new Bash(unrestricted: true);
     $result = $tool->execute(['command' => 'echo "Hello"']);
 
     expect($result['stdout'])->toContain('Hello');
@@ -14,7 +15,7 @@ test('bash executes simple command', function () {
 });
 
 test('bash captures stderr', function () {
-    $tool = new Bash;
+    $tool = new Bash(unrestricted: true);
     $result = $tool->execute(['command' => 'echo "error" >&2']);
 
     expect($result['stderr'])->toContain('error');
@@ -35,14 +36,14 @@ test('bash allows whitelisted commands', function () {
 });
 
 test('bash throws when command missing', function () {
-    $tool = new Bash;
+    $tool = new Bash(unrestricted: true);
 
     expect(fn () => $tool->execute([]))
         ->toThrow(RuntimeException::class, 'Command parameter is required');
 });
 
 test('bash has correct metadata', function () {
-    $tool = new Bash;
+    $tool = new Bash(unrestricted: true);
 
     expect($tool->name())->toBe('bash');
     expect($tool->description())->toContain('Execute a shell command');
@@ -54,14 +55,14 @@ test('bash has correct metadata', function () {
 // ========================================
 
 test('it enforces timeout for long-running commands', function () {
-    $tool = new Bash(timeout: 1);
+    $tool = new Bash(timeout: 1, unrestricted: true);
 
     expect(fn () => $tool->execute(['command' => 'sleep 5']))
         ->toThrow(RuntimeException::class, 'timed out');
 })->group('slow');
 
 test('it handles commands with pipes safely', function () {
-    $tool = new Bash;
+    $tool = new Bash(unrestricted: true);
     $result = $tool->execute(['command' => 'echo "test" | grep test']);
 
     expect($result['stdout'])->toContain('test');
@@ -69,7 +70,7 @@ test('it handles commands with pipes safely', function () {
 });
 
 test('it handles commands with quotes', function () {
-    $tool = new Bash;
+    $tool = new Bash(unrestricted: true);
     $result = $tool->execute(['command' => 'echo "quoted string"']);
 
     expect($result['stdout'])->toContain('quoted string');
@@ -77,7 +78,7 @@ test('it handles commands with quotes', function () {
 });
 
 test('it handles multi-line output', function () {
-    $tool = new Bash;
+    $tool = new Bash(unrestricted: true);
     $result = $tool->execute(['command' => 'printf "line1\nline2\nline3"']);
 
     expect($result['stdout'])->toContain('line1');
@@ -87,21 +88,21 @@ test('it handles multi-line output', function () {
 
 test('it respects working directory', function () {
     $tempDir = sys_get_temp_dir();
-    $tool = new Bash(workingDir: $tempDir);
+    $tool = new Bash(workingDir: $tempDir, unrestricted: true);
     $result = $tool->execute(['command' => 'pwd']);
 
     expect($result['stdout'])->toContain($tempDir);
 });
 
 test('it uses current directory when workingDir is null', function () {
-    $tool = new Bash;
+    $tool = new Bash(unrestricted: true);
     $result = $tool->execute(['command' => 'pwd']);
 
     expect($result['stdout'])->toContain(getcwd());
 });
 
 test('it captures non-zero exit codes', function () {
-    $tool = new Bash;
+    $tool = new Bash(unrestricted: true);
     $result = $tool->execute(['command' => 'false']);
 
     expect($result['exit_code'])->not->toBe(0);
@@ -109,7 +110,7 @@ test('it captures non-zero exit codes', function () {
 });
 
 test('it handles command not found', function () {
-    $tool = new Bash;
+    $tool = new Bash(unrestricted: true);
     $result = $tool->execute(['command' => 'nonexistent_command_xyz_123']);
 
     expect($result['exit_code'])->not->toBe(0);
@@ -139,4 +140,25 @@ test('it handles multiple spaces in command parsing', function () {
 
     // Should succeed - command extraction should handle extra spaces
     expect($result['stdout'])->toContain('test');
+});
+
+test('it requires unrestricted flag when no allowlist is set', function () {
+    expect(fn () => new Bash)
+        ->toThrow(ConfigurationException::class, 'unrestricted: true');
+});
+
+test('it rejects shell metacharacters when allowlist is set', function () {
+    $tool = new Bash(allowedCommands: ['ls', 'echo']);
+
+    foreach (['ls; rm -rf /', 'ls | cat', 'ls && whoami', 'echo `whoami`', 'echo $(whoami)', 'ls > /tmp/x', 'ls < /etc/passwd', "ls\nwhoami"] as $command) {
+        expect(fn () => $tool->execute(['command' => $command]))
+            ->toThrow(RuntimeException::class, 'shell metacharacters');
+    }
+});
+
+test('it allows metacharacters when unrestricted', function () {
+    $tool = new Bash(unrestricted: true);
+    $result = $tool->execute(['command' => 'echo "a" | tr a b']);
+
+    expect($result['stdout'])->toContain('b');
 });

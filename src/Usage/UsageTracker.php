@@ -10,6 +10,7 @@ use Pagent\Events\EventManager;
 use Pagent\Events\Events\LLM\AfterLLMResponseEvent;
 use Pagent\Events\Events\Stream\StreamCompletedEvent;
 use Pagent\Events\EventSubscription;
+use Pagent\Exceptions\ConfigurationException;
 use Pagent\Usage\Storage\InMemoryUsageStorage;
 use Pagent\Usage\Storage\UsageStorage;
 
@@ -189,10 +190,26 @@ final class UsageTracker implements EventListener
 
     /**
      * Get total cost across all tracked usage.
+     *
+     * Records with unknown pricing (null cost) are skipped; see
+     * getUnpricedCount() to detect them.
      */
     public function getTotalCost(): float
     {
         return $this->storage->getTotalCost();
+    }
+
+    /**
+     * Count records whose cost could not be determined (unknown pricing).
+     *
+     * These records are excluded from cost totals.
+     */
+    public function getUnpricedCount(): int
+    {
+        return count(array_filter(
+            $this->storage->getAll(),
+            fn (UsageData $data): bool => $data->cost === null
+        ));
     }
 
     /**
@@ -256,6 +273,12 @@ final class UsageTracker implements EventListener
      */
     public static function global(array $config = []): self
     {
+        if (self::$globalInstance !== null && $config !== []) {
+            throw new ConfigurationException(
+                'UsageTracker::global() was already initialized; call UsageTracker::resetGlobal() before passing a new config.'
+            );
+        }
+
         $instance = self::$globalInstance ??= new self($config);
 
         self::registerGlobalInstance($instance);

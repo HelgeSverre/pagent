@@ -99,7 +99,6 @@ describe('Ollama Provider', function (): void {
             'max_tokens' => 10,
         ]);
 
-        ray($response);
         expect($response->content)->not->toBeEmpty();
         // With max_tokens=10, we shouldn't get all the way to 100
         expect($response->content)->not->toContain('100');

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pagent\Exceptions\ConfigurationException;
 use Pagent\Tools\FileRead;
 
 beforeEach(function () {
@@ -26,7 +27,7 @@ test('file read returns file contents', function () {
     $file = $this->tempDir.'/test.txt';
     file_put_contents($file, 'Hello, World!');
 
-    $tool = new FileRead;
+    $tool = new FileRead(allowAnyPath: true);
     $result = $tool->execute(['path' => $file]);
 
     expect($result)->toBe('Hello, World!');
@@ -49,24 +50,39 @@ test('file read prevents directory traversal', function () {
 });
 
 test('file read throws when file not found', function () {
-    $tool = new FileRead;
+    $tool = new FileRead(allowAnyPath: true);
 
     expect(fn () => $tool->execute(['path' => '/nonexistent/file.txt']))
         ->toThrow(RuntimeException::class, 'File not found');
 });
 
 test('file read throws when path is directory', function () {
-    $tool = new FileRead;
+    $tool = new FileRead(allowAnyPath: true);
 
     expect(fn () => $tool->execute(['path' => $this->tempDir]))
         ->toThrow(RuntimeException::class, 'Path is not a file');
+});
+
+test('file read defaults to confining reads to the current working directory', function () {
+    $file = $this->tempDir.'/secret.txt';
+    file_put_contents($file, 'secret');
+
+    $tool = new FileRead;
+
+    expect(fn () => $tool->execute(['path' => $file]))
+        ->toThrow(RuntimeException::class, 'Path traversal detected');
+});
+
+test('file read rejects baseDir combined with allowAnyPath', function () {
+    expect(fn () => new FileRead(baseDir: '/tmp', allowAnyPath: true))
+        ->toThrow(ConfigurationException::class, 'mutually exclusive');
 });
 
 test('file read throws when file too large', function () {
     $file = $this->tempDir.'/large.txt';
     file_put_contents($file, str_repeat('x', 1000));
 
-    $tool = new FileRead(maxSize: 100);
+    $tool = new FileRead(maxSize: 100, allowAnyPath: true);
 
     expect(fn () => $tool->execute(['path' => $file]))
         ->toThrow(RuntimeException::class, 'File too large');

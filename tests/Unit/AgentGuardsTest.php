@@ -98,7 +98,7 @@ test('it throws exception for unknown guard class', function (): void {
     $agent = testAgent();
 
     expect(fn () => $agent->guard('nonexistent'))
-        ->toThrow(RuntimeException::class, 'Guard class');
+        ->toThrow(RuntimeException::class, 'Unknown guard');
 });
 
 // ========================================

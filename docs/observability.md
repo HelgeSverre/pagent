@@ -243,9 +243,13 @@ telemetry_otlp('http://localhost:4317/v1/traces');
 
 ```php
 use Pagent\Observability\TelemetryManager;
+use Psr\Log\LoggerInterface;
 
 TelemetryManager::instance()->initialize([
     'enabled' => true,
+
+    // Optional PSR-3 sink for exporter failures; omitted means silent.
+    'logger' => $logger, // LoggerInterface
     'exporter' => 'otlp',
     'otlp' => [
         'endpoint' => 'https://api.example.com/v1/traces',
@@ -270,9 +274,23 @@ TelemetryManager::instance()->initialize([
     'enabled' => true,
     'exporter' => 'jaeger',  // or 'otlp', 'zipkin', 'console'
     'sampling_rate' => 1.0,   // 100% sampling (0.0 to 1.0)
+    // Disabled by default because workflow bodies may contain secrets or PII.
+    'capture_content' => false,
     'jaeger' => [
         'endpoint' => 'http://localhost:14268/api/traces',
     ],
+]);
+```
+
+Workflow spans export value type and byte size by default, but never raw input
+or output. Content capture must be enabled explicitly and can be scrubbed before
+export:
+
+```php
+TelemetryManager::instance()->initialize([
+    'enabled' => true,
+    'capture_content' => true,
+    'content_redactor' => static fn (string $content): string => redact($content),
 ]);
 ```
 
@@ -343,9 +361,8 @@ agent('calculator')
 // Span: tool.execute
 // Attributes:
 //   - tool.name: add
-//   - tool.arguments: {"a": 5, "b": 3}
-//   - tool.result: 8
-//   - tool.duration: 0.001s
+//   - tool.arguments.size: 13
+// Raw tool.arguments is included only when capture_content is enabled.
 ```
 
 See [`examples/18-telemetry-tools.php`](../examples/18-telemetry-tools.php) for detailed tool tracing examples.
@@ -521,7 +538,7 @@ gen_ai.operation.name            - Operation type ("chat", "completion")
 
 ```
 tool.name         - Tool name
-tool.arguments    - JSON-encoded arguments
+tool.arguments.size - JSON-encoded argument size (raw arguments require `capture_content`)
 tool.result       - Execution result (truncated if large)
 tool.error        - Error message (if failed)
 ```

@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Pagent\Evaluation;
 
-use RuntimeException;
+use Pagent\Exceptions\ConfigurationException;
+use Pagent\Exceptions\RuntimeException;
 
 use function array_combine;
 use function array_filter;
@@ -40,6 +41,16 @@ final class Dataset
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new RuntimeException('Invalid JSON in dataset: '.json_last_error_msg());
+        }
+
+        if (! is_array($data)) {
+            throw new ConfigurationException("Dataset file must contain a JSON array of items: {$path}");
+        }
+
+        foreach ($data as $index => $item) {
+            if (! is_array($item) || ! isset($item['input']) || ! is_string($item['input'])) {
+                throw new ConfigurationException("Dataset item at index {$index} must be an array with a string 'input' key: {$path}");
+            }
         }
 
         return new self($data);

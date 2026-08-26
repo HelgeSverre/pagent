@@ -18,7 +18,7 @@ final class UsageData
         public readonly int $inputTokens,
         public readonly int $outputTokens,
         public readonly int $totalTokens,
-        public readonly float $cost,
+        public readonly ?float $cost,
         public readonly ?int $cachedInputTokens = null,
         public readonly ?int $cacheCreationTokens = null,
         public readonly ?string $sessionId = null,
@@ -32,7 +32,7 @@ final class UsageData
      * @param  string  $provider  Provider name (anthropic, openai, etc.)
      * @param  string  $model  Model name
      * @param  array<string, mixed>  $usage  Usage array from provider response
-     * @param  float  $cost  Calculated cost in USD
+     * @param  float|null  $cost  Calculated cost in USD, or null when pricing is unknown
      * @param  string|null  $sessionId  Optional session identifier
      */
     public static function fromResponse(
@@ -40,9 +40,11 @@ final class UsageData
         string $provider,
         string $model,
         array $usage,
-        float $cost,
+        ?float $cost,
         ?string $sessionId = null
     ): self {
+        $usage = UsageNormalizer::normalize($usage) ?? [];
+
         /** @var int $inputTokens */
         $inputTokens = is_numeric($usage['input_tokens'] ?? null) ? (int) $usage['input_tokens'] : 0;
         /** @var int $outputTokens */
@@ -96,10 +98,14 @@ final class UsageData
     }
 
     /**
-     * Get formatted cost as string.
+     * Get formatted cost as string ("unknown" when pricing was unavailable).
      */
     public function getFormattedCost(): string
     {
+        if ($this->cost === null) {
+            return 'unknown';
+        }
+
         return '$'.number_format($this->cost, 4);
     }
 

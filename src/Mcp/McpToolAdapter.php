@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pagent\Mcp;
 
-use Pagent\Contracts\ToolInterface;
+use Pagent\Contracts\ToolInterface as Tool;
 use Pagent\Tool\ToolSchemaSerializer;
 
 /**
@@ -12,7 +12,7 @@ use Pagent\Tool\ToolSchemaSerializer;
  *
  * This allows MCP tools to be used seamlessly with Pagent agents.
  */
-final class McpToolAdapter implements ToolInterface
+final class McpToolAdapter implements Tool
 {
     /**
      * Create a new MCP tool adapter.

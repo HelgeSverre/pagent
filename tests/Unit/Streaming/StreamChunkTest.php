@@ -22,12 +22,18 @@ test('StreamChunk can be created with all properties', function () {
 
 test('StreamChunk::isText() identifies text chunks correctly', function () {
     $textChunk = new StreamChunk('text', 'Hello');
-    $deltaChunk = new StreamChunk('content_block_delta', 'World');
     $otherChunk = new StreamChunk('start', '');
 
     expect($textChunk->isText())->toBeTrue()
-        ->and($deltaChunk->isText())->toBeTrue()
         ->and($otherChunk->isText())->toBeFalse();
+});
+
+test('StreamChunk::isThinking() identifies thinking chunks correctly', function () {
+    $thinkingChunk = new StreamChunk('thinking_delta', 'Let me think...');
+    $textChunk = new StreamChunk('text', 'Hello');
+
+    expect($thinkingChunk->isThinking())->toBeTrue()
+        ->and($textChunk->isThinking())->toBeFalse();
 });
 
 test('StreamChunk::isToolCall() identifies tool call chunks correctly', function () {
@@ -41,23 +47,19 @@ test('StreamChunk::isToolCall() identifies tool call chunks correctly', function
 });
 
 test('StreamChunk::isStart() identifies start chunks correctly', function () {
-    $messageStart = new StreamChunk('message_start', '');
     $start = new StreamChunk('start', '');
     $text = new StreamChunk('text', 'Hello');
 
-    expect($messageStart->isStart())->toBeTrue()
-        ->and($start->isStart())->toBeTrue()
+    expect($start->isStart())->toBeTrue()
         ->and($text->isStart())->toBeFalse();
 });
 
 test('StreamChunk::isEnd() identifies end chunks correctly', function () {
-    $messageStop = new StreamChunk('message_stop', '', isComplete: true);
     $done = new StreamChunk('done', '', isComplete: true);
     $complete = new StreamChunk('text', 'Hello', isComplete: true);
     $text = new StreamChunk('text', 'Hello');
 
-    expect($messageStop->isEnd())->toBeTrue()
-        ->and($done->isEnd())->toBeTrue()
+    expect($done->isEnd())->toBeTrue()
         ->and($complete->isEnd())->toBeTrue()
         ->and($text->isEnd())->toBeFalse();
 });

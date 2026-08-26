@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Pagent;
 
 use Closure;
-use InvalidArgumentException;
 use Pagent\Contracts\Provider;
+use Pagent\Exceptions\InvalidArgumentException;
 
 use function array_merge;
 use function strtolower;
@@ -30,6 +30,23 @@ final class ProviderFactory
     public static function register(string $name, Closure $factory): void
     {
         self::$factories[strtolower($name)] = $factory;
+    }
+
+    /**
+     * Remove a registered provider factory.
+     */
+    public static function unregister(string $name): void
+    {
+        unset(self::$factories[strtolower($name)]);
+    }
+
+    /**
+     * Clear all custom factories and re-enable default registration.
+     */
+    public static function reset(): void
+    {
+        self::$factories = [];
+        self::$defaultsRegistered = false;
     }
 
     /**

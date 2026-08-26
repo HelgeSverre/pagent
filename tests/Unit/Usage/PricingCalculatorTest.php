@@ -48,6 +48,18 @@ test('calculates cost for OpenAI gpt-4o', function () {
     expect($cost)->toBe(7.5);
 });
 
+test('normalizes OpenAI and Ollama native token field names', function () {
+    $calculator = new PricingCalculator;
+
+    $cost = $calculator->calculate('openai', 'gpt-4o-2024-11-20', [
+        'prompt_tokens' => 1_000_000,
+        'completion_tokens' => 500_000,
+        'total_tokens' => 1_500_000,
+    ]);
+
+    expect($cost)->toBe(7.5);
+});
+
 test('calculates cost for OpenAI gpt-4o-mini', function () {
     $calculator = new PricingCalculator;
 
@@ -77,7 +89,7 @@ test('normalizes model names', function () {
     expect($cost)->toBe(18.0); // $3 + $15 = $18
 });
 
-test('returns zero cost for unknown model', function () {
+test('returns null cost for unknown provider', function () {
     $calculator = new PricingCalculator;
 
     $usage = [
@@ -87,7 +99,34 @@ test('returns zero cost for unknown model', function () {
 
     $cost = $calculator->calculate('unknown-provider', 'unknown-model', $usage);
 
-    expect($cost)->toBe(0.0);
+    expect($cost)->toBeNull();
+});
+
+test('returns null cost for unknown model on a known paid provider', function () {
+    $calculator = new PricingCalculator;
+
+    $usage = [
+        'input_tokens' => 1_000_000,
+        'output_tokens' => 1_000_000,
+    ];
+
+    // No silent $3/$15 default guess for unknown Anthropic models
+    expect($calculator->calculate('anthropic', 'claude-99-fictional', $usage))->toBeNull()
+        ->and($calculator->calculate('openai', 'gpt-99-fictional', $usage))->toBeNull();
+});
+
+test('prices anthropic cache creation tokens at 1.25x input rate', function () {
+    $calculator = new PricingCalculator;
+
+    $usage = [
+        'input_tokens' => 0,
+        'output_tokens' => 0,
+        'cache_creation_input_tokens' => 1_000_000, // 1M at $3 * 1.25 = $3.75
+    ];
+
+    $cost = $calculator->calculate('anthropic', 'claude-3-5-sonnet-20241022', $usage);
+
+    expect($cost)->toBe(3.75);
 });
 
 test('returns zero cost for Ollama models', function () {

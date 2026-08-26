@@ -233,13 +233,13 @@ final class SanitizeMiddleware implements Middleware
 
 ## Middleware vs Guards
 
-| Feature    | Middleware                  | Guards                         |
-| ---------- | --------------------------- | ------------------------------ |
-| Purpose    | Transform request/response  | Validate response safety       |
+| Feature    | Middleware                           | Guards                                              |
+| ---------- | ------------------------------------ | --------------------------------------------------- |
+| Purpose    | Transform request/response           | Validate response safety                            |
 | Timing     | Before and after each provider round | Input before provider/tools; output before delivery |
-| Can modify | Yes (options and response)  | No (only pass/fail)            |
-| On failure | Throw exception or continue | Block response or use fallback |
-| Use case   | Logging, metrics, defaults  | Security, content filtering    |
+| Can modify | Yes (options and response)           | No (only pass/fail)                                 |
+| On failure | Throw exception or continue          | Block response or use fallback                      |
+| Use case   | Logging, metrics, defaults           | Security, content filtering                         |
 
 **Use middleware when you need to:**
 

@@ -4,66 +4,28 @@ declare(strict_types=1);
 
 namespace Pagent\Tool;
 
-use RuntimeException;
+use Pagent\Exceptions\RuntimeException;
 
-use function array_filter;
 use function array_key_exists;
-use function array_keys;
-use function count;
 use function get_debug_type;
 use function is_array;
 use function is_bool;
 use function is_float;
 use function is_int;
 use function is_string;
-use function range;
 
 final class ToolValidator
 {
+    /**
+     * Validate named arguments against the tool's declared parameters.
+     *
+     * Provider tool calls are always named JSON objects, so arguments are
+     * validated by parameter name only.
+     */
     public static function validate(Tool $tool, array $arguments): void
     {
-        $isAssociative = self::isAssociativeArray($arguments);
-        $providedCount = count($arguments);
-
-        $requiredArgs = array_filter(
-            $tool->arguments,
-            fn ($arg) => ! $arg->nullable && $arg->default === null,
-        );
-
-        if ($isAssociative) {
-            foreach ($requiredArgs as $requiredArg) {
-                if (! array_key_exists($requiredArg->name, $arguments)) {
-                    throw new RuntimeException(
-                        "Tool '{$tool->name}' missing required argument: {$requiredArg->name}",
-                    );
-                }
-            }
-        } else {
-            if ($providedCount < count($requiredArgs)) {
-                throw new RuntimeException(
-                    "Tool '{$tool->name}' requires ".count($requiredArgs)
-                    ." arguments, {$providedCount} provided",
-                );
-            }
-        }
-
-        foreach ($tool->arguments as $i => $expectedArg) {
-            $value = null;
-            $hasValue = false;
-
-            if ($isAssociative) {
-                if (array_key_exists($expectedArg->name, $arguments)) {
-                    $value = $arguments[$expectedArg->name];
-                    $hasValue = true;
-                }
-            } else {
-                if (isset($arguments[$i])) {
-                    $value = $arguments[$i];
-                    $hasValue = true;
-                }
-            }
-
-            if (! $hasValue) {
+        foreach ($tool->arguments as $expectedArg) {
+            if (! array_key_exists($expectedArg->name, $arguments)) {
                 if (! $expectedArg->nullable && $expectedArg->default === null) {
                     throw new RuntimeException(
                         "Tool '{$tool->name}' missing required argument: {$expectedArg->name}",
@@ -73,17 +35,8 @@ final class ToolValidator
                 continue;
             }
 
-            self::validateType($tool->name, $expectedArg->name, $expectedArg->type, $value);
+            self::validateType($tool->name, $expectedArg->name, $expectedArg->type, $arguments[$expectedArg->name]);
         }
-    }
-
-    private static function isAssociativeArray(array $array): bool
-    {
-        if ($array === []) {
-            return false;
-        }
-
-        return array_keys($array) !== range(0, count($array) - 1);
     }
 
     private static function validateType(string $toolName, string $argName, string $expectedType, mixed $value): void

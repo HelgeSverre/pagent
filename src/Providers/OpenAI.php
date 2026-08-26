@@ -4,128 +4,91 @@ declare(strict_types=1);
 
 namespace Pagent\Providers;
 
-use InvalidArgumentException;
 use Pagent\Contracts\IdentifiedProvider;
 use Pagent\Contracts\StreamingProvider;
+use Pagent\Exceptions\InvalidArgumentException;
 use Pagent\Http\CurlTransport;
 use Pagent\Http\HttpClientInterface;
 use Pagent\ProviderCapabilities;
+use Pagent\Providers\Concerns\ResolvesProviderConfig;
+use Pagent\Response;
 use Pagent\Streaming\OpenAIStreamParser;
 use Pagent\Streaming\StreamResponse;
-use Pagent\Tool\ToolCallArgumentNormalizer;
-use RuntimeException;
 
+use function array_merge;
 use function array_unshift;
-use function getenv;
-use function json_decode;
+use function in_array;
+use function is_array;
+use function is_string;
+use function rtrim;
 
 final class OpenAI implements IdentifiedProvider, StreamingProvider
 {
+    use ResolvesProviderConfig;
+
     private string $apiKey;
 
-    private string $baseUrl = 'https://api.openai.com/v1';
+    private string $baseUrl;
+
+    private int $timeout;
 
     private HttpClientInterface $httpClient;
 
     public function __construct(array $config = [], ?HttpClientInterface $httpClient = null)
     {
-        $this->apiKey = $config['api_key'] ?? $_ENV['OPENAI_API_KEY'] ?? getenv('OPENAI_API_KEY') ?: '';
-        if (empty($this->apiKey)) {
-            throw new RuntimeException('OpenAI API key not configured');
-        }
-
-        $this->httpClient = $httpClient ?? new CurlTransport;
+        $this->apiKey = $this->resolveApiKey($config, 'OPENAI_API_KEY', 'OpenAI');
+        $this->baseUrl = rtrim($config['base_url'] ?? 'https://api.openai.com/v1', '/');
+        $this->timeout = $config['timeout'] ?? 30;
+        $this->httpClient = $httpClient ?? new CurlTransport($this->providerId());
     }
 
-    public function prompt(string $message, array $options = []): object
+    public function prompt(string $message, array $options = []): Response
     {
-        $messages = $options['messages'] ?? [];
+        $body = $this->buildBody($message, $options, stream: false);
 
-        // Add system message if provided
-        if (isset($options['system'])) {
-            array_unshift($messages, ['role' => 'system', 'content' => $options['system']]);
-        }
-
-        // If no messages provided, use the prompt
-        if (empty($messages)) {
-            $messages = [['role' => 'user', 'content' => $message]];
-        }
-
-        // Build request body
-        $body = [
-            'model' => $options['model'] ?? 'gpt-3.5-turbo',
-            'messages' => $messages,
-        ];
-
-        if (isset($options['temperature'])) {
-            $body['temperature'] = $options['temperature'];
-        }
-
-        if (isset($options['max_tokens'])) {
-            $body['max_tokens'] = $options['max_tokens'];
-        }
-
-        // Add tools if provided
-        if (! empty($options['tools'])) {
-            $body['tools'] = $options['tools'];
-        }
-
-        // Pass through additional OpenAI-specific options (e.g., response_format, seed, etc.)
-        foreach ($options as $key => $value) {
-            if (! in_array($key, ['messages', 'system', 'model', 'temperature', 'max_tokens', 'tools'], true)) {
-                $body[$key] = $value;
-            }
-        }
-
-        // Make API call using HttpClient
         $response = $this->httpClient->requestJson(
             method: 'POST',
             url: $this->baseUrl.'/chat/completions',
-            headers: [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer '.$this->apiKey,
-            ],
+            headers: $this->headers(),
             json: $body,
-            options: ['timeout' => 30]
+            options: ['timeout' => $this->timeout]
         );
 
         if (! $response->isSuccessful()) {
-            $data = $response->json();
-            $error = $data['error']['message'] ?? 'Unknown error';
-            throw new RuntimeException("OpenAI API error: {$error}");
+            $this->throwApiError($response, 'OpenAI');
         }
 
         $data = $response->json();
 
-        $message = $data['choices'][0]['message'] ?? [];
+        $choiceMessage = $data['choices'][0]['message'] ?? [];
         $toolCalls = [];
 
         // Extract tool calls if present
-        if (isset($message['tool_calls'])) {
-            foreach ($message['tool_calls'] as $toolCall) {
-                $name = is_string($toolCall['function']['name'] ?? null)
-                    ? $toolCall['function']['name']
-                    : 'unknown';
-                $toolCalls[] = [
-                    'id' => $toolCall['id'],
-                    'name' => $name,
-                    'arguments' => ToolCallArgumentNormalizer::normalize(
-                        $toolCall['function']['arguments'] ?? null,
-                        "OpenAI tool '{$name}'",
-                    ),
-                ];
-            }
+        foreach ($choiceMessage['tool_calls'] ?? [] as $toolCall) {
+            $toolCalls[] = $this->normalizeToolCall(
+                $toolCall['id'] ?? null,
+                $toolCall['function']['name'] ?? null,
+                $toolCall['function']['arguments'] ?? null,
+                'OpenAI',
+            );
         }
 
-        return (object) [
-            'content' => $message['content'] ?? '',
-            'model' => $data['model'] ?? $body['model'],
-            'tokens' => $data['usage']['total_tokens'] ?? 0,
-            'provider' => 'openai',
-            'usage' => $data['usage'] ?? null,
-            'finish_reason' => $data['choices'][0]['finish_reason'] ?? null,
-            'tool_calls' => $toolCalls,
-        ];
+        return new Response(
+            // OpenAI legitimately returns null content for assistant messages
+            // that contain only tool calls.
+            content: is_string($choiceMessage['content'] ?? null) ? $choiceMessage['content'] : '',
+            model: is_string($data['model'] ?? null)
+                ? $data['model']
+                : (is_string($body['model']) ? $body['model'] : 'unknown'),
+            tokens: is_numeric($data['usage']['total_tokens'] ?? null)
+                ? (int) $data['usage']['total_tokens']
+                : 0,
+            provider: 'openai',
+            usage: $data['usage'] ?? null,
+            finish_reason: $data['choices'][0]['finish_reason'] ?? null,
+            tool_calls: $toolCalls,
+            raw: $data,
+        );
     }
 
     /**
@@ -133,72 +96,20 @@ final class OpenAI implements IdentifiedProvider, StreamingProvider
      */
     public function streamPrompt(string $message, array $options = []): StreamResponse
     {
-        $messages = $options['messages'] ?? [];
+        $body = $this->buildBody($message, $options, stream: true);
 
-        // Add system message if provided
-        if (isset($options['system'])) {
-            array_unshift($messages, ['role' => 'system', 'content' => $options['system']]);
-        }
-
-        // If no messages provided, use the prompt
-        if (empty($messages)) {
-            $messages = [['role' => 'user', 'content' => $message]];
-        }
-
-        // Build request body
-        $body = [
-            'model' => $options['model'] ?? 'gpt-3.5-turbo',
-            'messages' => $messages,
-            'stream' => true, // Enable streaming
-        ];
-
-        if (isset($options['temperature'])) {
-            $body['temperature'] = $options['temperature'];
-        }
-
-        if (isset($options['max_tokens'])) {
-            $body['max_tokens'] = $options['max_tokens'];
-        }
-
-        // Add tools if provided
-        if (! empty($options['tools'])) {
-            $body['tools'] = $options['tools'];
-        }
-
-        // Pass through additional OpenAI-specific options
-        foreach ($options as $key => $value) {
-            if (! in_array($key, ['messages', 'system', 'model', 'temperature', 'max_tokens', 'tools'], true)) {
-                $body[$key] = $value;
-            }
-        }
-
-        $streamOptions = $options['stream_options'] ?? [];
-        if (! is_array($streamOptions)) {
-            throw new InvalidArgumentException('OpenAI stream_options must be an array');
-        }
-        $body['stream_options'] = array_merge(['include_usage' => true], $streamOptions);
-
-        // Make streaming API call using HttpClient
         $transport = $this->httpClient->streamJson(
             method: 'POST',
             url: $this->baseUrl.'/chat/completions',
-            headers: [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Bearer '.$this->apiKey,
-            ],
+            headers: $this->headers(),
             json: $body,
             options: ['timeout' => 0]
         );
 
-        if (! ($transport->status() >= 200 && $transport->status() < 300)) {
-            $content = $transport->getContent();
-            $data = json_decode($content, true);
-            $error = $data['error']['message'] ?? 'Unknown error';
-            throw new RuntimeException("OpenAI API error: {$error}");
-        }
+        $this->ensureStreamSuccessful($transport, 'OpenAI');
 
         $parser = new OpenAIStreamParser;
-        $model = $body['model'];
+        $model = is_string($body['model']) ? $body['model'] : 'unknown';
 
         return new StreamResponse(
             stream: $parser->parse($transport->chunks(), $model),
@@ -225,5 +136,63 @@ final class OpenAI implements IdentifiedProvider, StreamingProvider
             protocol: 'openai-chat-completions',
             toolProtocol: 'openai',
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    private function buildBody(string $message, array $options, bool $stream): array
+    {
+        $messages = is_array($options['messages'] ?? null) ? $options['messages'] : [];
+
+        // Add system message if provided
+        if (isset($options['system'])) {
+            array_unshift($messages, ['role' => 'system', 'content' => $options['system']]);
+        }
+
+        // If no messages provided, use the prompt
+        if (empty($messages)) {
+            $messages = [['role' => 'user', 'content' => $message]];
+        }
+
+        $body = [
+            'model' => $options['model'] ?? 'gpt-3.5-turbo',
+            'messages' => $messages,
+        ];
+
+        if (! empty($options['tools'])) {
+            $body['tools'] = $options['tools'];
+        }
+
+        // Pass through additional OpenAI-specific options (e.g., response_format, seed, etc.)
+        foreach ($options as $key => $value) {
+            if (! in_array($key, ['messages', 'system', 'model', 'tools', 'stream', 'stream_options'], true)) {
+                $body[$key] = $value;
+            }
+        }
+
+        if ($stream) {
+            $body['stream'] = true;
+
+            $streamOptions = $options['stream_options'] ?? [];
+            if (! is_array($streamOptions)) {
+                throw new InvalidArgumentException('OpenAI stream_options must be an array');
+            }
+            $body['stream_options'] = array_merge(['include_usage' => true], $streamOptions);
+        }
+
+        return $body;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function headers(): array
+    {
+        return [
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer '.$this->apiKey,
+        ];
     }
 }

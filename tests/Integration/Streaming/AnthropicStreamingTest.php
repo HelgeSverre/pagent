@@ -27,7 +27,7 @@ test('Anthropic streamPrompt returns StreamResponse', function () {
     ]);
 
     $response = $provider->streamPrompt('Say "test" only', [
-        'model' => 'claude-3-haiku-20240307',
+        'model' => 'claude-3-5-haiku-20241022',
         'max_tokens' => 10,
     ]);
 
@@ -42,7 +42,7 @@ test('Anthropic streaming collects full content correctly', function () {
     ]);
 
     $response = $provider->streamPrompt('Say "hello world" only', [
-        'model' => 'claude-3-haiku-20240307',
+        'model' => 'claude-3-5-haiku-20241022',
         'max_tokens' => 20,
     ]);
 
@@ -60,7 +60,7 @@ test('Anthropic streaming produces text chunks', function () {
     ]);
 
     $response = $provider->streamPrompt('Count to 3', [
-        'model' => 'claude-3-haiku-20240307',
+        'model' => 'claude-3-5-haiku-20241022',
         'max_tokens' => 50,
     ]);
 

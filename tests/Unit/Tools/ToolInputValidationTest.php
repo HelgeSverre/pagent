@@ -28,7 +28,7 @@ test('built-in tools reject invalid input types before performing work', functio
     );
 
     $cases = [
-        'bash command' => [new Bash, ['command' => ['echo test']], 'command parameter must be a string'],
+        'bash command' => [new Bash(unrestricted: true), ['command' => ['echo test']], 'command parameter must be a string'],
         'data extract text' => [new DataExtract($provider), ['text' => [], 'schema' => []], 'text parameter must be a string'],
         'file read path' => [new FileRead, ['path' => 42], 'path parameter must be a string'],
         'file write content' => [new FileWrite, ['path' => 'file.txt', 'content' => true], 'content parameter must be a string'],

@@ -39,6 +39,8 @@ interface UsageStorage
 
     /**
      * Get total cost across all records.
+     *
+     * Records with unknown pricing (null cost) are skipped.
      */
     public function getTotalCost(): float;
 

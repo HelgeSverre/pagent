@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pagent\Exceptions\InvalidArgumentException;
 use Pagent\Mcp\Exceptions\McpConnectionException;
 use Pagent\Mcp\Transports\StdioTransport;
 
@@ -51,7 +52,7 @@ test('it throws on invalid command', function () {
 
     expect(fn () => $transport->connect())
         ->toThrow(McpConnectionException::class);
-})->skip('proc_open behavior with invalid commands varies by system');
+});
 
 test('it accepts working directory parameter', function () {
     $transport = new StdioTransport(
@@ -69,6 +70,43 @@ test('it accepts environment variables', function () {
     );
 
     expect($transport)->toBeInstanceOf(StdioTransport::class);
+});
+
+test('custom environment variables augment the inherited process environment', function () {
+    $script = <<<'PHP'
+    fgets(STDIN);
+    echo json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'custom' => getenv('PAGENT_TEST_VAR'),
+            'path' => getenv('PATH'),
+        ],
+    ]) . "\n";
+    PHP;
+    $transport = new StdioTransport(
+        [PHP_BINARY, '-r', $script],
+        env: ['PAGENT_TEST_VAR' => 'value'],
+    );
+    $transport->connect();
+
+    $response = $transport->sendRequest([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'test',
+    ]);
+    $transport->disconnect();
+
+    expect($response['result']['custom'])->toBe('value')
+        ->and($response['result']['path'])->toBe(getenv('PATH'));
+});
+
+test('it rejects invalid environment entries', function () {
+    expect(fn () => new StdioTransport(['cat'], env: ['BAD=NAME' => 'value']))
+        ->toThrow(InvalidArgumentException::class, 'environment variable names');
+
+    expect(fn () => new StdioTransport(['cat'], env: ['VALID_NAME' => "bad\0value"]))
+        ->toThrow(InvalidArgumentException::class, 'environment variable values');
 });
 
 test('it accepts custom timeout', function () {
@@ -145,11 +183,9 @@ test('it throws when trying to send after disconnect', function () {
 });
 
 test('it handles empty command parameter', function () {
-    $transport = new StdioTransport('');
-
-    expect(fn () => $transport->connect())
-        ->toThrow(McpConnectionException::class);
-})->skip('proc_open behavior with empty commands varies by system');
+    expect(fn () => new StdioTransport(''))
+        ->toThrow(InvalidArgumentException::class, 'non-empty');
+});
 
 test('it accepts all constructor parameters', function () {
     $transport = new StdioTransport(
@@ -173,14 +209,41 @@ test('it handles command with arguments', function () {
 });
 
 test('it throws on shell injection attempt', function () {
-    // The transport should safely handle commands, but proc_open with shell
-    // could be vulnerable if not used carefully
-    $transport = new StdioTransport('echo test; rm -rf /');
+    $marker = sys_get_temp_dir().'/pagent-stdio-injection-'.bin2hex(random_bytes(8));
 
-    // This should fail to spawn, preventing the injection
-    expect(fn () => $transport->connect())
-        ->toThrow(McpConnectionException::class);
-})->skip('proc_open behavior varies by system');
+    expect(fn () => new StdioTransport('echo test; touch '.escapeshellarg($marker)))
+        ->toThrow(InvalidArgumentException::class, 'Shell operators are not allowed')
+        ->and(file_exists($marker))->toBeFalse();
+});
+
+test('it passes argv values literally without shell expansion', function () {
+    $script = <<<'PHP'
+    fgets(STDIN);
+    echo json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => ['argument' => $argv[1]]]) . "\n";
+    PHP;
+    $literal = 'value; $(touch should-not-run)';
+    $transport = new StdioTransport([PHP_BINARY, '-r', $script, $literal]);
+    $transport->connect();
+
+    $response = $transport->sendRequest([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'test',
+    ]);
+    $transport->disconnect();
+
+    expect($response['result']['argument'])->toBe($literal);
+});
+
+test('shell execution requires the explicit shell factory', function () {
+    $transport = StdioTransport::fromShellCommand('exec cat');
+
+    $transport->connect();
+
+    expect($transport->isConnected())->toBeTrue();
+
+    $transport->disconnect();
+});
 
 test('it handles disconnect of uninitialized transport', function () {
     $transport = new StdioTransport('cat');
@@ -222,4 +285,68 @@ test('it can reconnect after disconnect', function () {
     expect($transport->isConnected())->toBeTrue();
 
     $transport->disconnect();
+});
+
+test('it skips notifications and returns the id-matched response, draining stderr', function () {
+    $script = <<<'PHP'
+    fgets(STDIN);
+    fwrite(STDERR, str_repeat("noisy server log line\n", 50));
+    echo json_encode(['jsonrpc' => '2.0', 'method' => 'notifications/progress', 'params' => ['progressToken' => 'tok', 'progress' => 1, 'total' => 2]]) . "\n";
+    echo json_encode(['jsonrpc' => '2.0', 'id' => 42, 'result' => ['ok' => true]]) . "\n";
+    PHP;
+
+    $transport = new StdioTransport(escapeshellarg(PHP_BINARY).' -r '.escapeshellarg($script), timeoutMs: 10000);
+    $transport->connect();
+
+    $notifications = [];
+    $transport->setNotificationHandler(function (array $notification) use (&$notifications): void {
+        $notifications[] = $notification;
+    });
+
+    $response = $transport->sendRequest([
+        'jsonrpc' => '2.0',
+        'id' => 42,
+        'method' => 'tools/list',
+        'params' => (object) [],
+    ]);
+
+    $transport->disconnect();
+
+    expect($response['id'])->toBe(42)
+        ->and($response['result'])->toBe(['ok' => true])
+        ->and($notifications)->toHaveCount(1)
+        ->and($notifications[0]['method'])->toBe('notifications/progress');
+});
+
+test('it buffers responses for other request ids', function () {
+    $script = <<<'PHP'
+    fgets(STDIN);
+    echo json_encode(['jsonrpc' => '2.0', 'id' => 99, 'result' => ['other' => true]]) . "\n";
+    echo json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => ['mine' => true]]) . "\n";
+    fgets(STDIN);
+    PHP;
+
+    $transport = new StdioTransport(escapeshellarg(PHP_BINARY).' -r '.escapeshellarg($script), timeoutMs: 10000);
+    $transport->connect();
+
+    $response = $transport->sendRequest([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/list',
+        'params' => (object) [],
+    ]);
+
+    expect($response['result'])->toBe(['mine' => true]);
+
+    // The buffered id-99 response is returned without further reading
+    $response99 = $transport->sendRequest([
+        'jsonrpc' => '2.0',
+        'id' => 99,
+        'method' => 'tools/list',
+        'params' => (object) [],
+    ]);
+
+    $transport->disconnect();
+
+    expect($response99['result'])->toBe(['other' => true]);
 });

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pagent\Streaming;
 
 use Generator;
-use RuntimeException;
 
 use function json_decode;
 use function json_encode;
@@ -17,7 +16,7 @@ use function trim;
  * Unlike OpenAI/Anthropic which use Server-Sent Events (SSE),
  * Ollama uses newline-delimited JSON where each line is a complete JSON object.
  */
-final class OllamaStreamParser
+final class OllamaStreamParser implements StreamParser
 {
     private string $accumulatedText = '';
 
@@ -47,8 +46,13 @@ final class OllamaStreamParser
 
             // Parse the JSON line
             $chunk = json_decode($line, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new RuntimeException('Failed to parse NDJSON data: '.json_last_error_msg());
+            if (json_last_error() !== JSON_ERROR_NONE || ! is_array($chunk)) {
+                $reason = json_last_error() === JSON_ERROR_NONE
+                    ? 'expected a JSON object'
+                    : json_last_error_msg();
+                yield StreamChunk::error('Failed to parse NDJSON data: '.$reason);
+
+                return;
             }
 
             // Check for error in response

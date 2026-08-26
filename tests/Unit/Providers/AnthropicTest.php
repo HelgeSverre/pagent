@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Pagent\Exceptions\ApiException;
+use Pagent\Exceptions\ConfigurationException;
 use Pagent\Http\HttpClientInterface;
 use Pagent\Http\HttpResponse;
 use Pagent\Http\StreamTransport;
@@ -9,7 +11,7 @@ use Pagent\Providers\Anthropic;
 
 it('requires api key', function (): void {
     expect(fn () => new Anthropic(['api_key' => '']))
-        ->toThrow(RuntimeException::class, 'Anthropic API key not configured');
+        ->toThrow(ConfigurationException::class, 'Anthropic API key not configured');
 });
 
 it('accepts api key in config', function (): void {
@@ -48,8 +50,15 @@ test('it throws on 401 unauthorized', function (): void {
 
     $provider = new Anthropic(['api_key' => 'invalid-key'], $mockHttp);
 
-    expect(fn () => $provider->prompt('test'))
-        ->toThrow(RuntimeException::class, 'Invalid API key');
+    try {
+        $provider->prompt('test');
+        $this->fail('Expected ApiException');
+    } catch (ApiException $e) {
+        expect($e->getMessage())->toContain('Invalid API key')
+            ->and($e->provider)->toBe('anthropic')
+            ->and($e->statusCode)->toBe(401)
+            ->and($e->isRetryable())->toBeFalse();
+    }
 });
 
 test('it throws on 429 rate limit', function (): void {
@@ -78,8 +87,14 @@ test('it throws on 429 rate limit', function (): void {
 
     $provider = new Anthropic(['api_key' => 'test-key'], $mockHttp);
 
-    expect(fn () => $provider->prompt('test'))
-        ->toThrow(RuntimeException::class, 'Rate limit exceeded');
+    try {
+        $provider->prompt('test');
+        $this->fail('Expected ApiException');
+    } catch (ApiException $e) {
+        expect($e->getMessage())->toContain('Rate limit exceeded')
+            ->and($e->statusCode)->toBe(429)
+            ->and($e->isRetryable())->toBeTrue();
+    }
 });
 
 test('it throws on 500 server error', function (): void {
@@ -109,7 +124,7 @@ test('it throws on 500 server error', function (): void {
     $provider = new Anthropic(['api_key' => 'test-key'], $mockHttp);
 
     expect(fn () => $provider->prompt('test'))
-        ->toThrow(RuntimeException::class, 'Internal server error');
+        ->toThrow(ApiException::class, 'Internal server error');
 });
 
 test('it throws on malformed json response', function (): void {

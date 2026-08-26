@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pagent\Evaluation;
 
-use RuntimeException;
+use Pagent\Exceptions\RuntimeException;
 
 use function file_put_contents;
 use function pathinfo;
@@ -12,8 +12,12 @@ use function round;
 
 final class Report
 {
+    /**
+     * @param  string|null  $title  HTML report title; defaults to "{agent} - Evaluation Report"
+     */
     public function __construct(
         private readonly EvaluationResult $result,
+        private readonly ?string $title = null,
     ) {}
 
     private function renderTemplate(string $template, array $data): string
@@ -45,8 +49,7 @@ final class Report
             'results' => $this->result->results,
         ]);
 
-        // Wrap in layout with branded title
-        $title = "🩸 {$summary['agent']} - Evaluation Report";
+        $title = $this->title ?? "{$summary['agent']} - Evaluation Report";
 
         return $this->renderLayout($content, $title);
     }

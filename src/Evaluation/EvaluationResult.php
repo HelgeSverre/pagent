@@ -15,12 +15,23 @@ use function min;
 
 final readonly class EvaluationResult
 {
+    /**
+     * @param  array<int, array{index: int, input: string, error: string}>  $errors  Per-item failures recorded during the run
+     * @param  array{agent: string, averages: array<string, float>, deltas: array<string, float>, errors: array<int, array{index: int, input: string, error: string}>}|null  $baseline  Baseline agent averages, deltas (this agent minus baseline), and failures
+     */
     public function __construct(
         public string $agentName,
         public array $results,
         public array $metrics,
         public int $datasetSize,
+        public array $errors = [],
+        public ?array $baseline = null,
     ) {}
+
+    public function getFailureCount(): int
+    {
+        return count($this->errors);
+    }
 
     public function getAverageScore(string $metricName): float
     {
@@ -49,8 +60,13 @@ final readonly class EvaluationResult
         $summary = [
             'agent' => $this->agentName,
             'dataset_size' => $this->datasetSize,
+            'failures' => $this->getFailureCount(),
             'metrics' => [],
         ];
+
+        if ($this->baseline !== null) {
+            $summary['baseline'] = $this->baseline;
+        }
 
         foreach ($this->metrics as $name => $metric) {
             $scores = $this->getAllScores($name);
@@ -72,6 +88,7 @@ final readonly class EvaluationResult
             'dataset_size' => $this->datasetSize,
             'summary' => $this->getSummary(),
             'results' => $this->results,
+            'errors' => $this->errors,
         ];
     }
 

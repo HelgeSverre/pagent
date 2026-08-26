@@ -6,9 +6,10 @@ namespace Pagent\Workflow;
 
 use Pagent\Agent;
 use Pagent\Contracts\Provider;
+use Pagent\Exceptions\RuntimeException;
 use Pagent\Observability\NullSpan;
 use Pagent\Observability\TelemetryManager;
-use RuntimeException;
+use Pagent\Response;
 use Throwable;
 
 use function date;
@@ -41,11 +42,11 @@ final class WorkflowExecutor
         $telemetryEnabled = self::hasTelemetry($steps);
 
         $workflowSpan = $telemetryEnabled
-            ? TelemetryManager::instance()->startSpan("workflow.{$type}.run", [
+            ? TelemetryManager::instance()->startSpan("workflow.{$type}.run", array_merge([
                 'workflow.name' => $name,
                 'workflow.type' => $type,
                 'workflow.steps' => count($steps),
-            ])
+            ], self::valueAttributes('workflow.input', $input)))
             : new NullSpan;
 
         try {
@@ -84,7 +85,12 @@ final class WorkflowExecutor
                     $stepSpan->recordException($exception);
                     $stepSpan->setStatus('error', $exception->getMessage());
 
-                    throw $exception;
+                    throw new WorkflowException(
+                        "Workflow '{$name}' failed at step '{$step->name}': {$exception->getMessage()}",
+                        partialResults: $results,
+                        failedStep: $step->name,
+                        previous: $exception,
+                    );
                 } finally {
                     $stepSpan->end();
                 }
@@ -92,6 +98,7 @@ final class WorkflowExecutor
 
             $duration = microtime(true) - $startedAtMicros;
             $workflowSpan->setAttributes(self::workflowAttributes($duration, $totalTokens, true, count($results)));
+            $workflowSpan->setAttributes(self::valueAttributes('workflow.output', $current));
             $workflowSpan->setStatus('ok');
 
             return new WorkflowResult(
@@ -105,8 +112,8 @@ final class WorkflowExecutor
             $workflowSpan->setStatus('error', $exception->getMessage());
             $workflowSpan->setAttributes(self::workflowAttributes($duration, $totalTokens, false, count($results)));
 
-            // Preserve the original exception type for existing callers. The spans
-            // already contain workflow and step context, so wrapping is unnecessary.
+            // Step failures arrive here already wrapped as WorkflowException
+            // (carrying partial results); rethrow as-is.
             throw $exception;
         } finally {
             $workflowSpan->end();
@@ -141,6 +148,10 @@ final class WorkflowExecutor
             $response = $handler($input);
         }
 
+        if ($response instanceof Response) {
+            return [$response->content, $response];
+        }
+
         if (! is_object($response)) {
             return [$response, null];
         }
@@ -165,6 +176,12 @@ final class WorkflowExecutor
     {
         if ($response === null) {
             return 0;
+        }
+
+        if ($response instanceof Response) {
+            $total = $response->usage['total_tokens'] ?? null;
+
+            return is_numeric($total) ? (int) $total : $response->tokens;
         }
 
         $responseData = get_object_vars($response);
@@ -200,6 +217,25 @@ final class WorkflowExecutor
         }
 
         return false;
+    }
+
+    /** @return array<string, int|string> */
+    private static function valueAttributes(string $prefix, mixed $value): array
+    {
+        $serialized = is_string($value)
+            ? $value
+            : (json_encode($value) ?: get_debug_type($value));
+        $attributes = [
+            "{$prefix}.type" => get_debug_type($value),
+            "{$prefix}.size" => strlen($serialized),
+        ];
+
+        $content = TelemetryManager::instance()->contentForSpan($value);
+        if ($content !== null) {
+            $attributes[$prefix] = $content;
+        }
+
+        return $attributes;
     }
 
     private static function workflowAttributes(

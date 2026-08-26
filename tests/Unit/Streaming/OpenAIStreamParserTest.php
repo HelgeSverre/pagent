@@ -145,14 +145,16 @@ test('it captures OpenAI usage-only chunks before the terminal marker', function
     fclose($stream);
 });
 
-test('it throws on malformed json', function (): void {
+test('it yields an error chunk on malformed json', function (): void {
     $events = "data: {invalid json}\n\n";
 
     $stream = createOpenAIStream($events);
     $parser = new OpenAIStreamParser;
+    $chunks = iterator_to_array($parser->parse($stream, 'gpt-4'));
 
-    expect(fn () => iterator_to_array($parser->parse($stream, 'gpt-4')))
-        ->toThrow(RuntimeException::class, 'Failed to parse SSE data');
+    expect($chunks)->toHaveCount(1)
+        ->and($chunks[0]->isError())->toBeTrue()
+        ->and($chunks[0]->content)->toContain('Failed to parse SSE data');
 
     fclose($stream);
 });

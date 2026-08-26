@@ -111,3 +111,21 @@ test('middleware can modify options', function (): void {
 
     expect($response)->toBeObject();
 });
+
+test('metrics middleware times nested rounds independently', function (): void {
+    $metrics = new MetricsMiddleware;
+
+    $metrics->before('outer', []);
+    usleep(10000);
+    $metrics->before('inner', []);
+    usleep(10000);
+    $metrics->after((object) ['content' => 'inner', 'tokens' => 1]);
+    $metrics->after((object) ['content' => 'outer', 'tokens' => 1]);
+
+    $recorded = $metrics->getMetrics();
+
+    // Inner round is recorded first (LIFO) and must be shorter than the outer round
+    expect($recorded)->toHaveCount(2)
+        ->and($recorded[0]['duration_ms'])->toBeGreaterThan(0)
+        ->and($recorded[1]['duration_ms'])->toBeGreaterThan($recorded[0]['duration_ms']);
+});

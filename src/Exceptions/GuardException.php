@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Pagent\Exceptions;
 
-use RuntimeException;
-
-final class GuardException extends RuntimeException
+final class GuardException extends RuntimeException implements PagentException
 {
     public function __construct(
         string $message,

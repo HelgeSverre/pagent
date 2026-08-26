@@ -108,7 +108,7 @@ test('handles missing usage fields gracefully', function () {
 
     expect($data->inputTokens)->toBe(100)
         ->and($data->outputTokens)->toBe(0)
-        ->and($data->totalTokens)->toBe(0);
+        ->and($data->totalTokens)->toBe(100);
 });
 
 test('fromResponse sets timestamp automatically', function () {

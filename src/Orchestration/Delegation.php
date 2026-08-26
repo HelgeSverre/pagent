@@ -6,7 +6,7 @@ namespace Pagent\Orchestration;
 
 use Closure;
 use Pagent\Agent;
-use RuntimeException;
+use Pagent\Exceptions\RuntimeException;
 
 use function resolveAgent;
 
@@ -21,6 +21,8 @@ final class Delegation
     private ?Closure $supervisor = null;
 
     private ?Closure $onComplete = null;
+
+    private bool $review = false;
 
     public function __construct(Agent $manager, string $task)
     {
@@ -57,14 +59,27 @@ final class Delegation
         return $this;
     }
 
-    public function execute(): object
+    /**
+     * Have the manager summarize the worker's output with an extra LLM call.
+     * Off by default: the worker output is returned directly.
+     */
+    public function review(bool $review = true): self
+    {
+        $this->review = $review;
+
+        return $this;
+    }
+
+    public function execute(): DelegationResult
     {
         if (! isset($this->worker)) {
             throw new RuntimeException('No worker agent assigned for delegation');
         }
 
-        // Worker executes the task
-        $workerResponse = $this->worker->prompt($this->task);
+        // Run on an ephemeral clone so the registered worker's conversation
+        // history is not polluted by delegated tasks.
+        $worker = $this->worker->clone($this->worker->getName());
+        $workerResponse = $worker->prompt($this->task);
 
         // Supervisor reviews if provided
         if ($this->supervisor) {
@@ -76,22 +91,29 @@ final class Delegation
 
             if (is_string($review)) {
                 // Supervisor provided feedback, ask worker to revise
-                $workerResponse = $this->worker->prompt("Please revise based on this feedback: {$review}");
+                $workerResponse = $worker->prompt("Please revise based on this feedback: {$review}");
             }
         }
 
-        // Manager reviews the result
-        $managerPrompt = "Task: {$this->task}\n\nWorker ({$this->worker->getName()}) completed it with:\n{$workerResponse->content}\n\nProvide a brief summary.";
-        $managerReview = $this->manager->prompt($managerPrompt);
+        $workerOutput = $workerResponse->content;
+        $managerReview = null;
 
-        $result = (object) [
-            'task' => $this->task,
-            'worker' => $this->worker->getName(),
-            'worker_output' => $workerResponse->content,
-            'manager' => $this->manager->getName(),
-            'manager_review' => $managerReview->content,
-            'supervised' => $this->supervisor !== null,
-        ];
+        if ($this->review) {
+            // Manager summarizes on an ephemeral clone as well
+            $managerPrompt = "Task: {$this->task}\n\nWorker ({$this->worker->getName()}) completed it with:\n{$workerOutput}\n\nProvide a brief summary.";
+            $managerReview = $this->manager->clone($this->manager->getName())->prompt($managerPrompt)->content;
+        }
+
+        $result = new DelegationResult(
+            task: $this->task,
+            output: $managerReview ?? $workerOutput,
+            reviewed: $this->review,
+            workerAgent: $this->worker->getName(),
+            managerAgent: $this->manager->getName(),
+            workerOutput: $workerOutput,
+            managerReview: $managerReview,
+            supervised: $this->supervisor !== null,
+        );
 
         // Call completion callback if provided
         if ($this->onComplete) {

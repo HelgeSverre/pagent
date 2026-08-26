@@ -49,7 +49,7 @@ final class InMemoryUsageStorage implements UsageStorage
     {
         return array_reduce(
             $this->records,
-            fn (float $total, UsageData $data) => $total + $data->cost,
+            fn (float $total, UsageData $data) => $total + ($data->cost ?? 0.0),
             0.0
         );
     }
@@ -60,7 +60,7 @@ final class InMemoryUsageStorage implements UsageStorage
 
         return array_reduce(
             $records,
-            fn (float $total, UsageData $data) => $total + $data->cost,
+            fn (float $total, UsageData $data) => $total + ($data->cost ?? 0.0),
             0.0
         );
     }
@@ -71,7 +71,7 @@ final class InMemoryUsageStorage implements UsageStorage
 
         return array_reduce(
             $records,
-            fn (float $total, UsageData $data) => $total + $data->cost,
+            fn (float $total, UsageData $data) => $total + ($data->cost ?? 0.0),
             0.0
         );
     }

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pagent\Exceptions\ConfigurationException;
 use Pagent\Http\HttpClientInterface;
 use Pagent\Http\HttpResponse;
 use Pagent\Http\StreamTransport;
@@ -92,7 +93,7 @@ beforeEach(function (): void {
 
 it('requires an api key', function (): void {
     expect(fn () => new OpenCode(['api_key' => '']))
-        ->toThrow(RuntimeException::class, 'OpenCode API key not configured');
+        ->toThrow(ConfigurationException::class, 'OpenCode API key not configured');
 });
 
 it('rejects unknown gateways', function (): void {
@@ -472,6 +473,6 @@ SSE;
     expect($this->http->url)->toBe('https://opencode.ai/zen/v1/messages')
         ->and($this->http->json['stream'])->toBeTrue()
         ->and($content)->toBe('Hello from Messages');
-    expect($response->getUsage())->toBe(['input_tokens' => 2, 'output_tokens' => 3])
+    expect($response->getUsage())->toBe(['input_tokens' => 2, 'output_tokens' => 3, 'total_tokens' => 5])
         ->and($response->getStopReason())->toBe('end_turn');
 });

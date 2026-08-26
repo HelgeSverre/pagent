@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pagent\Tools;
 
-use RuntimeException;
+use Pagent\Exceptions\RuntimeException;
 use TeamTNT\TNTSearch\TNTSearch;
 
 final class SearchTool extends Tool
@@ -12,6 +12,20 @@ final class SearchTool extends Tool
     private ?TNTSearch $tnt = null;
 
     private bool $initialized = false;
+
+    /**
+     * Whether the storage directory is a managed temp location whose
+     * generated files should be cleaned up when the tool is destroyed.
+     */
+    private bool $ownsStorage = false;
+
+    /**
+     * Temp files created by this instance (staging sqlite dbs and, for managed
+     * temp storage, generated index files). Removed on destruct.
+     *
+     * @var array<string>
+     */
+    private array $tempFiles = [];
 
     /**
      * Create a new SearchTool instance.
@@ -25,20 +39,25 @@ final class SearchTool extends Tool
      * @param  bool  $fuzzy  Enable fuzzy search by default
      * @param  int  $fuzziness  Levenshtein distance for fuzzy search (1-3)
      * @param  int  $maxResults  Maximum number of results to return
-     * @param  string  $storage  Storage path for indexes, or ':memory:' for in-memory
+     * @param  string  $storage  Directory where index files are stored. Omit (or pass ':memory:')
+     *                           for a managed temp directory whose generated files are deleted
+     *                           when the tool is destroyed. NOTE: true in-memory SQLite indexes
+     *                           are not supported - TNTSearch opens its own connections to the
+     *                           index file, so ':memory:' is only an alias for ephemeral,
+     *                           auto-cleaned file storage.
      * @param  string|null  $stemmer  Stemmer class (e.g., PorterStemmer::class)
      *
      * @example Pre-indexed search:
-     *   new SearchTool(indexPath: 'docs/api.index')
-     * @example In-memory document search:
-     *   new SearchTool(documents: $docs, storage: ':memory:')
+     *   SearchTool::fromIndex('docs/api.index')
+     * @example Ephemeral document search (temp storage, auto-cleaned):
+     *   SearchTool::fromDocuments($docs)
      * @example Database-backed search:
      *   new SearchTool(
      *       query: 'SELECT id, title, content FROM articles',
      *       connection: ['driver' => 'mysql', 'host' => 'localhost', 'database' => 'mydb']
      *   )
      * @example File/directory indexing:
-     *   new SearchTool(paths: ['docs/', 'articles/'], storage: ':memory:')
+     *   SearchTool::fromPaths(['docs/', 'articles/'])
      */
     public function __construct(
         private ?string $indexPath = null,
@@ -63,10 +82,96 @@ final class SearchTool extends Tool
             throw new RuntimeException('Fuzziness must be between 1 and 3');
         }
 
+        // ':memory:' is an alias for managed temp storage (see docblock): TNTSearch
+        // cannot use in-memory SQLite because it opens separate connections to the
+        // index file. Generated files are registered for cleanup instead.
+        if ($this->storage === ':memory:') {
+            $this->storage = '';
+        }
+
         // Set default storage path if not provided and not using pre-built index
         if ($this->storage === '' && $this->indexPath === null) {
             $this->storage = sys_get_temp_dir().'/tntsearch';
+            $this->ownsStorage = true;
         }
+    }
+
+    public function __destruct()
+    {
+        foreach ($this->tempFiles as $file) {
+            if (file_exists($file)) {
+                @unlink($file);
+            }
+        }
+    }
+
+    /**
+     * Create a SearchTool from a pre-built index file.
+     */
+    public static function fromIndex(
+        string $path,
+        bool $returnContent = false,
+        bool $fuzzy = true,
+        int $fuzziness = 2,
+        int $maxResults = 10,
+    ): self {
+        return new self(
+            indexPath: $path,
+            returnContent: $returnContent,
+            fuzzy: $fuzzy,
+            fuzziness: $fuzziness,
+            maxResults: $maxResults,
+        );
+    }
+
+    /**
+     * Create a SearchTool from an array of documents (each must have an 'id' field).
+     *
+     * @param  array<int, array<string, mixed>>  $docs
+     */
+    public static function fromDocuments(
+        array $docs,
+        bool $returnContent = false,
+        bool $fuzzy = true,
+        int $fuzziness = 2,
+        int $maxResults = 10,
+        string $storage = '',
+        ?string $stemmer = null,
+    ): self {
+        return new self(
+            documents: $docs,
+            returnContent: $returnContent,
+            fuzzy: $fuzzy,
+            fuzziness: $fuzziness,
+            maxResults: $maxResults,
+            storage: $storage,
+            stemmer: $stemmer,
+        );
+    }
+
+    /**
+     * Create a SearchTool that indexes files from the given file/directory paths.
+     *
+     * @param  array<string>  $paths
+     */
+    public static function fromPaths(
+        array $paths,
+        bool $returnContent = false,
+        bool $fuzzy = true,
+        int $fuzziness = 2,
+        int $maxResults = 10,
+        string $storage = '',
+        ?string $stemmer = null,
+    ): self {
+        return new self(
+            paths: $paths,
+            returnContent: $returnContent,
+            fuzzy: $fuzzy,
+            fuzziness: $fuzziness,
+            maxResults: $maxResults,
+            storage: $storage,
+            stemmer: $stemmer,
+        );
     }
 
     public function name(): string
@@ -200,6 +305,7 @@ final class SearchTool extends Tool
         // Note: We must use a file-based database, not :memory:, because TNTSearch
         // creates its own PDO connection and can't access an in-memory database
         $tempDb = $this->tempDir().'/docs_'.uniqid().'.sqlite';
+        $this->tempFiles[] = $tempDb;
 
         // Create database and insert documents
         $pdo = new \PDO('sqlite:'.$tempDb);
@@ -212,13 +318,21 @@ final class SearchTool extends Tool
         }
         $fields = array_unique($fields);
 
+        foreach ($fields as $field) {
+            /** @phpstan-ignore-next-line Runtime input is not constrained by the property PHPDoc. */
+            if (! is_string($field) || $field === '' || str_contains($field, "\0")) {
+                throw new RuntimeException('Document field names must be non-empty strings without null bytes');
+            }
+        }
+
         // Create table
-        $fieldDefs = array_map(fn ($f) => "$f TEXT", $fields);
+        $quotedFields = array_map($this->quoteIdentifier(...), $fields);
+        $fieldDefs = array_map(static fn (string $field): string => "{$field} TEXT", $quotedFields);
         $pdo->exec('CREATE TABLE documents ('.implode(', ', $fieldDefs).')');
 
         // Insert documents
         $placeholders = implode(', ', array_fill(0, count($fields), '?'));
-        $stmt = $pdo->prepare('INSERT INTO documents ('.implode(', ', $fields).') VALUES ('.$placeholders.')');
+        $stmt = $pdo->prepare('INSERT INTO documents ('.implode(', ', $quotedFields).') VALUES ('.$placeholders.')');
 
         foreach ($this->documents as $doc) {
             $values = array_map(function ($field) use ($doc) {
@@ -242,7 +356,7 @@ final class SearchTool extends Tool
         $config = [
             'driver' => 'sqlite',
             'database' => $tempDb,
-            'storage' => $this->storage === ':memory:' ? $this->tempDir() : $this->storage,
+            'storage' => $this->storage,
         ];
 
         if ($this->stemmer !== null) {
@@ -254,11 +368,19 @@ final class SearchTool extends Tool
 
         // Create index from database
         $indexName = 'documents_'.uniqid().'.index';
-        $indexer = $tnt->createIndex($indexName);
+        if ($this->ownsStorage) {
+            $this->tempFiles[] = rtrim($this->storage, '/').'/'.$indexName;
+        }
+        $indexer = $tnt->createIndex($indexName, true);
         $indexer->query('SELECT * FROM documents');
         $indexer->run();
 
         $tnt->selectIndex($indexName);
+    }
+
+    private function quoteIdentifier(string $identifier): string
+    {
+        return '"'.str_replace('"', '""', $identifier).'"';
     }
 
     private function tempDir(): string
@@ -281,7 +403,7 @@ final class SearchTool extends Tool
         }
 
         $config = $this->connection;
-        $config['storage'] = $this->storage === ':memory:' ? sys_get_temp_dir() : $this->storage;
+        $config['storage'] = $this->storage;
 
         if ($this->stemmer !== null) {
             $config['stemmer'] = $this->stemmer;
@@ -292,7 +414,10 @@ final class SearchTool extends Tool
 
         // Create index from query
         $indexName = 'query_'.md5($this->query).'.index';
-        $indexer = $tnt->createIndex($indexName);
+        if ($this->ownsStorage) {
+            $this->tempFiles[] = rtrim($this->storage, '/').'/'.$indexName;
+        }
+        $indexer = $tnt->createIndex($indexName, true);
         $indexer->query($this->query);
         $indexer->run();
 

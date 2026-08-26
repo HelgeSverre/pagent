@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Pagent\Contracts\Provider;
 use Pagent\Workflow\Pipeline;
+use Pagent\Workflow\WorkflowException;
 
 test('pipeline executes named steps', function () {
     $step1 = \mock(['Input' => 'Step 1 output']);
@@ -153,4 +154,25 @@ test('pipeline exports to array', function () {
     expect($exported)->toHaveKeys(['final', 'steps', 'metadata']);
     expect($exported['steps'][0]['name'])->toBe('test');
     expect($exported['steps'][0]['output'])->toBe('B');
+});
+
+test('pipeline failure throws WorkflowException carrying partial results', function () {
+    $step1 = mock(['A' => 'B']);
+
+    $pipeline = Pipeline::create('failing')
+        ->step('first', $step1)
+        ->transform('boom', function (): never {
+            throw new RuntimeException('kaboom');
+        });
+
+    try {
+        $pipeline->run('A');
+        $this->fail('Expected WorkflowException');
+    } catch (WorkflowException $exception) {
+        expect($exception->failedStep)->toBe('boom')
+            ->and($exception->partialResults)->toHaveCount(1)
+            ->and($exception->partialResults[0]->output)->toBe('B')
+            ->and($exception->getPrevious())->toBeInstanceOf(RuntimeException::class)
+            ->and($exception->getPrevious()->getMessage())->toBe('kaboom');
+    }
 });

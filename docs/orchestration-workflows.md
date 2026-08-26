@@ -481,7 +481,9 @@ $fix = $engineering->prompt('Can you unlock the account?');
 
 ## Task Delegation
 
-Delegation implements a manager-worker pattern where a manager agent delegates tasks to worker agents and reviews their output.
+Delegation implements a manager-worker pattern where a manager assigns work to a
+specialized agent. The worker output is returned directly by default; add
+`->review()` when a separate manager summary is worth the extra provider call.
 
 ### Delegation Flow Diagram
 
@@ -494,14 +496,18 @@ flowchart TD
     Worker --> HasSupervision{Supervisor<br/>Configured?}
 
     HasSupervision -->|Yes| Supervisor["Supervisor Function<br/>Reviews Output"]
-    HasSupervision -->|No| ManagerReview
+    HasSupervision -->|No| WantsReview
 
     Supervisor --> SupervisorDecision{Review<br/>Result?}
     SupervisorDecision -->| Reject| Fail["Task Rejected"]
     SupervisorDecision -->| Feedback| Revise["Worker Revises<br/>with Feedback"]
-    SupervisorDecision -->| Approve| ManagerReview
+    SupervisorDecision -->| Approve| WantsReview
 
-    Revise --> ManagerReview
+    Revise --> WantsReview
+
+    WantsReview{Manager review<br/>requested?}
+    WantsReview -->|Yes| ManagerReview
+    WantsReview -->|No| Callback
 
     ManagerReview["Manager Reviews<br/>Creates Summary"]
 
@@ -521,6 +527,7 @@ flowchart TD
     style Worker fill:#e1f5fe
     style Supervisor fill:#f3e5f5
     style SupervisorDecision fill:#fff9c4
+    style WantsReview fill:#fff9c4
 ```
 
 ### Basic Delegation
@@ -538,6 +545,7 @@ $manager = agent('project-manager');
 
 $result = $manager->delegate('Create a function to validate email addresses')
     ->to('developer')
+    ->review()
     ->execute();
 
 echo "Task: {$result->task}\n";
@@ -595,6 +603,7 @@ $result = $manager->delegate('Generate API documentation')
         // Send notification
         mail('team@example.com', 'API docs ready', $result->manager_review);
     })
+    ->review()
     ->execute();
 ```
 
