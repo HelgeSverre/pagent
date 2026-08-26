@@ -39,6 +39,14 @@ final class Ollama implements IdentifiedProvider, StreamingProvider
 
     private int $timeout;
 
+    private int $streamTimeout;
+
+    private int $connectTimeout;
+
+    private int $idleTimeout;
+
+    private bool $retainChunks;
+
     private HttpClientInterface $httpClient;
 
     public function __construct(array $config = [], ?HttpClientInterface $httpClient = null)
@@ -48,7 +56,15 @@ final class Ollama implements IdentifiedProvider, StreamingProvider
             ?? getenv('OLLAMA_HOST')
             ?: 'http://localhost:11434';
 
-        $this->timeout = $config['timeout'] ?? 120;
+        $this->timeout = $this->nonNegativeIntegerOption($config, 'timeout', 120);
+        $this->streamTimeout = $this->nonNegativeIntegerOption(
+            $config,
+            'stream_timeout',
+            array_key_exists('timeout', $config) ? $this->timeout : 0,
+        );
+        $this->connectTimeout = $this->nonNegativeIntegerOption($config, 'connect_timeout', 10);
+        $this->idleTimeout = $this->nonNegativeIntegerOption($config, 'idle_timeout', 30);
+        $this->retainChunks = $this->booleanOption($config, 'retain_chunks', true);
 
         // Remove trailing slash from base URL
         $this->baseUrl = rtrim($this->baseUrl, '/');
@@ -129,7 +145,12 @@ final class Ollama implements IdentifiedProvider, StreamingProvider
                 'Content-Type' => 'application/json',
             ],
             json: $body,
-            options: ['timeout' => 0]
+            options: $this->streamingTransportOptions(
+                $options,
+                $this->streamTimeout,
+                $this->connectTimeout,
+                $this->idleTimeout,
+            ),
         );
 
         $this->ensureStreamSuccessful($transport, 'Ollama');
@@ -141,9 +162,10 @@ final class Ollama implements IdentifiedProvider, StreamingProvider
             stream: $parser->parse($transport->chunks(), $model),
             provider: 'ollama',
             model: $model,
-            canceller: static function () use ($transport): void {
+            releaser: static function () use ($transport): void {
                 $transport->close();
             },
+            retainChunks: $this->booleanOption($options, 'retain_chunks', $this->retainChunks),
         );
     }
 
@@ -197,7 +219,8 @@ final class Ollama implements IdentifiedProvider, StreamingProvider
 
         // Pass through additional Ollama-specific options
         foreach ($options as $key => $value) {
-            if (! in_array($key, ['messages', 'system', 'model', 'temperature', 'max_tokens', 'tools', 'options', 'stream', ...self::MODEL_OPTION_KEYS], true)) {
+            if (! in_array($key, ['messages', 'system', 'model', 'temperature', 'max_tokens', 'tools', 'options', 'stream', ...self::MODEL_OPTION_KEYS], true)
+                && ! $this->isStreamControlOption($key)) {
                 $body[$key] = $value;
             }
         }

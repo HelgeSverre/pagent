@@ -21,6 +21,7 @@ use Pagent\Streaming\StreamResponse;
 use Pagent\Tool\ToolCallArgumentNormalizer;
 
 use function array_filter;
+use function array_key_exists;
 use function array_key_last;
 use function array_map;
 use function array_unshift;
@@ -53,6 +54,14 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
 
     private int $timeout;
 
+    private int $streamTimeout;
+
+    private int $connectTimeout;
+
+    private int $idleTimeout;
+
+    private bool $retainChunks;
+
     private string $protocol;
 
     /** @var array<string, string> */
@@ -74,7 +83,15 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
             : 'https://opencode.ai/zen/v1';
 
         $this->baseUrl = rtrim($config['base_url'] ?? $defaultBaseUrl, '/');
-        $this->timeout = $config['timeout'] ?? 30;
+        $this->timeout = $this->nonNegativeIntegerOption($config, 'timeout', 30);
+        $this->streamTimeout = $this->nonNegativeIntegerOption(
+            $config,
+            'stream_timeout',
+            array_key_exists('timeout', $config) ? $this->timeout : 0,
+        );
+        $this->connectTimeout = $this->nonNegativeIntegerOption($config, 'connect_timeout', 10);
+        $this->idleTimeout = $this->nonNegativeIntegerOption($config, 'idle_timeout', 30);
+        $this->retainChunks = $this->booleanOption($config, 'retain_chunks', true);
         $this->protocol = $this->normalizeProtocol($config['protocol'] ?? self::PROTOCOL_CHAT_COMPLETIONS);
         $this->modelProtocols = $this->normalizeModelProtocols($config['model_protocols'] ?? []);
         $this->httpClient = $httpClient ?? new CurlTransport($this->providerId());
@@ -113,7 +130,12 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
             url: $this->urlFor($request['protocol']),
             headers: $this->headers(),
             json: $request['body'],
-            options: ['timeout' => 0],
+            options: $this->streamingTransportOptions(
+                $options,
+                $this->streamTimeout,
+                $this->connectTimeout,
+                $this->idleTimeout,
+            ),
         );
 
         $this->ensureStreamSuccessful($transport, 'OpenCode');
@@ -124,9 +146,10 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
             stream: $parser->parse($transport->chunks(), $model),
             provider: 'opencode',
             model: $model,
-            canceller: static function () use ($transport): void {
+            releaser: static function () use ($transport): void {
                 $transport->close();
             },
+            retainChunks: $this->booleanOption($options, 'retain_chunks', $this->retainChunks),
         );
     }
 
@@ -357,7 +380,8 @@ final class OpenCode implements IdentifiedProvider, StreamingProvider
     {
         return array_filter(
             $options,
-            static fn (mixed $value, string $key): bool => ! in_array($key, ['messages', 'system', 'model', 'protocol'], true),
+            fn (mixed $value, string $key): bool => ! in_array($key, ['messages', 'system', 'model', 'protocol'], true)
+                && ! $this->isStreamControlOption($key),
             ARRAY_FILTER_USE_BOTH,
         );
     }

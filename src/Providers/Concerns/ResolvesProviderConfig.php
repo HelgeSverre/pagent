@@ -6,6 +6,7 @@ namespace Pagent\Providers\Concerns;
 
 use Pagent\Exceptions\ApiException;
 use Pagent\Exceptions\ConfigurationException;
+use Pagent\Exceptions\InvalidArgumentException;
 use Pagent\Http\HttpResponse;
 use Pagent\Http\StreamTransport;
 use Pagent\Tool\ToolCallArgumentNormalizer;
@@ -23,6 +24,15 @@ use function uniqid;
  */
 trait ResolvesProviderConfig
 {
+    /** @var list<string> */
+    private const STREAM_CONTROL_OPTIONS = [
+        'timeout',
+        'stream_timeout',
+        'connect_timeout',
+        'idle_timeout',
+        'retain_chunks',
+    ];
+
     abstract public function providerId(): string;
 
     /**
@@ -105,5 +115,62 @@ trait ResolvesProviderConfig
             'name' => $name,
             'arguments' => ToolCallArgumentNormalizer::normalize($arguments, "{$label} tool '{$name}'"),
         ];
+    }
+
+    /** @param array<string, mixed> $options */
+    private function nonNegativeIntegerOption(array $options, string $key, int $default): int
+    {
+        if (! array_key_exists($key, $options)) {
+            return $default;
+        }
+
+        $value = $options[$key];
+        if (! is_numeric($value) || (int) $value < 0) {
+            throw new InvalidArgumentException("{$key} must be a non-negative integer");
+        }
+
+        return (int) $value;
+    }
+
+    /** @param array<string, mixed> $options */
+    private function booleanOption(array $options, string $key, bool $default): bool
+    {
+        if (! array_key_exists($key, $options)) {
+            return $default;
+        }
+
+        if (! is_bool($options[$key])) {
+            throw new InvalidArgumentException("{$key} must be a boolean");
+        }
+
+        return $options[$key];
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     * @return array{timeout: int, connect_timeout: int, idle_timeout: int, buffer_response: false}
+     */
+    private function streamingTransportOptions(
+        array $options,
+        int $streamTimeout,
+        int $connectTimeout,
+        int $idleTimeout,
+    ): array {
+        $timeoutOptions = $options;
+        if (! array_key_exists('stream_timeout', $timeoutOptions) && array_key_exists('timeout', $timeoutOptions)) {
+            $timeoutOptions['stream_timeout'] = $timeoutOptions['timeout'];
+        }
+
+        return [
+            'timeout' => $this->nonNegativeIntegerOption($timeoutOptions, 'stream_timeout', $streamTimeout),
+            'connect_timeout' => $this->nonNegativeIntegerOption($options, 'connect_timeout', $connectTimeout),
+            'idle_timeout' => $this->nonNegativeIntegerOption($options, 'idle_timeout', $idleTimeout),
+            'buffer_response' => false,
+        ];
+    }
+
+    private function isStreamControlOption(string $key): bool
+    {
+        return in_array($key, self::STREAM_CONTROL_OPTIONS, true);
     }
 }

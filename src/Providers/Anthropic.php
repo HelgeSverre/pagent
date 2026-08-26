@@ -14,6 +14,7 @@ use Pagent\Response;
 use Pagent\Streaming\AnthropicStreamParser;
 use Pagent\Streaming\StreamResponse;
 
+use function array_key_exists;
 use function in_array;
 use function rtrim;
 
@@ -27,13 +28,29 @@ final class Anthropic implements IdentifiedProvider, StreamingProvider
 
     private int $timeout;
 
+    private int $streamTimeout;
+
+    private int $connectTimeout;
+
+    private int $idleTimeout;
+
+    private bool $retainChunks;
+
     private HttpClientInterface $httpClient;
 
     public function __construct(array $config = [], ?HttpClientInterface $httpClient = null)
     {
         $this->apiKey = $this->resolveApiKey($config, 'ANTHROPIC_API_KEY', 'Anthropic');
         $this->baseUrl = rtrim($config['base_url'] ?? 'https://api.anthropic.com/v1', '/');
-        $this->timeout = $config['timeout'] ?? 30;
+        $this->timeout = $this->nonNegativeIntegerOption($config, 'timeout', 30);
+        $this->streamTimeout = $this->nonNegativeIntegerOption(
+            $config,
+            'stream_timeout',
+            array_key_exists('timeout', $config) ? $this->timeout : 0,
+        );
+        $this->connectTimeout = $this->nonNegativeIntegerOption($config, 'connect_timeout', 10);
+        $this->idleTimeout = $this->nonNegativeIntegerOption($config, 'idle_timeout', 30);
+        $this->retainChunks = $this->booleanOption($config, 'retain_chunks', true);
         $this->httpClient = $httpClient ?? new CurlTransport($this->providerId());
     }
 
@@ -97,7 +114,12 @@ final class Anthropic implements IdentifiedProvider, StreamingProvider
             url: $this->baseUrl.'/messages',
             headers: $this->headers(),
             json: $body,
-            options: ['timeout' => 0]
+            options: $this->streamingTransportOptions(
+                $options,
+                $this->streamTimeout,
+                $this->connectTimeout,
+                $this->idleTimeout,
+            ),
         );
 
         $this->ensureStreamSuccessful($transport, 'Anthropic');
@@ -109,9 +131,10 @@ final class Anthropic implements IdentifiedProvider, StreamingProvider
             stream: $parser->parse($transport->chunks(), $model),
             provider: 'anthropic',
             model: $model,
-            canceller: static function () use ($transport): void {
+            releaser: static function () use ($transport): void {
                 $transport->close();
             },
+            retainChunks: $this->booleanOption($options, 'retain_chunks', $this->retainChunks),
         );
     }
 
@@ -153,7 +176,8 @@ final class Anthropic implements IdentifiedProvider, StreamingProvider
 
         // Pass through additional Anthropic-specific options (e.g. top_p, top_k, stop_sequences)
         foreach ($options as $key => $value) {
-            if (! in_array($key, ['messages', 'system', 'model', 'max_tokens', 'tools', 'stream'], true)) {
+            if (! in_array($key, ['messages', 'system', 'model', 'max_tokens', 'tools', 'stream'], true)
+                && ! $this->isStreamControlOption($key)) {
                 $body[$key] = $value;
             }
         }
